@@ -1154,6 +1154,7 @@ function renderMarket(d){
   const value = d.show_value
     ? valuePanel(d)
     : `<div class="card mkt-locked">🔒 <b>价值投注 / Kelly 注码：未解锁</b>。需先用 CLV 证明模型对闭盘线有<b>显著正向</b>信息优势（当前：${c.available?(c.enough_n?'未达显著':'样本不足'):'缺开盘赔率数据'}）。这是<b>刻意的诚实门槛</b>——没有证据就不给"稳赢"暗示。
+      <div style="margin-top:9px;color:#e3b341"><b>它可能永远不会打开——而这正是它最值钱的地方：不骗你。</b>跑赢闭盘线极难，若模型没有真优势，它会诚实地一直锁着，而不是给你一个看着唬人、其实是噪声的数字。</div>
       <div style="margin-top:11px"><button class="seebtn" onclick="loadMarketDemo()">🧪 看演示：CLV 证明后长这样（合成数据）</button></div></div>`;
   const src = d.odds_source?`<b>${d.odds_source}</b>`:'<code>data/odds.csv</code>';
   const upd = d.odds_updated?` · 上次快照 ${d.odds_updated.slice(5,16)}`:'';
