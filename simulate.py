@@ -1,4 +1,5 @@
-"""
+"""Monte-Carlo tournament simulation: from the score matrix, simulate the whole 2026 World Cup and output each team's title odds.
+
 蒙特卡洛赛事模拟：基于比分矩阵，模拟整届 2026 世界杯，输出每队夺冠概率。
 
 流程

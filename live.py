@@ -1,4 +1,6 @@
-"""实时赛果层：从 ESPN 公开 scoreboard API 拉取 2026 世界杯正赛已完场比分。
+"""Live-results layer: pull finished 2026 World Cup match scores from ESPN's public scoreboard API.
+
+实时赛果层：从 ESPN 公开 scoreboard API 拉取 2026 世界杯正赛已完场比分。
 
 为什么需要它：martj42/international_results 是人工维护，开赛期间有 1~3 天滞后；
 ESPN 的 site.api.espn.com 是免 key 公开接口，完场后分钟级可得，含点球大战比分。

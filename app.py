@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""
+"""Web service: a Flask app wrapping score prediction + title simulation.
+
 Web 服务：把比分预测 + 夺冠模拟做成网页。
 
 启动：

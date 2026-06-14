@@ -1,4 +1,5 @@
-"""
+"""Model layer: Dixon-Coles double-Poisson score-prediction model.
+
 模型层：双泊松 + Dixon-Coles 修正的比分预测模型。
 
 原理

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""夺冠概率的『参数不确定性』可信区间（precompute → data/champ_ci.json）。
+"""Title-probability parameter-uncertainty credible interval (precompute -> data/champ_ci.json).
+
+夺冠概率的『参数不确定性』可信区间（precompute → data/champ_ci.json）。
 
 方法（修正版，2026-06-14）：复用 bayes.py 的**分层贝叶斯后验抽样**驱动模拟器。
   - 为什么靠谱：bayes 是同族加权双泊松（log_mu = intercept + atk − dfc + home_adv），

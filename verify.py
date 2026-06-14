@@ -1,4 +1,5 @@
-"""
+"""Prediction verification layer: pre-match prediction ledger (frozen before kickoff) + finished-match prediction-vs-actual stats.
+
 预测验证层：预测留痕（开球前冻结） + 已完赛「预测 vs 实际」对比统计。
 
 诚实性铁律（与 backtest 同口径，杜绝事后改口）：

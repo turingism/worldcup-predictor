@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""
+"""Score-prediction CLI (single match / power ranking / batch fixtures).
+
 世界杯比分预测 CLI
 
 用法示例

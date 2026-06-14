@@ -1,4 +1,6 @@
-"""2026 世界杯赛程开球时间（已换算为北京时间 UTC+8）。
+"""2026 World Cup kickoff times (converted to Beijing time, UTC+8).
+
+2026 世界杯赛程开球时间（已换算为北京时间 UTC+8）。
 来源：维基百科 2026 FIFA World Cup（各场含 UTC 偏移），脚本统一换算。
 另含 data/venues.json（每场主办城市 + 城市 UTC 偏移），可把北京时间换算成场馆当地时间。"""
 import datetime as _dt

@@ -1,4 +1,6 @@
-"""比赛进行中（in-play）实时胜平负更新。
+"""In-play real-time win/draw/loss update.
+
+比赛进行中（in-play）实时胜平负更新。
 
 原理：赛前 Dixon-Coles 给出双方 90 分钟期望进球 λ_主/λ_客。把进球看作 90 分钟上的
 齐次泊松过程——已进行 t 分钟后，剩余时间 (90−t)/90，各队剩余进球 ~ Poisson(λ·剩余比例)。

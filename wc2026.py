@@ -1,4 +1,5 @@
-"""
+"""Official 2026 World Cup format: group draw + knockout bracket structure + best-third allocation.
+
 2026 世界杯官方赛制：小组分组 + 淘汰赛括号结构 + 第三名分配。
 
 来源：FIFA 官方 / 维基百科 "2026 FIFA World Cup"。

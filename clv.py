@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""市场对标 / CLV（闭盘线价值）诚实检验层。
+"""Market benchmarking / CLV (closing-line value) honesty-check layer.
+
+市场对标 / CLV（闭盘线价值）诚实检验层。
 
 为什么是 CLV 而不是只看命中率：博彩的真相不是"预测准不准"，而是你下注时拿到的隐含概率
 vs **闭盘线**隐含概率。闭盘线是市场吸收全部信息后的金标准；若模型挑出的标的能持续跑赢

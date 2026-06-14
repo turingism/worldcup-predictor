@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""
+"""Hierarchical Bayesian double-Poisson model (PyMC): team ratings with credible intervals.
+
 贝叶斯分层双泊松模型（PyMC）—— 给球队评级加可信区间。
 
 定位：这是 DC 预测引擎的**补充视图**，不替换它。

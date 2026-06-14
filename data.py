@@ -1,4 +1,5 @@
-"""
+"""Data layer: load historical international match results and build time-weighted training data.
+
 数据层：加载国际比赛历史结果，构建带权重的训练数据。
 
 数据源：martj42/international_results

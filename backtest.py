@@ -1,4 +1,5 @@
-"""
+"""Backtesting framework: quantify prediction quality on out-of-sample matches so "optimization" is evidence-based.
+
 回测框架：用样本外比赛量化预测质量，让"优化"有据可依。
 
 做法：选若干历史时点 cutoff，只用 cutoff 之前的数据训练，预测 cutoff 之后
