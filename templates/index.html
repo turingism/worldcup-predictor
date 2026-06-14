@@ -1268,6 +1268,13 @@ predict();
 // 赛事看板可见时每 60s 静默刷新实时比分（不重训，仅拉 ESPN 状态）
 setInterval(()=>{ if(document.visibilityState==='visible' && $('#verify').style.display!=='none'
   && $('#dashres').dataset.loaded) loadDashboard(); }, 60*1000);
+// 看板可见时每 3 分钟静默拉一次 ESPN 完赛（有新赛果 → 模型自动重训 + 看板刷新；连带触发夺冠区间/盘口重算）
+setInterval(async ()=>{
+  if(document.visibilityState!=='visible' || $('#verify').style.display==='none') return;
+  try{ const r=await (await fetch('/api/live',{method:'POST'})).json();
+    if(r && r.ok && r.changed) loadDashboard();   // 有新完赛才重渲染
+  }catch(e){}
+}, 180*1000);
 </script>
 </body>
 </html>
