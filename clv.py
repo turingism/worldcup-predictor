@@ -96,9 +96,19 @@ def evaluate(odds_path: str = ODDS_PATH, df=None, include_upcoming: bool = False
         df = datamod.load_raw()
     played = datamod.played(df)
     cutoff = (odds["date"].min() - pd.Timedelta(days=1)).date()
+    has_open = all(c in odds.columns for c in ("odds_1_open", "odds_x_open", "odds_2_open"))
+    # 预扫：有没有"已完赛"场次需要评估。若没有且不含未开赛 → 直接返回 n=0，
+    # **不训练 as_of 模型**（一次无泄漏拟合约 ~60s）——开赛初期 odds 全是未来场次时，
+    # 这是市场 tab 卡死/超时的根因。只有真要评估时才付训练成本。
+    any_finished = any(_result(played, o["home_team"], o["away_team"], o["date"]) is not None
+                       for _, o in odds.iterrows())
+    if not any_finished and not include_upcoming:
+        return {"n": 0, "cutoff": str(cutoff), "has_open": has_open,
+                "avg_margin": None, "model_rps": None, "line_rps": None, "rps_diff": None,
+                "rows": [], "show_value": False,
+                "clv": {"available": has_open, "n": 0, "enough_n": False, "proven_edge": False}}
     model = _as_of_model(df, cutoff)
 
-    has_open = all(c in odds.columns for c in ("odds_1_open", "odds_x_open", "odds_2_open"))
     LAB = {0: "主胜", 1: "平", 2: "客胜"}
     rows, m_rps, l_rps, margins, clvs, beats = [], 0.0, 0.0, [], [], []
     n_eval = 0                                 # 已完赛、进入 RPS/CLV 统计的场次数
