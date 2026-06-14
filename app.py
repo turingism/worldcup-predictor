@@ -17,6 +17,9 @@ import datetime as dt
 import json
 import os
 import pickle
+import subprocess
+import sys
+import threading
 import time
 import urllib.request
 
@@ -92,21 +95,66 @@ def api_config():
     return jsonify({"readonly": READONLY})
 
 
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# 夺冠区间后台重算任务：bayes.py（导出后验）→ champ_ci.py（MC 区间），约 90s，子进程异步跑。
+_CI_JOB = {"running": False, "updated": None, "error": None}
+
+
+def _regen_ci_worker():
+    """后台串行跑 bayes.py + champ_ci.py（子进程，避免 PyMC 多进程在 Flask 线程里出问题）。"""
+    try:
+        for script in ("bayes.py", "champ_ci.py"):
+            r = subprocess.run([sys.executable, os.path.join(_BASE_DIR, script)],
+                               capture_output=True, text=True, cwd=_BASE_DIR, timeout=600)
+            if r.returncode != 0:
+                _CI_JOB["error"] = f"{script} 失败：{(r.stderr or '')[-300:]}"
+                print(f"[champ_ci] 后台重算 {_CI_JOB['error']}")
+                return
+        _CI_JOB["error"] = None
+        _CI_JOB["updated"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[champ_ci] 后台重算完成 {_CI_JOB['updated']}")
+    except Exception as e:  # noqa
+        _CI_JOB["error"] = str(e)
+    finally:
+        _CI_JOB["running"] = False
+
+
+def regen_champ_ci_async():
+    """触发后台重算（只读模式或已在跑则跳过）。新赛果重训后自动调用，实现区间自动更新。"""
+    if READONLY or _CI_JOB["running"]:
+        return
+    _CI_JOB["running"] = True
+    _CI_JOB["error"] = None
+    threading.Thread(target=_regen_ci_worker, daemon=True).start()
+    print("[champ_ci] 已在后台启动夺冠区间重算（bayes→champ_ci，约 90s）")
+
+
 @app.route("/api/champ_ci")
 def api_champ_ci():
-    """夺冠概率参数不确定性区间（bayes 分层后验驱动，预计算自 champ_ci.py）。
-    缺缓存文件时 available=False（前端提示需先跑 champ_ci.py）。"""
-    path = os.path.join(os.path.dirname(__file__), "data", "champ_ci.json")
+    """夺冠概率参数不确定性区间（bayes 分层后验驱动）。含后台重算状态（computing/updated/error），
+    前端据此显示"更新中…"并轮询。缺缓存文件且未在算时 available=False。"""
+    path = os.path.join(_BASE_DIR, "data", "champ_ci.json")
+    job = {"computing": _CI_JOB["running"], "ci_updated": _CI_JOB["updated"],
+           "ci_error": _CI_JOB["error"]}
     try:
         with open(path, encoding="utf-8") as f:
             d = json.load(f)
     except (FileNotFoundError, ValueError, OSError):
-        return jsonify({"available": False})
+        return jsonify({"available": False, **job})
     rows = [r for r in d.get("rows", []) if r["med"] > 0 or r["hi"] > 0][:24]
     for r in rows:
         r["team"] = teams_zh.disp(r["team"])
     return jsonify({"available": True, "n_draws": d.get("n_draws"),
-                    "draw_sims": d.get("draw_sims"), "rows": rows})
+                    "draw_sims": d.get("draw_sims"), "rows": rows, **job})
+
+
+@app.route("/api/champ_ci/regen", methods=["POST"])
+def api_champ_ci_regen():
+    """手动触发夺冠区间后台重算。"""
+    if (blocked := _readonly_block()):
+        return blocked
+    regen_champ_ci_async()
+    return jsonify({"ok": True, "running": _CI_JOB["running"]})
 
 
 _MARKET_CACHE: dict = {}
@@ -332,6 +380,7 @@ def _refit_all():
         verifymod.freeze(_sim())
     except Exception as e:  # noqa
         print(f"[verify] 重训后冻结预测失败（不影响主功能）：{e}")
+    regen_champ_ci_async()     # 新赛果重训后，后台异步重算夺冠区间（bayes→champ_ci，不阻塞）
 
 
 @app.route("/api/refresh", methods=["POST"])

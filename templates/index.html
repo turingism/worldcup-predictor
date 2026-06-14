@@ -276,6 +276,12 @@
     border:2px solid #0d1117;transform:translate(-50%,-50%);box-shadow:0 0 4px #2ea04388}
   .ci-val{text-align:right;font-variant-numeric:tabular-nums;color:#c9d1d9}
   .ci-val small{font-size:10.5px}
+  .ci-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .ci-head>b{font-size:15px;color:#e6edf3}
+  .ci-badge{font-size:11px;padding:2px 9px;border-radius:10px;background:#1f6feb22;
+    border:1px solid #1f6feb55;color:#79c0ff;animation:lcblink 1.6s ease-in-out infinite}
+  .ci-badge.ci-err{background:#f8514922;border-color:#f8514955;color:#ff7b72;animation:none}
+  .ci-head .seebtn{margin-left:auto}
   @media(max-width:520px){ .val-row{grid-template-columns:1fr 50px 58px 58px;font-size:12px} }
   @media(max-width:520px){ .mkt-row{grid-template-columns:1fr 70px 70px;font-size:12px}
     .mkt-row>div:nth-child(4){display:none} }
@@ -1182,18 +1188,35 @@ async function loadMarketDemo(){
   catch(e){ host.innerHTML=`<div class="card err">✗ ${e}</div>`; }
 }
 
-// —— 夺冠概率 90% 可信区间（bayes 分层后验驱动，参数不确定性传播）——
+// —— 夺冠概率 90% 可信区间（bayes 分层后验驱动；新赛果后自动后台重算 + 轮询）——
+let champCIpollTimer=null;
 async function loadChampCI(){
   const host=$('#champcires');
   try{
     const d=await (await fetch('/api/champ_ci')).json();
-    if(!d.available){ host.innerHTML=`<div class="card" style="border-left:3px solid #6e7681"><b>夺冠概率可信区间</b><div class="muted" style="font-size:12px;margin-top:4px">尚未生成。先跑 <code>python3 bayes.py</code> 再 <code>python3 champ_ci.py</code> 即可在此显示。</div></div>`; return; }
     host.innerHTML=renderChampCI(d);
+    if(champCIpollTimer){ clearTimeout(champCIpollTimer); champCIpollTimer=null; }
+    if(d.computing){ champCIpollTimer=setTimeout(loadChampCI, 15000); }  // 算完前每 15s 轮询拿新区间
   }catch(e){ host.innerHTML=''; }
 }
+async function regenChampCI(btn){
+  if(btn){ btn.disabled=true; btn.textContent='启动中…'; }
+  try{ const r=await (await fetch('/api/champ_ci/regen',{method:'POST'})).json();
+    if(r.readonly) alert('只读分享模式：无法重算区间。'); }
+  catch(e){}
+  loadChampCI();
+}
 function renderChampCI(d){
-  const rows=d.rows||[]; if(!rows.length) return '';
-  const max=Math.max(...rows.map(r=>r.hi), 0.01);   // 以最大上界定标
+  const upd=d.ci_updated?`上次更新 ${d.ci_updated.slice(5,16)}`:'';
+  const computing=d.computing?`<span class="ci-badge">⟳ 区间更新中…（约 1–2 分钟）</span>`:'';
+  const err=d.ci_error&&!d.computing?`<span class="ci-badge ci-err">✗ ${d.ci_error.slice(0,40)}</span>`:'';
+  const btn=d.computing?'':`<button class="seebtn" onclick="regenChampCI(this)">↻ 重新计算</button>`;
+  const head=`<div class="ci-head"><b>夺冠概率 · 90% 可信区间</b><span class="muted" style="font-size:11px">${upd}</span>${computing}${err}${btn}</div>`;
+  if(!d.available){
+    return `<div class="card">${head}<div class="muted" style="font-size:12.5px;margin-top:8px">${d.computing?'首次计算中…完成后自动显示（新赛果或点重算后会自动触发）。':'尚无区间数据。点「重新计算」生成（贝叶斯分层后验→模拟，约 1–2 分钟），刷新真实赛果后也会自动重算。'}</div></div>`;
+  }
+  const rows=d.rows||[]; if(!rows.length) return `<div class="card">${head}</div>`;
+  const max=Math.max(...rows.map(r=>r.hi),0.01);
   const bars=rows.map(r=>{
     const x=v=>`${(v/max*100).toFixed(2)}%`;
     return `<div class="ci-row">
@@ -1205,10 +1228,8 @@ function renderChampCI(d){
       <div class="ci-val">${(r.med*100).toFixed(1)}%<small class="muted"> [${(r.lo*100).toFixed(1)}–${(r.hi*100).toFixed(1)}]</small></div>
     </div>`;
   }).join('');
-  return `<div class="card">
-    <h3 style="margin-top:0">夺冠概率 · 90% 可信区间 <span class="muted" style="font-size:11.5px;font-weight:400">（贝叶斯分层后验 · ${d.n_draws} 套 × ${d.draw_sims} 模拟）</span></h3>
-    <div class="muted" style="font-size:12px;margin-bottom:12px">点＝后验<b>中位</b>，横条＝<b>5–95% 可信区间</b>。区间宽且彼此<b>大量重叠</b>＝夺冠次序本就高度不确定。
-    分层<b>收缩</b>把强队向均值压、抬中游，故比上方蒙特卡洛点估<b>更保守</b>——这是参数不确定性的诚实呈现，非 bug。预测主引擎仍是 DC，本视图为补充。</div>
+  return `<div class="card">${head}
+    <div class="muted" style="font-size:12px;margin:6px 0 12px">点＝后验<b>中位</b>，横条＝<b>5–95% 可信区间</b>（贝叶斯分层后验 · ${d.n_draws} 套 × ${d.draw_sims} 模拟）。区间宽且<b>大量重叠</b>＝夺冠次序本就高度不确定；分层<b>收缩</b>使其比上方蒙特卡洛点估<b>更保守</b>，是参数不确定性的诚实呈现。主引擎仍是 DC，本视图为补充。</div>
     ${bars}
   </div>`;
 }
