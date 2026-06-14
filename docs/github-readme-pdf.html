@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>世界杯比分预测器 · GitHub 说明文档</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; }
+  :root{
+    --ink:#0b1220; --muted:#5b6675; --line:#e3e8ef; --soft:#f6f8fb;
+    --green:#0a7d2e; --grass:#11904a; --accent:#1452ff; --gold:#b8860b; --chip:#eef3ff;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color:var(--ink); line-height:1.62; font-size:11pt; margin:0;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ line-height:1.25; }
+  /* hero */
+  .hero{
+    background:linear-gradient(135deg,#062b16 0%,#0a5e2f 55%,#11904a 100%);
+    color:#fff; border-radius:16px; padding:30px 30px 26px; margin-bottom:22px;
+    box-shadow:0 10px 30px rgba(10,94,47,.25);
+  }
+  .hero .ball{ font-size:30pt; line-height:1; }
+  .hero h1{ font-size:25pt; margin:6px 0 4px; letter-spacing:.5px; }
+  .hero .en{ font-size:12pt; opacity:.85; font-weight:500; margin-bottom:14px; letter-spacing:1px;}
+  .hero p{ font-size:11pt; opacity:.96; margin:0 0 14px; }
+  .hero .tags{ display:flex; flex-wrap:wrap; gap:8px; }
+  .hero .tags span{
+    background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.28);
+    padding:4px 11px; border-radius:999px; font-size:9.5pt; font-weight:600;
+  }
+  /* value band */
+  .value{
+    background:var(--soft); border:1px solid var(--line); border-left:5px solid var(--grass);
+    border-radius:12px; padding:16px 20px; margin:18px 0;
+  }
+  .value b{ color:var(--grass); }
+  .value .punch{ margin-top:8px; font-size:10pt; color:var(--muted); }
+  .value .punch b{ color:var(--ink); }
+  h2{
+    font-size:16pt; margin:30px 0 12px; padding-bottom:7px;
+    border-bottom:2px solid var(--line); display:flex; align-items:center; gap:9px;
+  }
+  h2 .bar{ width:6px; height:20px; background:var(--grass); border-radius:3px; display:inline-block; }
+  h3{ font-size:12.5pt; margin:18px 0 7px; color:#0c3b21; }
+  p{ margin:8px 0; }
+  /* tables */
+  table{ width:100%; border-collapse:collapse; margin:12px 0; font-size:10pt; }
+  th,td{ border:1px solid var(--line); padding:8px 11px; text-align:left; vertical-align:top; }
+  th{ background:#eef6f0; color:#0c3b21; font-weight:700; }
+  tr:nth-child(even) td{ background:#fafcfe; }
+  .vs th:first-child{ background:#fbecec; color:#8a2b2b; }
+  .vs th:last-child{ background:#eaf6ee; color:#0c3b21; }
+  /* code */
+  pre{
+    background:#0b1220; color:#e6edf6; border-radius:10px; padding:14px 16px;
+    font-family:"SF Mono",Menlo,Consolas,monospace; font-size:9pt; line-height:1.55;
+    overflow:hidden; white-space:pre-wrap; word-break:break-word; margin:10px 0;
+  }
+  code{ font-family:"SF Mono",Menlo,Consolas,monospace; background:var(--chip); color:#1240c0;
+    padding:1px 6px; border-radius:5px; font-size:9.5pt; }
+  pre code{ background:none; color:inherit; padding:0; }
+  /* cards */
+  .cards{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0; }
+  .card{ border:1px solid var(--line); border-radius:11px; padding:13px 15px; background:#fff; }
+  .card h4{ margin:0 0 5px; font-size:11pt; color:#0c3b21; }
+  .card p{ margin:0; font-size:9.7pt; color:var(--muted); }
+  .feat{ border-left:4px solid var(--accent); }
+  /* callout */
+  .note{ background:#fff8e8; border:1px solid #f0e0b0; border-left:5px solid var(--gold);
+    border-radius:10px; padding:12px 16px; margin:14px 0; font-size:10pt; }
+  .note b{ color:#8a6400; }
+  ul{ margin:8px 0; padding-left:22px; } li{ margin:5px 0; }
+  .avoid-quotes{ }
+  blockquote{ margin:12px 0; padding:10px 16px; background:var(--soft);
+    border-left:4px solid var(--muted); border-radius:8px; color:#39424f; font-size:10pt; }
+  .footer{
+    margin-top:34px; text-align:center; padding:22px;
+    background:linear-gradient(135deg,#0a5e2f,#11904a); color:#fff; border-radius:14px;
+  }
+  .footer .big{ font-size:14pt; font-weight:800; }
+  .footer .sub{ font-size:10pt; opacity:.92; margin-top:6px; }
+  .pb{ page-break-before:always; }
+  .nobreak{ page-break-inside:avoid; }
+  .lead{ font-size:11.5pt; }
+  .stat{ display:inline-block; background:var(--chip); color:#1240c0; font-weight:700;
+    padding:1px 8px; border-radius:6px; }
+</style>
+</head>
+<body>
+
+<div class="hero nobreak">
+  <div class="ball">⚽</div>
+  <h1>世界杯比分预测器</h1>
+  <div class="en">World Cup Score Predictor</div>
+  <p><strong>不是又一个"AI 凭感觉吹球"的玩具。</strong>这是一台用 1872–2026 全量真实国际比赛数据、Dixon‑Coles 双泊松统计引擎驱动、经样本外回测校准过的 <strong>可交互实时概率机器</strong>——每一个数字都能被回测证伪，每一次刷新都跟着真实赛果走。</p>
+  <div class="tags">
+    <span>Dixon‑Coles 双泊松</span>
+    <span>蒙特卡洛 50k</span>
+    <span>2026 官方赛制括号</span>
+    <span>ESPN 分钟级实时</span>
+    <span>Flask 一键起网页</span>
+  </div>
+</div>
+
+<div class="value nobreak">
+  <div class="lead">🎯 <b>一句话价值</b></div>
+  <p style="margin:6px 0 0">
+    <b>输入两支球队</b> → 给你最可能比分、完整比分概率矩阵、胜平负、期望进球(xG)。<br>
+    <b>点一下模拟</b> → 给你 48 强每一队的夺冠 / 进决赛 / 四强 / 出线概率，带置信区间。<br>
+    <b>开赛之后</b> → 真实赛果秒级同步，预测随事实自动重算，晋级树实时改写。
+  </p>
+  <div class="punch">别人给你一句"我觉得阿根廷夺冠"，我们给你
+    <b>阿根廷 18.3%、西班牙 16.9%、英格兰 11.0%</b>——还告诉你这个数字是怎么算出来的、为什么可信。</div>
+</div>
+
+<h2 class="nobreak"><span class="bar"></span>🔥 为什么它不一样</h2>
+<table class="vs nobreak">
+  <tr><th>普通"预测"</th><th>世界杯比分预测器</th></tr>
+  <tr><td>拍脑袋、抄热搜</td><td><b>学术级统计模型</b>：Maher(1982) → Dixon‑Coles(1997) 一脉相承</td></tr>
+  <tr><td>一个"谁赢"的结论</td><td><b>整张比分概率矩阵</b> + xG + 胜平负 + Top7 比分</td></tr>
+  <tr><td>无法验证对错</td><td><b>样本外回测</b>（RPS / LogLoss / 命中率）逼自己说真话</td></tr>
+  <tr><td>赛前算一次就完事</td><td><b>开赛期实时引擎</b>：ESPN 分钟级完场 → 自动重训 → 概率随赛况漂移</td></tr>
+  <tr><td>黑箱</td><td><b>全程可编辑、可解读</b>：改任意比分做假设，括号与夺冠率实时重算</td></tr>
+</table>
+<blockquote>我们甚至完整拆读了 Kimi 的 224 页、300+ agent 世界杯研报，做了两组对标回测——结论：<b>把它的核心方法论照搬过来会让我们更差</b>。我方单一可回测引擎在同口径上已是最优。</blockquote>
+
+<h2><span class="bar"></span>🧠 预测引擎：你买到的到底是什么算法</h2>
+<div class="cards">
+  <div class="card feat nobreak"><h4>① 真实数据，不是模拟数据</h4><p>数据源 martj42/international_results：1872–2026 全部国家队比分。世界杯是国家队赛事，俱乐部联赛数据无效——我们从根上选对了样本。</p></div>
+  <div class="card feat nobreak"><h4>② 双泊松 GLM + DC 修正</h4><p>每队进球服从 Poisson(λ)，用进攻力 / 防守力 / 主场建模 log λ。Dixon‑Coles 相关参数 ρ 专修低分平局低估，几秒收敛。</p></div>
+  <div class="card feat nobreak"><h4>③ 时间衰减加权</h4><p>越近的比赛权重越高，半衰期 730 天为修复时间泄漏后样本外回测最优。短期状态 &gt; 历史声誉。</p></div>
+  <div class="card feat nobreak"><h4>④ 中立场 / 东道主分得清</h4><p>主场优势只给真正主队（东道主美/墨/加在本国 +23% xG）。实测把东道主出线率拉到 美 51% / 墨 95% / 加 94%。</p></div>
+  <div class="card feat nobreak"><h4>⑤ 蒙特卡洛整届模拟</h4><p>自动构建 2026 官方 12 组 + 官方括号 + 最佳第三名分配，单场淘汰含点球模拟。5000 次约 1–2 秒，带置信区间。</p></div>
+  <div class="card feat nobreak"><h4>⑥ 信证据，不信光环</h4><p>正因看重近期场上表现，我们敢把"名气队"下调——这是回测验证过的，不是偏见。</p></div>
+</div>
+
+<div class="pb"></div>
+<h2 class="nobreak"><span class="bar"></span>🖥️ 三种用法，从命令行到一键网页</h2>
+
+<h3>A · 命令行单场预测</h3>
+<pre>python3 predict.py "Argentina" "France" --cache    # 支持中文队名，--cache 后秒开</pre>
+<pre>  ⚽ Argentina  vs  France   (中立场)
+  ──────────────────────────────────────────────
+  期望进球 (xG):   Argentina 1.17  -  0.75 France
+
+  赛果概率
+    Argentina      胜   45.4%  ███████████·············
+    平局               30.9%  ███████·················
+    France         胜   23.7%  ██████··················
+
+  最可能比分 (Top 7)
+    1-0    16.9%   1-1 13.0% ...
+
+  ➜ 最可能比分: Argentina 1-0 France  (16.9%)</pre>
+
+<h3>B · 命令行夺冠概率</h3>
+<pre>python3 simulate.py --sims 5000   # 模拟整届，输出夺冠/进决赛/四强/八强/出线概率</pre>
+
+<h3>C · 一键起网页（核心体验）</h3>
+<pre>python3 app.py        # 打开 http://127.0.0.1:8000</pre>
+
+<p><strong>网页三大 Tab，把"预测期"做成了一个能玩的产品：</strong></p>
+
+<div class="card nobreak" style="margin:10px 0">
+  <h4>🔮 单场预测</h4>
+  <p style="color:var(--ink)">两队下拉 + 中立场开关 → <b>比分热力图 / 胜平负 / xG / Top7 比分</b>，一屏看全。</p>
+</div>
+<div class="card nobreak" style="margin:10px 0; border-left:4px solid var(--grass)">
+  <h4>🌳 本届实时晋级树（产品灵魂）</h4>
+  <p style="color:var(--ink)">
+    • <b>2026 官方赛制</b>：12 组 + 官方括号 + 最佳第三名分配，投影最可能的冠军路径。<br>
+    • <b>真实赛果蓝色锁定</b>，其余按模型预测——事实与预测一眼分清。<br>
+    • <b>「🔄 刷新真实赛果」</b>拉最新结果重训；<b>「⚡ 实时比分」</b>秒级查 ESPN 完场，每 5 分钟自动轮询。<br>
+    • <b>全程可编辑</b>：改任意比分 / 录入或假设淘汰赛结果（平局可设点球胜者）→ 括号 + 夺冠概率实时重算。<br>
+    • 每场标注 <b>日期 + 北京/当地时间切换 + 状态</b>；录入赛果自动存盘，刷新重启不丢。
+  </p>
+</div>
+<div class="card nobreak" style="margin:10px 0; border-left:4px solid var(--gold)">
+  <h4>🏆 夺冠概率</h4>
+  <p style="color:var(--ink)">
+    • 一键蒙特卡洛，夺冠 % 带 <b>模拟置信区间</b>。<br>
+    • <b>点击任意球队展开晋级漏斗</b>：出线 → 八强 → 四强 → 决赛 → 夺冠。<br>
+    • <b>会条件化在你录入 / 假设的赛果上</b>——晋级树里改的比分，这里同步生效。
+  </p>
+</div>
+
+<div class="pb"></div>
+<h2 class="nobreak"><span class="bar"></span>📊 我们用数字逼自己说真话</h2>
+<p>改任何模型 / 参数，<b>必须跑 <code>backtest.py</code> 用 RPS / LogLoss / 命中率证明更好，否则不采用</b>——这是项目铁律。</p>
+<pre>python3 backtest.py   # 只用 cutoff 之前数据训练，预测之后真实比赛</pre>
+<p>样本外校准成绩（修复时间泄漏后诚实口径）：</p>
+<ul>
+  <li><b>训练集 ECE = 1.06%</b>（Kimi 自述行业基准 8–10%、&lt;5% 算良好）——我们 <span class="stat">天生比行业更校准</span>。</li>
+  <li>可靠性对角线近乎完美：预测 .95 → 实际 .944。</li>
+</ul>
+<p>被回测<b>否决</b>、因此默认关闭的"看起来很美"的改动（避免你交智商税）：</p>
+<table class="nobreak">
+  <tr><th>试过的"高级"改动</th><th>回测结论</th></tr>
+  <tr><td>身价 / 转会市值先验</td><td>对概率准度无改善 → 关闭（数值仍在 UI 展示）</td></tr>
+  <tr><td>动态 Elo 评级（替代/集成/收缩先验）</td><td>被 Dixon‑Coles 进球级信息支配 → 不整合</td></tr>
+  <tr><td>赛事强度分级加权</td><td>砍有效样本、升方差 → 全部更差</td></tr>
+  <tr><td>负二项过离散</td><td>GLM 扣实力后残差近 Poisson → 单调更差</td></tr>
+  <tr><td>Isotonic / Platt 后校准</td><td>我方已足够校准 → 后校准只会过拟合</td></tr>
+</table>
+<div class="note nobreak"><b>这恰恰是卖点：</b>不是功能少，是我们替你试过了所有花哨方案，留下来的每一项都有回测背书。</div>
+
+<h2 class="nobreak"><span class="bar"></span>🆚 我们和 Kimi 研报比过了</h2>
+<p>完整读完 Kimi 224 页 / 300+ agent / 20 维度的 2026 世界杯报告后，做了两组对标回测，结论清晰：</p>
+<ul>
+  <li><b>Kimi 强在广度与叙事</b>（地缘 / 伤病 / 天气 / 海拔 / 战术相克 / 黑天鹅），<b>弱在可证伪性</b>（多为定性，冠军概率上限自承 ≤25%）。</li>
+  <li><b>我方强在单一可回测引擎 + 真实场上证据 + 校准</b>。把 Kimi 的 Elo 收缩先验、后校准照搬过来，<b>回测全部单调恶化</b>。</li>
+  <li>两者非同类：<b>Kimi 像研报，我方像可交互的实时概率引擎。</b></li>
+</ul>
+<blockquote>最大分歧——我们把挪威排夺冠前列、把法国下调——经回测验证 <b>不是预测错误</b>：近期真实强强战绩确实支持"挪威被名气低估"。Kimi 锚定声誉，我们信近期证据。</blockquote>
+
+<h2 class="nobreak"><span class="bar"></span>🚀 快速开始</h2>
+<pre># 1) 依赖（anaconda 通常已自带 numpy/pandas/scipy/statsmodels/flask）
+pip install -r requirements.txt
+
+# 2) 数据已自带 data/results.csv；要更新再跑
+python3 download_data.py
+
+# 3) 预测（首次训练约 1 分钟，--cache 后秒开）
+python3 predict.py "Argentina" "France" --cache
+
+# 4) 起网页
+python3 app.py        # http://127.0.0.1:8000</pre>
+
+<h3>在你自己的代码里调用</h3>
+<pre>import data
+from model import DixonColesModel
+
+m = DixonColesModel(half_life_days=730).fit(data.load_raw())
+r = m.predict("Argentina", "France", neutral=True)
+print(r["top_scores"][0])   # ((1, 0), 0.169)
+print(r["p_home"], r["p_draw"], r["p_away"])
+print(r["matrix"])          # 11x11 完整比分概率矩阵</pre>
+
+<h2 class="nobreak"><span class="bar"></span>📚 方法出处（站在巨人肩上）</h2>
+<ul>
+  <li><b>Maher (1982)</b> — 泊松建模足球进球</li>
+  <li><b>Dixon &amp; Coles (1997)</b> — 低分相关修正 + 时间加权</li>
+  <li><b>Lee (1997)</b> — 双泊松独立模型</li>
+</ul>
+
+<div class="footer nobreak">
+  <div class="big">⚽ 看球之前，先看概率。</div>
+  <div class="sub">真实数据驱动 · 样本外校准 · 实时随赛况更新 —— 一台你能亲手拨动的世界杯概率机器。</div>
+</div>
+
+</body>
+</html>

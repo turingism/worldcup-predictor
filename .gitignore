@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# 训练缓存（可由 get_model 重建）
+model.pkl
+
+# 运行时可变状态（app 每次运行会改写；非源码）
+data/predictions.json
+data/live_results.json
+data/overrides.json
+*.tmp
+
+# 实验性 / 临时
+_seed_live_demo.py

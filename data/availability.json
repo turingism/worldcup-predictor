@@ -1,0 +1,28 @@
+{
+  "_meta": {
+    "updated": "2026-06-08",
+    "note": "关键球员可用性『上下文层』。期望惩罚 = P(缺阵) × 档位影响，乘到该队 xG。status=out 视为 P=1，doubtful 用 prob。role: attack 削自家进攻 / defence 抬对手进球 / all 各半。这是补充调整层，不属于已回测验证的 DC 引擎；空文件=零影响。种子数据取自 Kimi 报告 8.3.1 伤病矩阵，可自行增删。",
+    "tiers": {"superstar": 0.13, "key": 0.07, "squad": 0.025}
+  },
+  "Brazil": [
+    {"player": "Rodrygo", "status": "out", "prob": 1.0, "role": "attack", "tier": "key", "reason": "ACL 已确认缺阵"},
+    {"player": "Militao", "status": "doubtful", "prob": 0.30, "role": "defence", "tier": "key", "reason": "腿筋肌肉伤"},
+    {"player": "Neymar", "status": "doubtful", "prob": 0.25, "role": "all", "tier": "key", "reason": "小腿 Grade II"}
+  ],
+  "Argentina": [
+    {"player": "Messi", "status": "doubtful", "prob": 0.15, "role": "all", "tier": "superstar", "reason": "腿筋慢性劳损"},
+    {"player": "Romero", "status": "doubtful", "prob": 0.20, "role": "defence", "tier": "key", "reason": "膝伤结构性"}
+  ],
+  "Netherlands": [
+    {"player": "De Jong", "status": "doubtful", "prob": 0.15, "role": "all", "tier": "key", "reason": "腿筋恢复中"}
+  ],
+  "France": [
+    {"player": "Mbappe", "status": "doubtful", "prob": 0.05, "role": "attack", "tier": "superstar", "reason": "小腿轻微"}
+  ],
+  "England": [
+    {"player": "Kane", "status": "doubtful", "prob": 0.10, "role": "attack", "tier": "superstar", "reason": "脚踝慢性"}
+  ],
+  "Germany": [
+    {"player": "Musiala", "status": "doubtful", "prob": 0.08, "role": "attack", "tier": "superstar", "reason": "ACL 恢复"}
+  ]
+}

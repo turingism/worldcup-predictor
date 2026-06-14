@@ -1,0 +1,150 @@
+France|||€1.52bn
+England|||€1.36bn
+Spain|||€1.22bn
+Portugal|||€1.01bn
+Germany|||€947.00m
+Brazil|||€923.20m
+Netherlands|||€804.20m
+Argentina|||€782.50m
+Norway|||€589.90m
+Belgium|||€547.50m
+Ivory Coast|||€522.10m
+Morocco|||€498.30m
+Senegal|||€478.10m
+Turkiye|||€473.70m
+Denmark|||€418.50m
+Sweden|||€406.08m
+Croatia|||€387.30m
+United States|||€385.65m
+Ecuador|||€368.70m
+Uruguay|||€359.30m
+Switzerland|||€332.50m
+Italy|||€315.70m
+Colombia|||€302.35m
+Greece|||€278.60m
+Japan|||€270.85m
+Ukraine|||€258.50m
+Georgia|||€258.10m
+Algeria|||€256.90m
+Russia|||€242.70m
+Austria|||€242.20m
+Ghana|||€234.60m
+Poland|||€231.60m
+Hungary|||€209.20m
+Serbia|||€206.00m
+Cameroon|||€198.70m
+Canada|||€196.65m
+Mexico|||€191.85m
+Czechia|||€188.18m
+Wales|||€180.65m
+Nigeria|||€171.85m
+Scotland|||€170.25m
+Paraguay|||€153.65m
+Bosnia-Herzegovina|||€151.60m
+Kosovo|||€147.53m
+Republic of Ireland|||€146.43m
+Democratic Republic of the Congo|||€143.90m
+South Korea|||€139.05m
+Mali|||€116.55m
+Egypt|||€116.48m
+Burkina Faso|||€110.55m
+Slovenia|||€100.50m
+Iceland|||€89.10m
+Albania|||€88.75m
+Uzbekistan|||€85.33m
+Northern Ireland|||€79.90m
+Venezuela|||€78.90m
+The Gambia|||€78.13m
+Australia|||€77.45m
+Guinea|||€73.30m
+Tunisia|||€69.95m
+Montenegro|||€68.93m
+Romania|||€68.40m
+Chile|||€65.60m
+Israel|||€62.40m
+Slovakia|||€59.85m
+Haiti|||€55.90m
+Cape Verde|||€54.50m
+South Africa|||€49.25m
+Angola|||€47.35m
+Armenia|||€42.63m
+Finland|||€41.85m
+Saudi Arabia|||€40.68m
+Guinea-Bissau|||€39.50m
+Suriname|||€35.93m
+Gabon|||€34.98m
+Panama|||€34.55m
+New Zealand|||€34.35m
+North Macedonia|||€33.80m
+Iran|||€32.05m
+Bulgaria|||€30.15m
+Peru|||€30.03m
+United Arab Emirates|||€29.05m
+Costa Rica|||€28.88m
+Togo|||€27.83m
+Curaçao|||€25.78m
+Zimbabwe|||€25.33m
+Mauritania|||€25.25m
+Iraq|||€21.65m
+Honduras|||€20.93m
+Jordan|||€20.00m
+Qatar|||€19.93m
+Indonesia|||€19.45m
+Cyprus|||€19.30m
+Azerbaijan|||€18.13m
+Bolivia|||€18.05m
+Benin|||€17.98m
+Kazakhstan|||€16.30m
+Belarus|||€15.38m
+Malta|||€14.95m
+Lithuania|||€14.73m
+Luxembourg|||€14.55m
+Liberia|||€14.33m
+Zambia|||€14.13m
+Guadeloupe|||€13.80m
+Sierra Leone|||€13.33m
+China|||€13.30m
+Estonia|||€12.80m
+Dominican Republic|||€12.75m
+Niger|||€11.00m
+Burundi|||€10.93m
+Palestine|||€10.30m
+Libya|||€10.13m
+Moldova|||€10.00m
+Jamaica|||€9.05m
+Tanzania|||€9.03m
+Uganda|||€8.75m
+Chad|||€8.55m
+Latvia|||€8.23m
+Central African Republic|||€8.20m
+Syria|||€7.93m
+Guatemala|||€7.78m
+Tajikistan|||€7.78m
+Bangladesh|||€7.25m
+El Salvador|||€7.13m
+Kyrgyzstan|||€7.05m
+Malaysia|||€7.03m
+Rwanda|||€7.00m
+North Korea|||€6.85m
+Madagascar|||€6.78m
+Oman|||€6.73m
+Lebanon|||€6.65m
+Thailand|||€6.43m
+Vietnam|||€6.38m
+Bahrain|||€6.15m
+New Caledonia|||€5.20m
+Faroe Islands|||€5.10m
+Hong Kong|||€4.48m
+Singapore|||€4.38m
+Eritrea|||€4.33m
+Kuwait|||€4.23m
+Equatorial Guinea|||€4.18m
+India|||€4.00m
+Trinidad and Tobago|||€3.78m
+Nicaragua|||€3.78m
+Comoros|||€3.63m
+Martinique|||€3.58m
+Pakistan|||€3.49m
+Andorra|||€3.34m
+Sudan|||€3.28m
+Kenya|||€3.15m

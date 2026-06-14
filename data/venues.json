@@ -1,0 +1,220 @@
+{
+"cities": {
+"New York/New Jersey": -4,
+"Dallas": -5,
+"Mexico City": -6,
+"Los Angeles": -7,
+"Atlanta": -4,
+"Kansas City": -5,
+"Houston": -5,
+"San Francisco Bay Area": -7,
+"Philadelphia": -4,
+"Seattle": -7,
+"Boston": -4,
+"Miami": -4,
+"Vancouver": -7,
+"Monterrey": -6,
+"Guadalajara": -6,
+"Toronto": -4
+},
+"group": {
+"Mexico|South Africa": "Mexico City",
+"South Korea|Czech Republic": "Guadalajara",
+"Czech Republic|South Africa": "Atlanta",
+"Mexico|South Korea": "Guadalajara",
+"Czech Republic|Mexico": "Mexico City",
+"South Africa|South Korea": "Monterrey",
+"Canada|Bosnia and Herzegovina": "Toronto",
+"Qatar|Switzerland": "San Francisco Bay Area",
+"Switzerland|Bosnia and Herzegovina": "Los Angeles",
+"Canada|Qatar": "Vancouver",
+"Switzerland|Canada": "Vancouver",
+"Bosnia and Herzegovina|Qatar": "Seattle",
+"Brazil|Morocco": "New York/New Jersey",
+"Haiti|Scotland": "Boston",
+"Scotland|Morocco": "Boston",
+"Brazil|Haiti": "Philadelphia",
+"Scotland|Brazil": "Miami",
+"Morocco|Haiti": "Atlanta",
+"United States|Paraguay": "Los Angeles",
+"Australia|Turkey": "Vancouver",
+"United States|Australia": "Seattle",
+"Turkey|Paraguay": "San Francisco Bay Area",
+"Turkey|United States": "Los Angeles",
+"Paraguay|Australia": "San Francisco Bay Area",
+"Germany|Curaçao": "Houston",
+"Ivory Coast|Ecuador": "Philadelphia",
+"Germany|Ivory Coast": "Toronto",
+"Ecuador|Curaçao": "Kansas City",
+"Curaçao|Ivory Coast": "Philadelphia",
+"Ecuador|Germany": "New York/New Jersey",
+"Netherlands|Japan": "Dallas",
+"Sweden|Tunisia": "Monterrey",
+"Netherlands|Sweden": "Houston",
+"Tunisia|Japan": "Monterrey",
+"Japan|Sweden": "Dallas",
+"Tunisia|Netherlands": "Kansas City",
+"Belgium|Egypt": "Seattle",
+"Iran|New Zealand": "Los Angeles",
+"Belgium|Iran": "Los Angeles",
+"New Zealand|Egypt": "Vancouver",
+"Egypt|Iran": "Seattle",
+"New Zealand|Belgium": "Vancouver",
+"Spain|Cape Verde": "Atlanta",
+"Saudi Arabia|Uruguay": "Miami",
+"Spain|Saudi Arabia": "Atlanta",
+"Uruguay|Cape Verde": "Miami",
+"Cape Verde|Saudi Arabia": "Houston",
+"Uruguay|Spain": "Guadalajara",
+"France|Senegal": "New York/New Jersey",
+"Iraq|Norway": "Boston",
+"France|Iraq": "Philadelphia",
+"Norway|Senegal": "New York/New Jersey",
+"Norway|France": "Boston",
+"Senegal|Iraq": "Toronto",
+"Argentina|Algeria": "Kansas City",
+"Austria|Jordan": "San Francisco Bay Area",
+"Argentina|Austria": "Dallas",
+"Jordan|Algeria": "San Francisco Bay Area",
+"Algeria|Austria": "Kansas City",
+"Jordan|Argentina": "Dallas",
+"Portugal|DR Congo": "Houston",
+"Uzbekistan|Colombia": "Mexico City",
+"Portugal|Uzbekistan": "Houston",
+"Colombia|DR Congo": "Guadalajara",
+"Colombia|Portugal": "Miami",
+"DR Congo|Uzbekistan": "Atlanta",
+"England|Croatia": "Dallas",
+"Ghana|Panama": "Toronto",
+"England|Ghana": "Boston",
+"Panama|Croatia": "Toronto",
+"Panama|England": "New York/New Jersey",
+"Croatia|Ghana": "Philadelphia"
+},
+"ko": {
+"73": "Los Angeles",
+"74": "Boston",
+"75": "Monterrey",
+"76": "Houston",
+"77": "New York/New Jersey",
+"78": "Dallas",
+"79": "Mexico City",
+"80": "Atlanta",
+"81": "San Francisco Bay Area",
+"82": "Seattle",
+"83": "Toronto",
+"84": "Los Angeles",
+"85": "Vancouver",
+"86": "Miami",
+"87": "Kansas City",
+"88": "Dallas",
+"89": "Philadelphia",
+"90": "Houston",
+"91": "New York/New Jersey",
+"92": "Mexico City",
+"93": "Dallas",
+"94": "Seattle",
+"95": "Atlanta",
+"96": "Vancouver",
+"97": "Boston",
+"98": "Los Angeles",
+"99": "Miami",
+"100": "Kansas City",
+"101": "Dallas",
+"102": "Atlanta",
+"103": "Miami",
+"104": "New York/New Jersey"
+},
+"geo": {
+"Mexico City": {
+"alt": 2240,
+"heat": null
+},
+"Guadalajara": {
+"alt": 1566,
+"heat": "high"
+},
+"Monterrey": {
+"alt": 540,
+"heat": "extreme"
+},
+"Kansas City": {
+"alt": 270,
+"heat": "extreme"
+},
+"Atlanta": {
+"alt": 320,
+"heat": "high"
+},
+"Dallas": {
+"alt": 130,
+"heat": "extreme"
+},
+"Houston": {
+"alt": 15,
+"heat": "extreme"
+},
+"Miami": {
+"alt": 2,
+"heat": "extreme"
+},
+"New York/New Jersey": {
+"alt": 10,
+"heat": "high"
+},
+"Philadelphia": {
+"alt": 12,
+"heat": "high"
+},
+"Los Angeles": {
+"alt": 90,
+"heat": null
+},
+"San Francisco Bay Area": {
+"alt": 16,
+"heat": null
+},
+"Boston": {
+"alt": 43,
+"heat": null
+},
+"Seattle": {
+"alt": 56,
+"heat": null
+},
+"Vancouver": {
+"alt": 5,
+"heat": null
+},
+"Toronto": {
+"alt": 76,
+"heat": null
+}
+},
+"alt_adapted": [
+"Mexico",
+"Ecuador",
+"Colombia",
+"Bolivia",
+"Peru"
+],
+"cool_climate": [
+"Spain",
+"France",
+"England",
+"Germany",
+"Portugal",
+"Netherlands",
+"Norway",
+"Switzerland",
+"Belgium",
+"Croatia",
+"Austria",
+"Turkey",
+"Italy",
+"Denmark",
+"Poland",
+"Scotland"
+],
+"_geo_meta": "alt=海拔米；heat=6-7月高温档(extreme≈WBGT32C+/high≈30C/null=温和)。供 env.py 环境上下文层用，非引擎核心。来源 Kimi 报告 6.3/8.3.3。"
+}

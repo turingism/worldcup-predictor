@@ -1,0 +1,1138 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>⚽ 世界杯比分预测器</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2230; --line:#2a3240;
+    --txt:#e6edf3; --mut:#8b949e; --grn:#2ea043; --grn2:#3fb950;
+    --acc:#58a6ff; --warn:#d29922; --red:#f85149;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif}
+  header{padding:22px 20px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#11331f,#0d1117)}
+  header h1{margin:0;font-size:22px;letter-spacing:.5px}
+  header p{margin:6px 0 0;color:var(--mut);font-size:13px}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px}
+  .tabs{display:flex;gap:8px;margin-bottom:18px}
+  .tab{padding:9px 18px;border:1px solid var(--line);background:var(--panel);
+    color:var(--mut);border-radius:8px;cursor:pointer;font-size:14px}
+  .tab.on{background:var(--grn);color:#fff;border-color:var(--grn)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:20px;margin-bottom:18px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .fld{flex:1;min-width:180px}
+  label{display:block;font-size:12px;color:var(--mut);margin-bottom:6px}
+  input,select{width:100%;padding:11px 12px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:15px}
+  .vs{align-self:center;color:var(--mut);font-weight:700;padding-bottom:10px}
+  .swap{align-self:center;margin-bottom:4px;width:36px;height:36px;border-radius:50%;
+    border:1px solid var(--line);background:var(--panel2);color:var(--acc);
+    font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:transform .15s,background .15s;flex:0 0 auto}
+  .swap:hover{background:var(--acc);color:#fff;transform:rotate(180deg)}
+  button.go{background:var(--grn);color:#fff;border:none;padding:12px 26px;
+    border-radius:8px;font-size:15px;cursor:pointer;font-weight:600}
+  button.go:hover{background:var(--grn2)}
+  .chk{display:flex;align-items:center;gap:7px;color:var(--mut);font-size:13px;margin-top:10px}
+  .chk input{width:auto}
+  .scoreline{text-align:center;font-size:30px;font-weight:800;margin:6px 0 2px}
+  .scoreline small{font-size:14px;color:var(--mut);font-weight:500}
+  .xg{text-align:center;color:var(--mut);font-size:13px;margin-bottom:18px}
+  .wdl{display:grid;grid-template-columns:90px 1fr 56px;gap:8px;align-items:center;margin:7px 0}
+  .wdl .nm{font-size:13px;color:var(--mut);text-align:right;white-space:nowrap;overflow:hidden}
+  .barwrap{background:var(--panel2);border-radius:6px;overflow:hidden;height:22px}
+  .bar{height:100%;border-radius:6px;transition:width .4s}
+  .bar.h{background:var(--grn)} .bar.d{background:var(--mut)} .bar.a{background:var(--acc)}
+  .wdl .pct{font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+  h3{font-size:14px;color:var(--mut);margin:22px 0 10px;font-weight:600}
+  .grid{display:grid;gap:14px}
+  @media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
+  table.mtx{border-collapse:collapse;margin:0 auto}
+  table.mtx td,table.mtx th{width:34px;height:30px;text-align:center;font-size:11px;
+    border:1px solid var(--bg)}
+  table.mtx th{color:var(--mut);font-weight:500}
+  table.mtx caption{caption-side:top;color:var(--mut);font-size:12px;margin-bottom:8px}
+  .tops .t{display:grid;grid-template-columns:48px 1fr 50px;gap:8px;align-items:center;margin:5px 0}
+  .tops .sc{font-weight:700;font-variant-numeric:tabular-nums}
+  .err{color:var(--red);font-size:14px;padding:8px 0}
+  .champ .r{border-bottom:1px solid var(--line);padding:7px 0;cursor:pointer;font-size:13px}
+  .champ .r:hover{background:#12161d}
+  .champ .top{display:grid;grid-template-columns:26px 150px 1fr 96px;gap:10px;align-items:center}
+  .champ .rk{color:var(--mut);text-align:right}
+  .champ .cbar{background:var(--grn);height:18px;border-radius:5px;min-width:2px}
+  .champ .cv{text-align:right;font-variant-numeric:tabular-nums}
+  .champ .cv small{color:var(--mut);font-size:11px}
+  .champ .funnel{display:none;gap:12px;padding:9px 0 4px 36px;flex-wrap:wrap}
+  .champ .r.open .funnel{display:flex}
+  .stg{font-size:11px;color:var(--mut);min-width:74px}
+  .stg i{font-style:normal;display:block;margin-bottom:3px}
+  .stg b{display:block;height:5px;background:var(--acc);border-radius:3px;margin-top:4px}
+  .muted{color:var(--mut);font-size:12px;line-height:1.6}
+  .spin{color:var(--mut);font-size:14px;padding:14px 0}
+  /* 晋级树 */
+  .champ-banner{text-align:center;padding:18px;border:1px solid var(--grn);border-radius:12px;
+    margin-bottom:14px;background:linear-gradient(180deg,#12331f,#161b22)}
+  .champ-banner .lab{color:var(--mut);font-size:12px}
+  .champ-banner .name{font-size:26px;font-weight:800;margin-top:4px}
+  .bfit{width:100%;overflow:hidden}                          /* 自适应外层；JS 按需开横向滚 */
+  .bracket{display:flex;gap:40px;padding:6px 2px;align-items:flex-start;position:relative;
+    width:max-content;transform-origin:top left}             /* 由 JS 按容器宽等比缩放 */
+  .bracket svg.conns{position:absolute;left:0;top:0;pointer-events:none;z-index:0}
+  .bracket svg.conns .conn{fill:none;stroke:#3a4150;stroke-width:1.6;stroke-linejoin:round}
+  .bracket svg.conns .conn.champ{stroke:var(--grn);stroke-width:2;stroke-dasharray:4 3}
+  .round{position:relative;min-width:158px;flex-shrink:0}    /* 绝对定位布局：每场按 KO_Y 居中 */
+  .round .tie{position:absolute;left:0;right:0;transform:translateY(-50%)}
+  .round.champ-col{justify-content:center;min-width:140px}
+  .rlabel{text-align:center;color:var(--mut);font-size:11px;margin-bottom:2px}
+  .tie{background:var(--panel2);border:1px solid var(--line);border-radius:8px;overflow:hidden;position:relative;z-index:1}
+  .tie.real{border-color:#1f6feb}   /* 真实淘汰赛赛果：蓝色锁定 */
+  .champ-box{border-color:var(--grn)!important;align-self:center}
+  .tie .side{display:flex;justify-content:space-between;padding:6px 9px;font-size:12px}
+  .tie .side+.side{border-top:1px solid var(--line)}
+  .tie .side .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;flex:1}
+  .tie .side .slot{font-size:8px;color:#6e7681;min-width:20px;flex-shrink:0}
+  .tie .side.w{color:var(--grn2);font-weight:700}
+  .tie .side .g{font-variant-numeric:tabular-nums;color:var(--mut)}
+  .tie .side.w .g{color:var(--grn2)}
+  .pen{display:block;text-align:center;color:var(--warn);font-size:10px;padding-bottom:3px}
+  .groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-top:12px}
+  .gbox{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px}
+  .gbox h4{margin:0 0 6px;font-size:12px;color:var(--acc)}
+  .gr{display:grid;grid-template-columns:16px 1fr 26px;gap:6px;font-size:11px;margin:2px 0}
+  .gr.q{color:var(--grn2);font-weight:600}
+  .gr .rk{color:var(--mut)}
+  details summary{cursor:pointer;color:var(--mut);font-size:13px;margin:6px 0}
+  /* 小组赛编辑器 */
+  .gm{margin:7px 0;font-size:12.5px}
+  .gmrow{display:grid;grid-template-columns:1fr 30px 10px 30px 1fr;gap:6px;align-items:center}
+  .gmeta{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:3px;
+    font-size:9px;color:#6e7681}
+  .gm .gt{text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gm .gt2{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gs{width:30px;padding:4px 0;text-align:center;background:var(--bg);border:1px solid var(--line);
+    border-radius:5px;color:var(--txt);font-size:13px}
+  .gs:disabled{background:#0a1626;border-color:#1f6feb55;color:#58a6ff;opacity:1}
+  .tag{font-size:9px;text-align:center;border-radius:4px;padding:1px 0;color:var(--mut)}
+  .tag.played{background:#1f6feb33;color:#58a6ff}
+  .tag.set{background:#d2992233;color:var(--warn)}
+  .gstand{margin-top:8px;padding-top:7px;border-top:1px solid var(--line);font-size:11.5px;
+    display:flex;flex-wrap:wrap;gap:8px;color:var(--mut)}
+  .gstand .q{color:var(--grn2);font-weight:600}
+  .tie.clickable{cursor:pointer}
+  .tie.clickable:hover{border-color:var(--acc)}
+  .tie.set{border-color:var(--warn)}
+  .modal{position:fixed;inset:0;background:#000a;display:flex;align-items:center;
+    justify-content:center;z-index:50}
+  .modalbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;min-width:330px}
+  .mtitle{font-size:14px;margin-bottom:4px}
+  .msub{font-size:12px;color:var(--mut);margin-bottom:16px}
+  .korow{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:14px}
+  .kteam{font-size:14px;min-width:96px;text-align:center}
+  .penrow{font-size:12px;color:var(--mut);margin-bottom:16px;display:flex;gap:14px;align-items:center}
+  .mbtns{display:flex;gap:8px;justify-content:flex-end}
+  /* 状态徽标 */
+  .b{font-size:9px;border-radius:4px;padding:1px 5px;white-space:nowrap}
+  .b-fin{background:#1f6feb22;color:#58a6ff}      /* 已结束 */
+  .b-live{background:#2ea04322;color:#3fb950}     /* 进行中 */
+  .b-up{background:#30363d;color:#8b949e}         /* 未开赛 */
+  .b-tbd{background:#6e768122;color:#6e7681}      /* 未抽签 */
+  .b-set{background:#d2992233;color:#d29922}      /* 试算 */
+  .mstat{display:flex;gap:4px;align-items:center;justify-content:flex-end;font-size:9px;color:#6e7681}
+  .tdate{text-align:center;font-size:9px;color:#6e7681;padding:3px 2px 1px;
+    display:flex;gap:5px;justify-content:center;align-items:center;border-top:1px solid var(--bg)}
+  /* 实力榜可信区间 */
+  .rr{display:grid;grid-template-columns:28px 110px 1fr 150px;align-items:center;gap:10px;
+    padding:5px 2px;border-bottom:1px solid var(--bg)}
+  .rr .rk{color:#6e7681;text-align:center;font-variant-numeric:tabular-nums}
+  .rr .rnm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rci{position:relative;height:18px}
+  .rci .ciline{position:absolute;top:50%;left:0;right:0;height:1px;background:#30363d}
+  .rci .cibar{position:absolute;top:50%;transform:translateY(-50%);height:8px;border-radius:4px;
+    background:linear-gradient(90deg,#1f6feb55,#2ea04355)}
+  .rci .cidot{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;
+    background:#3fb950;border:2px solid #0d1117;transform:translate(-50%,-50%);box-shadow:0 0 4px #2ea04388}
+  .rr .rval{text-align:right;font-variant-numeric:tabular-nums;color:#c9d1d9}
+  .rr .rval small{color:#6e7681;margin-left:6px;font-size:11px}
+  /* 预测验证 */
+  .vstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px;margin-bottom:14px}
+  .vstat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 12px;text-align:center}
+  .vstat .vnum{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums}
+  .vstat .vlab{font-size:11px;color:var(--mut);margin-top:4px;line-height:1.5}
+  .vrow{display:grid;grid-template-columns:48px 52px 1fr 84px 104px 188px 74px;gap:8px;align-items:center;
+    padding:7px 4px;border-bottom:1px solid var(--line);font-size:12.5px}
+  .vrow:last-of-type{border-bottom:none}
+  .vrow.vhead{color:var(--mut);font-size:11px;border-bottom:1px solid var(--line)}
+  .vbreak{padding:14px 16px}
+  .vbk-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}
+  .vbk-row:last-of-type{margin-bottom:0}
+  .vbk-lab{font-size:12px;color:var(--mut);min-width:104px;font-weight:600}
+  .vbin{background:#161b22;border:1px solid var(--line);border-radius:7px;padding:4px 10px;
+    font-size:12.5px;font-variant-numeric:tabular-nums;color:#c9d1d9}
+  .vbin b{color:#58a6ff;font-weight:700}
+  .vbin small{color:#6e7681}
+  .vbin.vmuted b{color:#c9d1d9}
+  .vbin.vups{background:#bb280022;border-color:#bb280055}
+  .vbin.vups b{color:#ff7b52}
+  /* 赛事看板 */
+  .dashhead #dashstat b{color:#c9d1d9}
+  .dsec-h{display:flex;align-items:center;gap:9px;margin:22px 2px 11px;font-size:15px;font-weight:700;color:#e6edf3}
+  .dsec-h .cnt{background:#21262d;border:1px solid var(--line);border-radius:20px;
+    padding:1px 10px;font-size:12px;color:var(--mut);font-weight:600}
+  .dempty{color:var(--mut);font-size:13px}
+  .livewrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .livecard{background:linear-gradient(160deg,#15211a,var(--panel));border:1px solid #2ea04355;
+    border-radius:12px;padding:13px 15px}
+  .lc-top{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;margin-bottom:8px}
+  .lc-live{color:#3fb950;font-weight:800;letter-spacing:.3px;animation:lcblink 1.6s ease-in-out infinite}
+  @keyframes lcblink{50%{opacity:.45}}
+  .lc-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin:4px 0}
+  .lc-tm{font-size:14px;font-weight:600;color:#e6edf3}
+  .lc-tm:last-child{text-align:right}
+  .lc-sc{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;white-space:nowrap}
+  .lc-pred{font-size:11.5px}
+  .lc-wdl{margin:9px 0 2px}
+  .lc-wdlh{display:flex;justify-content:space-between;font-size:11px;color:#8b949e;margin-bottom:4px}
+  .lc-wdlbar{display:flex;height:9px;border-radius:5px;overflow:hidden;background:#21262d}
+  .lc-wdlbar i{display:block;background:#2f81f7}
+  .lc-wdlbar i.d{background:#6e7681}
+  .lc-wdlbar i.a{background:#db8a3b}
+  .lc-wdlnum{display:flex;justify-content:space-between;font-size:11.5px;margin-top:4px;font-variant-numeric:tabular-nums}
+  .lc-wdlnum b{color:#e6edf3;font-weight:700}
+  .uprow{display:grid;grid-template-columns:90px 1fr 96px 96px;gap:10px;align-items:center;
+    padding:8px 4px;border-bottom:1px solid var(--line);font-size:13px}
+  .uprow:last-of-type{border-bottom:none}
+  .up-t b{display:block;font-size:12.5px;color:#e6edf3;font-variant-numeric:tabular-nums}
+  .up-t small{color:var(--mut);font-size:10.5px}
+  .up-vs{display:flex;align-items:center;gap:7px;color:#e6edf3}
+  .up-vs .up-x{color:var(--mut);font-size:11px}
+  .up-pred{font-variant-numeric:tabular-nums;color:#c9d1d9}
+  .up-p{color:var(--mut);font-variant-numeric:tabular-nums;text-align:right}
+  .upmore-btn{background:#21262d;margin-top:10px;width:100%;font-size:12.5px}
+  .uprow{grid-template-columns:74px 1fr 60px 92px 72px}
+  .up-day{display:flex;align-items:center;gap:8px;margin:14px 2px 4px;padding-bottom:5px;
+    border-bottom:1px dashed var(--line);font-size:12.5px;font-weight:700;color:#8b949e}
+  .up-day:first-child{margin-top:2px}
+  .up-day-n{background:#21262d;border-radius:10px;padding:0 8px;font-size:11px;color:var(--mut);font-weight:600}
+  .scpill{display:inline-block;background:#1f6feb22;border:1px solid #1f6feb44;border-radius:6px;
+    padding:1px 8px;font-weight:700;font-variant-numeric:tabular-nums;color:#79c0ff;font-size:12.5px}
+  .up-act{text-align:right}
+  .seebtn{background:#21262d;color:#58a6ff;border:1px solid #30363d;border-radius:6px;
+    padding:4px 9px;cursor:pointer;font-size:11.5px;white-space:nowrap}
+  .seebtn:hover{border-color:#1f6feb;background:#1f6feb1a}
+  .lc-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:7px}
+  .vnote{font-size:12px;color:#c9d1d9;border-left:3px solid #1f6feb;background:#1f6feb12}
+  .vnote b{color:#e6edf3}
+  /* 看预测弹窗 */
+  .pmodal{display:none;position:fixed;inset:0;background:#010409cc;z-index:50;
+    align-items:center;justify-content:center;padding:20px}
+  .pmodal-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    max-width:560px;width:100%;max-height:86vh;overflow:auto;padding:16px 18px;box-shadow:0 12px 40px #000a}
+  .pmodal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
+    font-size:15px;color:#e6edf3}
+  .pmodal-x{background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;
+    width:28px;height:28px;cursor:pointer;font-size:13px}
+  .pmodal-x:hover{color:#f85149;border-color:#f85149}
+  /* 市场对标 / CLV */
+  .mkt-guard{background:#3a1d1d33;border:1px solid #bb280055}
+  .mkt-guard-h{font-weight:700;color:#ffa198;margin-bottom:7px;font-size:13.5px}
+  .mkt-guard-l{margin:0;padding-left:18px;color:#c9d1d9;font-size:12px;line-height:1.7}
+  .mkt-guard-l b{color:#ffd9a0}
+  .mkt-verdict{border-radius:10px;padding:11px 14px;font-size:13px;margin-bottom:14px;font-weight:600}
+  .mkt-verdict.v-mut{background:#21262d;border:1px solid var(--line);color:#8b949e}
+  .mkt-verdict.v-ok{background:#15211a;border:1px solid #2ea04355;color:#3fb950}
+  .mkt-verdict.v-no{background:#2a1d10;border:1px solid #9e6a0055;color:#e3b341}
+  .mkt-row{display:grid;grid-template-columns:1fr 110px 110px 96px;gap:10px;align-items:center;
+    padding:9px 4px;border-bottom:1px solid var(--line);font-size:13px}
+  .mkt-row:last-of-type{border-bottom:none}
+  .mkt-row.mkt-head{color:var(--mut);font-size:11px}
+  .mkt-locked{background:#1c2128;border:1px dashed #6e7681;color:#c9d1d9;font-size:12.5px}
+  .mkt-locked b{color:#e6edf3}
+  @media(max-width:520px){ .mkt-row{grid-template-columns:1fr 70px 70px;font-size:12px}
+    .mkt-row>div:nth-child(4){display:none} }
+  @media(max-width:430px){
+    .vstats{grid-template-columns:repeat(2,1fr)}
+    .uprow{grid-template-columns:58px 1fr 56px auto;font-size:12px;gap:7px}
+    .uprow .up-p{display:none}
+    .livewrap{grid-template-columns:1fr}
+  }
+  /* 时区切换 */
+  .tzswitch{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#8b949e}
+  .tzbtn{background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;
+    padding:4px 10px;cursor:pointer;font-size:12px}
+  .tzbtn.on{background:#1f6feb;color:#fff;border-color:#1f6feb}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚽ 世界杯比分预测器</h1>
+  <p>双泊松 + Dixon-Coles · 1872–2026 真实国际赛数据 · 中立场建模</p>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <div class="tab on" data-t="verify">📋 赛事看板</div>
+    <div class="tab" data-t="match">单场预测</div>
+    <div class="tab" data-t="bracket">晋级树状图</div>
+    <div class="tab" data-t="champ">夺冠概率</div>
+    <div class="tab" data-t="ratings">实力榜</div>
+    <div class="tab" data-t="market">💹 市场对标</div>
+  </div>
+
+  <!-- 单场预测 -->
+  <section id="match" style="display:none">
+    <div class="card">
+      <div class="row">
+        <div class="fld">
+          <label>主队 / 第一支</label>
+          <input id="home" list="teams" placeholder="点此选择/搜索国家" value="🇦🇷 阿根廷"
+            onfocus="teamFocus(this)" onblur="teamBlur(this)">
+        </div>
+        <button class="swap" type="button" onclick="swapTeams()" title="交换主客 / 第一支与第二支位置">⇄</button>
+        <div class="fld">
+          <label>客队 / 第二支</label>
+          <input id="away" list="teams" placeholder="点此选择/搜索国家" value="🇫🇷 法国"
+            onfocus="teamFocus(this)" onblur="teamBlur(this)">
+        </div>
+        <button class="go" onclick="predict()">预测</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="neutral" checked> 中立场（世界杯默认勾选；取消则第一支为主队）</label>
+      <datalist id="teams"></datalist>
+    </div>
+    <div id="result"></div>
+  </section>
+
+  <!-- 晋级树状图 -->
+  <section id="bracket" style="display:none">
+    <div class="card">
+      <div class="row" style="align-items:center">
+        {% if not readonly %}
+        <button class="go writebtn" onclick="refreshFacts(this)">🔄 全量同步数据库</button>
+        <button class="go writebtn" style="background:#1f6feb" onclick="liveFacts(this)">⚡ 实时比分</button>
+        <button class="go writebtn" style="background:#30363d" onclick="resetOverrides()">↺ 清除试算</button>
+        {% endif %}
+        <span class="muted" id="livestat" style="font-size:12px"></span>
+        <div class="tzswitch">🕐
+          <button class="tzbtn on" data-tz="bj" onclick="setTZ('bj')">北京</button>
+          <button class="tzbtn" data-tz="local" onclick="setTZ('local')">当地</button>
+        </div>
+        <div class="muted" style="flex:1">
+          <b>本次世界杯实时预测</b>（2026 官方赛制）。已踢的真实比赛=事实（蓝色锁定），其余按模型预测，
+          投影出最可能的官方括号与冠军。「⚡实时比分」秒级拉 ESPN 完场赛果（开页后每 5 分钟自动同步），
+          「🔄全量同步数据库」拉取 martj42 全量历史国际赛数据；有新赛果模型自动重训。
+          也可在下方改小组赛比分、或<b>点击括号里任意淘汰赛</b>录入结果/做假设（黄色边框），「清除试算」恢复纯预测。
+        </div>
+      </div>
+    </div>
+    <div id="bracketres"></div>
+    <div id="groupsedit"></div>
+  </section>
+
+  <!-- 淘汰赛结果编辑弹窗 -->
+  <div id="komodal" class="modal" style="display:none">
+    <div class="modalbox">
+      <div class="mtitle">淘汰赛结果</div>
+      <div class="msub">录入真实结果或做假设，括号与夺冠概率随之重算。</div>
+      <div class="korow">
+        <span id="ko_an" class="kteam"></span>
+        <input id="ko_ga" type="number" min="0" max="20" class="gs">
+        <span>-</span>
+        <input id="ko_gb" type="number" min="0" max="20" class="gs">
+        <span id="ko_bn" class="kteam"></span>
+      </div>
+      <div class="penrow">平局点球胜者：
+        <label><input type="radio" name="kopen" value="a"> <span id="ko_pa"></span></label>
+        <label><input type="radio" name="kopen" value="b"> <span id="ko_pb"></span></label>
+      </div>
+      <div class="mbtns">
+        <button class="go" onclick="saveKO()">确定</button>
+        <button class="go" style="background:#30363d" onclick="clearKO()">清除此场</button>
+        <button class="go" style="background:#30363d" onclick="closeKO()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 夺冠概率 -->
+  <section id="champ" style="display:none">
+    <div class="card">
+      <div class="row" style="align-items:center">
+        <div class="fld" style="flex:0 0 auto">
+          <label>模拟次数</label>
+          <select id="sims">
+            <option>2000</option><option selected>5000</option><option>10000</option>
+          </select>
+        </div>
+        <button class="go" onclick="champions()">运行蒙特卡洛</button>
+        <div class="muted" style="flex:1">
+          抽样模拟整届赛事：小组赛抽比分 → 算积分排名 → 出线 32 队 → 淘汰赛点球模拟。
+        </div>
+      </div>
+    </div>
+    <div id="champres"></div>
+    <div id="insightres"></div>
+    <div id="availres"></div>
+    <div id="envres"></div>
+  </section>
+
+  <!-- 赛事看板：正在比赛 / 即将开赛 / 已结束（含预测验证） -->
+  <section id="verify" style="display:block">
+    <div class="card dashhead">
+      <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap">
+        {% if not readonly %}
+        <button class="go writebtn" style="background:#1f6feb" onclick="loadDashboard(this)">🔄 刷新事实数据</button>
+        {% else %}
+        <span class="b b-fin" style="font-size:12px">🔒 只读分享模式</span>
+        {% endif %}
+        <span class="muted" id="dashstat" style="font-size:12.5px;flex:1;min-width:200px"></span>
+      </div>
+      <div class="muted" style="font-size:11.5px;margin-top:8px">实时比分来自 ESPN（只读、不进训练）；
+        预测在<b>开球前冻结</b>存盘，开球后核对赛果。点「刷新事实数据」秒级拉取 ESPN 完场赛果，有新赛果模型自动重训。</div>
+    </div>
+    <div id="dashres"><div class="card spin">加载赛事看板…</div></div>
+  </section>
+
+  <!-- 实力榜（贝叶斯可信区间）-->
+  <section id="ratings" style="display:none">
+    <div id="ratingsres"></div>
+  </section>
+
+  <!-- 市场对标 / CLV 诚实检验（做检验，不做下注诱导）-->
+  <section id="market" style="display:none">
+    <div id="marketres"></div>
+  </section>
+</div>
+
+<!-- 看预测弹窗（看板「看预测」复用单场比分矩阵）-->
+<div id="pmodal" class="pmodal" onclick="if(event.target===this)closeModal()">
+  <div class="pmodal-box">
+    <div class="pmodal-head"><b id="pmodal-title"></b><button class="pmodal-x" onclick="closeModal()">✕</button></div>
+    <div id="pmodal-body"></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const pct = x => (x*100).toFixed(1)+'%';
+const mv = v => v==null ? '—' : (v>=1000 ? '€'+(v/1000).toFixed(2)+'bn' : '€'+Math.round(v)+'m');
+
+// 球队输入：点进去清空以弹出完整候选列表（datalist 会按当前文字过滤，预填值会挡住其它国家），
+// 没选则离开时恢复原值
+function teamFocus(el){ el.dataset.prev=el.value; el.value=''; }
+function teamBlur(el){ if(!el.value.trim()) el.value=el.dataset.prev||''; }
+function swapTeams(){ const h=$('#home'),a=$('#away'); const t=h.value; h.value=a.value; a.value=t;
+  if(h.value&&a.value) predict(); }   // 交换主客位置后自动重算（非中立场时主场优势随之易手）
+
+// tab 切换
+let bracketLoaded=false, ratingsLoaded=false, verifyLoaded=false, marketLoaded=false;
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  ['match','bracket','champ','verify','ratings','market'].forEach(s=>{
+    $('#'+s).style.display = t.dataset.t===s?'block':'none';
+  });
+  if(t.dataset.t==='bracket'){
+    if(!bracketLoaded){ bracketLoaded=true; loadSavedOV().then(loadProjection); }
+    else setTimeout(layoutBracket,60);   // 已加载则重新自适应（可能窗口变过）
+  }
+  if(t.dataset.t==='ratings' && !ratingsLoaded){ ratingsLoaded=true; loadRatings(); }
+  if(t.dataset.t==='market' && !marketLoaded){ marketLoaded=true; loadMarket(); }
+  if(t.dataset.t==='verify'){ loadDashboard(); }
+  if(t.dataset.t==='champ' && !$('#availres').innerHTML){
+    $('#insightres').innerHTML='<div class="card spin">分析模型解读中…</div>';
+    insightsPanel(); availabilityPanel(); environmentPanel();
+  }
+});
+
+// 载入球队列表
+fetch('/api/teams').then(r=>r.json()).then(ts=>{
+  $('#teams').innerHTML = ts.map(t=>`<option value="${t}">`).join('');
+});
+
+function heat(p, max){
+  if(p<=0) return 'background:#1c2230';
+  const a = Math.pow(p/max, 0.55);              // gamma 提升低值可见度
+  return `background:rgba(46,160,67,${(0.10+a*0.9).toFixed(3)})`;
+}
+
+async function predict(){
+  const home=$('#home').value, away=$('#away').value, neutral=$('#neutral').checked?1:0;
+  $('#result').innerHTML = '<div class="card spin">计算中…</div>';
+  const r = await fetch(`/api/predict?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&neutral=${neutral}`);
+  const d = await r.json();
+  if(d.error){ $('#result').innerHTML=`<div class="card err">✗ ${d.error}</div>`; return; }
+
+  const top = d.top_scores[0];
+  // 比分矩阵热力图（0..6）
+  const NG=7, mx = Math.max(...d.matrix.flat());
+  let th='<tr><th></th>'; for(let j=0;j<NG;j++) th+=`<th>${j}</th>`; th+='</tr>';
+  let body='';
+  for(let i=0;i<NG;i++){
+    body+=`<tr><th>${i}</th>`;
+    for(let j=0;j<NG;j++){
+      const p=d.matrix[i][j];
+      const bold=(i===top.h&&j===top.a)?'font-weight:800;outline:2px solid #3fb950':'';
+      body+=`<td style="${heat(p,mx)};${bold}">${(p*100).toFixed(0)}</td>`;
+    }
+    body+='</tr>';
+  }
+  const venue = d.neutral?'中立场':`${d.home} 主场`;
+
+  $('#result').innerHTML = `
+  <div class="card">
+    <div class="scoreline">${d.home} ${top.h}–${top.a} ${d.away}
+      <small>（最可能比分 ${pct(top.p)} · ${venue}）</small></div>
+    <div class="xg">期望进球 xG：${d.home} ${d.xg_home} － ${d.xg_away} ${d.away}</div>
+    ${(d.mv_home||d.mv_away)?`<div class="xg" style="margin-top:-12px">阵容身价：${d.home} ${mv(d.mv_home)} － ${mv(d.mv_away)} ${d.away}</div>`:''}
+    <div class="wdl"><div class="nm">${d.home} 胜</div><div class="barwrap"><div class="bar h" style="width:${d.p_home*100}%"></div></div><div class="pct">${pct(d.p_home)}</div></div>
+    <div class="wdl"><div class="nm">平局</div><div class="barwrap"><div class="bar d" style="width:${d.p_draw*100}%"></div></div><div class="pct">${pct(d.p_draw)}</div></div>
+    <div class="wdl"><div class="nm">${d.away} 胜</div><div class="barwrap"><div class="bar a" style="width:${d.p_away*100}%"></div></div><div class="pct">${pct(d.p_away)}</div></div>
+    <div class="grid">
+      <div>
+        <h3>比分概率矩阵（%，行=${d.home} 进球，列=${d.away} 进球）</h3>
+        <table class="mtx">${th}${body}</table>
+      </div>
+      <div class="tops">
+        <h3>最可能比分 Top 7</h3>
+        ${d.top_scores.map(s=>`<div class="t"><div class="sc">${s.h}–${s.a}</div>
+          <div class="barwrap"><div class="bar h" style="width:${s.p/top.p*100}%"></div></div>
+          <div class="pct">${pct(s.p)}</div></div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+async function champions(){
+  const sims=$('#sims').value;
+  const novr=Object.keys(OV).length;
+  $('#champres').innerHTML = `<div class="card spin">模拟 ${sims} 次中…（约几秒）${novr?'（含'+novr+'场设定赛果）':''}</div>`;
+  const r = await fetch(`/api/champions?sims=${sims}`,{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({overrides:Object.values(OV)})});
+  const d = await r.json();
+  const rows = d.rows.slice(0,24);
+  const mx = rows[0].champ, N = d.sims;
+  const ci = p => 1.96*Math.sqrt(Math.max(p*(1-p),0)/N);   // 模拟 95% 区间
+  const stg = (lab,v)=>`<div class="stg"><i>${lab} ${(v*100).toFixed(0)}%</i><b style="width:${Math.max(v*100,1).toFixed(0)}%"></b></div>`;
+  $('#champres').innerHTML = `<div class="card champ">
+    <h3 style="margin-top:0">🏆 2026 夺冠概率（${N.toLocaleString()} 次模拟）</h3>
+    <div class="muted" style="margin-bottom:8px">👆 点击球队展开晋级漏斗（出线→八强→四强→决赛→夺冠）。± 为模拟 95% 区间。</div>
+    ${rows.map((x,i)=>`<div class="r" onclick="this.classList.toggle('open')">
+      <div class="top">
+        <div class="rk">${i+1}</div>
+        <div>${x.team}</div>
+        <div class="barwrap"><div class="cbar" style="width:${(x.champ/mx*100).toFixed(1)}%"></div></div>
+        <div class="cv">${pct(x.champ)} <small>±${(ci(x.champ)*100).toFixed(1)}</small></div>
+      </div>
+      <div class="funnel">
+        ${stg('出线',x.ko)}${stg('八强',x.qf)}${stg('四强',x.sf)}${stg('进决赛',x.final)}${stg('夺冠',x.champ)}
+      </div>
+    </div>`).join('')}
+    <div class="muted" style="margin-top:14px">淘汰赛采用 <b>2026 官方括号</b>（含最佳第三名分配）。模型经回测调优（half_life=240）。</div>
+  </div>`;
+  insightsPanel();
+  availabilityPanel();
+  environmentPanel();
+}
+
+// —— 🔎 解读层：模型 vs 名气(Elo) 偏差 + 伤病/环境暴露（纯展示，不算概率）——
+async function insightsPanel(){
+  try{
+    const novr=Object.keys(OV).length;
+    const r = await fetch(`/api/insights?sims=3000`,{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({overrides:Object.values(OV)})});
+    const d = await r.json();
+    if(!d.cards || !d.cards.length){ $('#insightres').innerHTML=''; return; }
+    const badge = c => {
+      const v=c.divergence;
+      if(v===null||v===undefined) return '';
+      if(v>=3) return `<span style="font-size:11px;padding:2px 7px;border-radius:5px;background:#1e3a2a;color:#6ee7a8">📈 模型超配 ${'+'+v}</span>`;
+      if(v<=-3) return `<span style="font-size:11px;padding:2px 7px;border-radius:5px;background:#3a2e1e;color:#e7c46e">📉 模型低配 ${v}</span>`;
+      return `<span style="font-size:11px;padding:2px 7px;border-radius:5px;background:#22283a;color:#9fb3d1">≈ 与 Elo 一致</span>`;
+    };
+    const tagchip = t => `<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#2a2f3d;color:#c7d2e0;margin-left:4px">${t}</span>`;
+    $('#insightres').innerHTML = `<div class="card">
+      <h3 style="margin-top:0">🔎 模型解读 <small class="muted">（模型 vs 名气 Elo 偏差 + 伤病/环境暴露，纯解释不算概率）</small></h3>
+      <div class="muted" style="margin-bottom:10px">对每支球队，比较「我方蒙特卡洛夺冠排名」与「Elo 排名」之差：我方排名高 Elo ≥3 位记「📈 模型超配」（近期场上数据强于其声誉、方差高的黑马）；低 ≥3 位记「📉 模型低配」（Elo 声誉靠前但近期数据没兑现）；其余视为与 Elo 一致。</div>
+      ${d.cards.map(c=>`<div class="r" style="cursor:default;padding:9px 0">
+        <div class="top" style="gap:8px;flex-wrap:wrap">
+          <div class="rk">${c.rank}</div>
+          <div style="font-weight:600">${c.team}</div>
+          <div class="muted" style="font-size:12px">夺冠 ${(c.champ*100).toFixed(1)}%${c.elo_rank?' · Elo 第'+c.elo_rank:''}</div>
+          ${badge(c)}${(c.tags||[]).filter(t=>!t.includes('模型')).map(tagchip).join('')}
+        </div>
+        <div class="muted" style="font-size:12.5px;padding:4px 0 0 36px;line-height:1.5">${c.note}</div>
+      </div>`).join('')}
+    </div>`;
+  }catch(e){ $('#insightres').innerHTML=''; }
+}
+
+// —— 关键球员可用性『上下文层』面板（补充层，非引擎核心）——
+async function availabilityPanel(){
+  try{
+    const d = await (await fetch('/api/availability')).json();
+    if(!d.active){ $('#availres').innerHTML=''; return; }
+    const rolezh = {attack:'进攻',defence:'防守',all:'攻防'};
+    $('#availres').innerHTML = `<div class="card">
+      <h3 style="margin-top:0">🩹 关键球员可用性调整 <small class="muted">（上下文层，已计入夺冠概率模拟）</small></h3>
+      <div class="muted" style="margin-bottom:8px">期望惩罚 = P(缺阵)×档位影响，乘到该队 xG。<b>不属于已回测验证的 DC 引擎</b>，可编辑 <code>data/availability.json</code> 增删。</div>
+      ${d.rows.map(x=>`<div class="r" style="cursor:default"><div class="top">
+        <div>${x.team}</div>
+        <div class="barwrap"><div class="cbar" style="width:${((1-x.att)*100*6).toFixed(1)}%;background:#e57373"></div></div>
+        <div class="cv" style="font-size:13px">进攻×${x.att.toFixed(3)}${x.def_pen>1?' 失球×'+x.def_pen.toFixed(3):''}</div>
+      </div>
+      <div class="muted" style="padding:2px 0 6px 8px;font-size:12px">${x.items.map(i=>`${i.player}（${i.reason}，${i.status==='out'?'确认缺阵':'存疑'+Math.round((i.prob||0)*100)+'%'}·${rolezh[i.role]||i.role}）`).join('；')}</div>
+      </div>`).join('')}
+    </div>`;
+  }catch(e){ $('#availres').innerHTML=''; }
+}
+
+// —— 环境上下文层面板（海拔/高温，补充层）——
+async function environmentPanel(){
+  try{
+    const d = await (await fetch('/api/environment')).json();
+    if(!d.venues || !d.venues.length){ $('#envres').innerHTML=''; return; }
+    const heatzh = {extreme:'🔥 极端高温',high:'☀️ 高温'};
+    $('#envres').innerHTML = `<div class="card">
+      <h3 style="margin-top:0">🏔️ 环境调整 <small class="muted">（海拔/高温上下文层，已计入夺冠概率模拟）</small></h3>
+      <div class="muted" style="margin-bottom:8px">高海拔削非适应球队 xG，高温对凉爽气候国（欧洲）课「热环境税」。仅模拟/括号生效，单场预测不含。<b>非引擎核心</b>，数据在 <code>data/venues.json</code> 的 geo 段。</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+      ${d.venues.map(v=>`<span style="font-size:12px;padding:3px 9px;border:1px solid var(--line);border-radius:6px;background:#1c2230">
+        ${v.city}${(v.alt>=1200)?` · ⛰️${v.alt}m`:''}${v.heat?` · ${heatzh[v.heat]||v.heat}`:''}</span>`).join('')}
+      </div>
+      <div class="muted" style="font-size:12px">🫁 高原适应（免海拔罚）：${d.alt_adapted.join('、')}</div>
+      <div class="muted" style="font-size:12px">❄️ 凉爽气候（热环境税更重）：${d.cool_climate.slice(0,8).join('、')} 等 ${d.cool_climate.length} 队</div>
+    </div>`;
+  }catch(e){ $('#envres').innerHTML=''; }
+}
+
+const RNAME={R32:'1/16 决赛',R16:'1/8 决赛',QF:'八强',SF:'四强',Final:'决赛'};
+const PLAY={finished:['已结束','b-fin'],live:['进行中','b-live'],upcoming:['未开赛','b-up'],tbd:['未抽签','b-tbd']};
+const md=date=>date?date.slice(5).replace('-','/'):'';   // 2026-06-11 -> 06/11
+let TZMODE='bj';   // 'bj' 北京时间 | 'local' 场馆当地时间
+function whenStr(m){
+  if(TZMODE==='local' && m.time_local)
+    return `${md(m.date_local)} ${m.time_local}${m.city?' · '+m.city:''}`;
+  return `${md(m.date)} ${m.time||''}`;
+}
+function setTZ(mode){ if(TZMODE===mode) return; TZMODE=mode;
+  document.querySelectorAll('.tzbtn').forEach(b=>b.classList.toggle('on', b.dataset.tz===mode));
+  loadProjection(); }
+function statusBadges(m){
+  let h='';
+  if(m.hypo) h+='<span class="b b-set">试算</span>';
+  else{ const p=PLAY[m.play]||PLAY.upcoming; h+=`<span class="b ${p[1]}">${p[0]}</span>`; }
+  return h;
+}
+let OV={};  // what-if 赛果覆盖：key "home_en|away_en" -> {home,away,gh,ga}
+
+// —— 赛果录入/假设的持久化（存盘，刷新/重启不丢）——
+function persistOV(){  // 每次 OV 变更后同步到服务端（fire-and-forget）
+  fetch('/api/overrides',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({overrides:Object.values(OV)})}).catch(()=>{});
+}
+async function loadSavedOV(){  // 首次进入括号 tab 前回填已存盘的录入
+  try{
+    const d=await (await fetch('/api/overrides')).json();
+    OV={};
+    (d.overrides||[]).forEach(o=>{ if(o&&o.home&&o.away) OV[o.home+'|'+o.away]=o; });
+  }catch(e){ /* 取不到就用空 OV，不阻塞 */ }
+}
+
+const R32SLOTS=[['A②','B②'],['E①','3rd'],['F①','C②'],['C①','F②'],['I①','3rd'],['E②','I②'],
+  ['A①','3rd'],['L①','3rd'],['D①','3rd'],['G①','3rd'],['K②','L②'],['H①','J②'],
+  ['B①','3rd'],['J①','H②'],['K①','3rd'],['D②','G②']];
+// 官方晋级树 父场->[上游A, 上游B]；用于「中序重排」让每场垂直居中于两上游，连线不交叉
+const KO_TREE={104:[101,102],101:[97,98],102:[99,100],
+  97:[89,90],98:[93,94],99:[91,92],100:[95,96],
+  89:[74,77],90:[73,75],91:[76,78],92:[79,80],
+  93:[83,84],94:[81,82],95:[86,88],96:[85,87]};
+// 每场的纵向序值 = 两上游序值的均值；R32 叶子按中序 0..15。据此对每轮排序即得完美二叉树布局
+const KO_Y=(()=>{const Y={};let leaf=0;
+  (function rec(mn){const k=KO_TREE[mn];
+    if(!k){Y[mn]=leaf++;return Y[mn];}
+    const a=rec(k[0]),b=rec(k[1]);Y[mn]=(a+b)/2;return Y[mn];})(104);
+  return Y;})();
+const SLOT_BY_MN=(()=>{const o={};R32SLOTS.forEach((s,i)=>o[73+i]=s);return o;})();
+let SLOT_H=104;                                          // 槽高：初始给足，layoutBracket 按实测框高动态收紧
+const LABEL_H=28;
+const bodyH=()=>LABEL_H+16*SLOT_H;                       // R32 16 槽
+const cY=mn=>LABEL_H+((KO_Y[mn]??0)+0.5)*SLOT_H;          // 该场纵向中心 y（按 KO_Y 精确居中）
+
+function bracketHTML(d, title){
+  let cols=d.rounds.map(rd=>{
+    const isR32=rd.name==='R32';
+    const matches=[...rd.matches].sort((x,y)=>(KO_Y[x.mn]??0)-(KO_Y[y.mn]??0));  // 树中序重排
+    const ties=matches.map(m=>{
+      const aw=m.winner===m.a?'w':'', bw=m.winner===m.b?'w':'';
+      const sl=isR32?(SLOT_BY_MN[m.mn]||['','']):['',''];
+      const sa=isR32?`<span class="slot">${sl[0]}</span>`:'';
+      const sb=isR32?`<span class="slot">${sl[1]}</span>`:'';
+      const ed=m.a_en!==undefined;  // 投影结果可编辑
+      const cls=`tie${ed?' clickable':''}${m.set?' set':''}${m.real?' real':''}`;
+      const eattrs=ed?`onclick="editKO(this)"
+        data-a="${m.a_en}" data-b="${m.b_en}" data-an="${m.a}" data-bn="${m.b}"
+        data-ga="${m.ga}" data-gb="${m.gb}" data-w="${m.winner_en||''}"`:'';
+      const foot=ed?`<div class="tdate">${whenStr(m)} ${statusBadges(m)}</div>`:'';
+      return `<div class="${cls}" data-mn="${m.mn}" style="top:${cY(m.mn)}px" ${eattrs}>
+        <div class="side ${aw}">${sa}<span class="nm">${m.a}</span><span class="g">${m.ga}</span></div>
+        <div class="side ${bw}">${sb}<span class="nm">${m.b}</span><span class="g">${m.gb}</span></div>
+        ${m.pens?'<span class="pen">点球决胜</span>':''}
+        ${foot}
+      </div>`;
+    }).join('');
+    return `<div class="round" data-rd="${rd.name}" style="height:${bodyH()}px"><div class="rlabel">${RNAME[rd.name]||rd.name}</div>${ties}</div>`;
+  }).join('');
+  cols+=`<div class="round champ-col" style="height:${bodyH()}px"><div class="rlabel">冠军</div>
+    <div class="tie champ-box" data-mn="champ" style="top:${cY(104)}px">
+      <div class="side w"><span class="nm">🏆 ${d.champion}</span></div></div></div>`;
+  return `<div class="champ-banner"><div class="lab">${title}</div>
+      <div class="name">🏆 ${d.champion}</div></div>
+    <div class="card"><div class="bfit"><div class="bracket">${cols}</div></div></div>`;
+}
+
+// 用 SVG 叠加层在各轮之间画正交晋级连线（依据 DOM 实测坐标，缩放/重排都准）
+function drawConnectors(){
+  const br=document.querySelector('#bracketres .bracket'); if(!br) return;
+  br.querySelector('svg.conns')?.remove();
+  const W=br.scrollWidth, H=br.scrollHeight;
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('class','conns'); svg.setAttribute('width',W); svg.setAttribute('height',H);
+  const bx=br.getBoundingClientRect();
+  const pt=(el,side)=>{const r=el.getBoundingClientRect();
+    return [(side==='r'?r.right:r.left)-bx.left+br.scrollLeft, r.top-bx.top+br.scrollTop+r.height/2];};
+  const tie=mn=>br.querySelector(`.tie[data-mn="${mn}"]`);
+  const links=[]; for(const p in KO_TREE) for(const c of KO_TREE[p]) links.push([c,p]);
+  links.push([104,'champ']);
+  for(const [c,p] of links){
+    const ce=tie(c), pe=tie(p); if(!ce||!pe) continue;
+    const [cx,cy]=pt(ce,'r'), [px,py]=pt(pe,'l'), mx=Math.round((cx+px)/2);
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',`M${cx.toFixed(1)},${cy.toFixed(1)} H${mx} V${py.toFixed(1)} H${px.toFixed(1)}`);
+    path.setAttribute('class', p==='champ'?'conn champ':'conn');
+    svg.appendChild(path);
+  }
+  br.insertBefore(svg, br.firstChild);
+}
+// 按当前 SLOT_H 重新定位每场（top）与每轮高度——内容变高时防重叠
+function positionTies(){
+  document.querySelectorAll('#bracketres .round').forEach(r=>r.style.height=bodyH()+'px');
+  document.querySelectorAll('#bracketres .tie[data-mn]').forEach(t=>{
+    const mn=t.dataset.mn==='champ'?104:+t.dataset.mn;
+    t.style.top=cY(mn)+'px';
+  });
+}
+// 自适应：①按实测最高框定槽高防重叠 ②1:1 画连线 ③按容器宽等比缩放整棵树
+function layoutBracket(){
+  const fit=document.querySelector('#bracketres .bfit');
+  const br=fit&&fit.querySelector('.bracket'); if(!br) return;
+  br.style.transform='none';                         // 还原 1:1 再测量
+  let maxH=0;                                          // 量最高的框（含页脚/点球/换行）
+  document.querySelectorAll('#bracketres .tie').forEach(t=>{maxH=Math.max(maxH,t.offsetHeight);});
+  SLOT_H=Math.max(72, Math.ceil(maxH)+10);            // 槽高 = 最高框 + 10px 间距
+  positionTies();                                     // 据新槽高重排，消除重叠
+  drawConnectors();
+  const natW=br.scrollWidth, natH=br.scrollHeight, avail=fit.clientWidth;
+  const scale=Math.max(0.5, Math.min(1, avail/natW));   // 下限 0.5，过窄则保留横向滚
+  br.style.transform=`scale(${scale})`;
+  fit.style.height=Math.ceil(natH*scale)+'px';          // 收掉缩放后的下方空白
+  fit.style.overflowX=(natW*scale>avail+1)?'auto':'hidden';
+}
+let _connTimer;
+window.addEventListener('resize',()=>{clearTimeout(_connTimer);_connTimer=setTimeout(layoutBracket,150);});
+
+const tagTxt={played:'已赛',set:'试算',pred:'预测'};
+function groupsEditHTML(d){
+  const boxes=d.groups.map(g=>{
+    const mts=g.matches.map(mt=>{
+      const k=mt.home_en+'|'+mt.away_en;
+      const ro=mt.status==='played'?'disabled':'';   // 真实赛果锁定，不可改
+      return `<div class="gm" data-key="${k}" data-h="${mt.home_en}" data-a="${mt.away_en}">
+        <div class="gmrow">
+          <span class="gt">${mt.home}</span>
+          <input class="gs" type="number" min="0" max="20" value="${mt.gh}" ${ro} onchange="setScore(this)">
+          <span>-</span>
+          <input class="gs" type="number" min="0" max="20" value="${mt.ga}" ${ro} onchange="setScore(this)">
+          <span class="gt2">${mt.away}</span>
+        </div>
+        <div class="gmeta">📅 ${whenStr(mt)} ${statusBadges(mt)}</div>
+      </div>`;
+    }).join('');
+    const st=g.standings.map((s,i)=>`<span class="${i<2?'q':''}">${i+1}.${s.team} ${s.pts}</span>`).join('');
+    return `<div class="gbox"><h4>组 ${g.group}</h4>${mts}<div class="gstand">${st}</div></div>`;
+  }).join('');
+  return `<div class="card"><h3 style="margin-top:0">小组赛（改比分→括号实时重算）</h3>
+    <div class="groups-grid">${boxes}</div>
+    <div class="muted" style="margin-top:8px">绿色=投影出线小组前2。积分为期望值（未赛场次按胜率折算）。</div></div>`;
+}
+
+async function loadProjection(){
+  $('#bracketres').innerHTML='<div class="card spin">投影计算中…</div>';
+  $('#groupsedit').innerHTML='';
+  const d=await (await fetch('/api/project',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({overrides:Object.values(OV)})})).json();
+  const nov=Object.keys(OV).length;
+  let note=`已采用真实赛果 ${d.facts}/72 场`;
+  if(d.ko_facts) note+=` + 淘汰赛 ${d.ko_facts} 场`;
+  if(d.facts===0 && !d.ko_facts) note='赛事未开始 · 当前为纯模型预测';
+  if(nov) note+=` · 试算 ${nov} 场`;
+  const legend=`<span class="b b-fin">已结束</span> <span class="b b-live">进行中</span> `
+    +`<span class="b b-up">未开赛</span> <span class="b b-tbd">未抽签</span> <span class="b b-set">试算</span>`;
+  const tzlab = TZMODE==='local' ? '场馆当地时间' : '北京时间';
+  $('#bracketres').innerHTML=`<div class="muted" style="margin:2px 4px 10px">本次世界杯实时预测 · ${note} · 时间为<b>${tzlab}</b>　|　${legend}</div>`
+    + bracketHTML(d,'最可能夺冠');
+  $('#groupsedit').innerHTML=groupsEditHTML(d);
+  // 布局稳定后测量+画连线+缩放；两段延时兼顾字体回流（不用 rAF：后台 tab 会被挂起）
+  setTimeout(layoutBracket,80); setTimeout(layoutBracket,320);
+}
+
+async function refreshFacts(btn){
+  const old=btn.textContent; btn.textContent='拉取+重训评级中…'; btn.disabled=true;
+  try{
+    const r=await (await fetch('/api/refresh',{method:'POST'})).json();
+    if(!r.ok) alert('刷新失败：'+(r.error||''));
+  }catch(e){ alert('刷新失败：'+e); }
+  btn.textContent=old; btn.disabled=false;
+  loadProjection();
+}
+
+// —— ESPN 实时比分：手动按钮 + 比赛日自动轮询（5 分钟，页面可见时）——
+async function liveFacts(btn, silent){
+  if(btn){ btn.dataset.old=btn.textContent; btn.textContent='⚡ 查询完场…'; btn.disabled=true; }
+  let changed=false;
+  try{
+    const r=await (await fetch('/api/live',{method:'POST'})).json();
+    if(r.ok){
+      changed=r.changed;
+      $('#livestat').textContent=`实时源已同步 ${r.updated}（正赛已完场 ${r.live_total} 场）`+(r.changed?' · 有新赛果，已重训':'');
+    }else if(!silent) alert('实时刷新失败：'+(r.error||''));
+  }catch(e){ if(!silent) alert('实时刷新失败：'+e); }
+  if(btn){ btn.textContent=btn.dataset.old; btn.disabled=false; }
+  if(changed||btn) loadProjection();
+}
+setInterval(()=>{ if(document.visibilityState==='visible' && bracketLoaded) liveFacts(null,true); }, 5*60*1000);
+
+function setScore(el){
+  const row=el.closest('.gm'); const ins=row.querySelectorAll('.gs');
+  OV[row.dataset.key]={home:row.dataset.h,away:row.dataset.a,
+    gh:+ins[0].value||0, ga:+ins[1].value||0};
+  persistOV(); loadProjection();
+}
+function resetOverrides(){ OV={}; persistOV(); loadProjection(); }
+
+// —— 淘汰赛结果编辑 ——
+let koCur=null;
+function editKO(el){
+  koCur={a:el.dataset.a,b:el.dataset.b};
+  $('#ko_an').textContent=el.dataset.an; $('#ko_bn').textContent=el.dataset.bn;
+  $('#ko_pa').textContent=el.dataset.an; $('#ko_pb').textContent=el.dataset.bn;
+  $('#ko_ga').value=el.dataset.ga; $('#ko_gb').value=el.dataset.gb;
+  const w=el.dataset.w;
+  document.querySelectorAll('input[name=kopen]').forEach(r=>{
+    r.checked = (r.value==='a'&&w===el.dataset.a)||(r.value==='b'&&w===el.dataset.b);
+  });
+  $('#komodal').style.display='flex';
+}
+function closeKO(){ $('#komodal').style.display='none'; koCur=null; }
+function saveKO(){
+  const ga=+$('#ko_ga').value||0, gb=+$('#ko_gb').value||0;
+  let win = ga>gb?koCur.a : (gb>ga?koCur.b : null);
+  if(win===null){
+    const sel=document.querySelector('input[name=kopen]:checked');
+    win = (sel&&sel.value==='b')?koCur.b:koCur.a;
+  }
+  OV[koCur.a+'|'+koCur.b]={home:koCur.a,away:koCur.b,gh:ga,ga:gb,win:win};
+  closeKO(); persistOV(); loadProjection();
+}
+function clearKO(){ if(koCur) delete OV[koCur.a+'|'+koCur.b]; closeKO(); persistOV(); loadProjection(); }
+
+// —— 📋 赛事看板：正在比赛 / 即将开赛 / 已结束（含预测核对）——
+const STAGEZH={group:'小组赛',R32:'1/16',R16:'1/8',QF:'八强',SF:'四强',Final:'决赛',KO:'淘汰赛'};
+// 三向概率串：主/平/客，加粗模型判定 pick
+const P3=r=>{const f=(v,k)=>r.pick===k?`<b style="color:var(--grn2)">${(v*100).toFixed(0)}</b>`:(v*100).toFixed(0);
+  return `${f(r.p_home,'H')}/${f(r.p_draw,'D')}/${f(r.p_away,'A')}<small>%</small>`;};
+const secHead=(t,n)=>`<div class="dsec-h">${t}<span class="cnt">${n}</span></div>`;
+
+async function loadDashboard(btn){
+  if(btn){ btn.dataset.old=btn.textContent; btn.textContent='⚡ 拉取实时数据…'; btn.disabled=true;
+    try{ await fetch('/api/live',{method:'POST'}); }catch(e){}   // 先 ingest 完场+重训
+  }
+  const host=$('#dashres');
+  if(!host.dataset.loaded) host.innerHTML='<div class="card spin">加载赛事看板…（首次可能需训练回溯模型，约 10 秒）</div>';
+  try{
+    const d=await (await fetch('/api/dashboard'+(btn?'?fresh=1':''))).json();
+    renderDashboard(d); host.dataset.loaded='1';
+  }catch(e){ host.innerHTML=`<div class="card err">✗ 看板加载失败：${e}</div>`; }
+  if(btn){ btn.textContent=btn.dataset.old; btn.disabled=false; }
+}
+
+function renderDashboard(d){
+  const c=d.counts||{};
+  $('#dashstat').innerHTML=`🔴 正在比赛 <b>${c.live||0}</b> · 🟡 即将开赛 <b>${c.upcoming||0}</b> · ✅ 已结束 <b>${c.done||0}</b>`
+    +(d.status_updated?` · <span class="muted">ESPN 同步 ${d.status_updated}</span>`:'')
+    +(d.stale_finished?` · <b style="color:#e3b341">⚠️ ${d.stale_finished} 场已完场，点刷新入库</b>`:'');
+  let h='';
+  // —— 正在比赛 ——
+  h+=secHead('🔴 正在比赛', d.live.length);
+  h+= d.live.length ? '<div class="livewrap">'+d.live.map(liveCard).join('')+'</div>'
+    : '<div class="card dempty">当前没有正在进行的比赛 —— 下一场见下方「即将开赛」。</div>';
+  // —— 即将开赛 ——
+  h+=secHead('🟡 即将开赛', d.upcoming.length)+renderUpcoming(d.upcoming);
+  // —— 已结束（预测核对）——
+  h+=secHead('✅ 已结束 · 预测核对', (d.done.summary||{}).done||0)+renderDone(d.done);
+  $('#dashres').innerHTML=h;
+}
+
+// 看预测按钮（队名走 data 属性，避免队名含特殊字符破坏 onclick）
+const seeBtn=r=>`<button class="seebtn" data-h="${r.home_en||''}" data-a="${r.away_en||''}" data-t="${r.home} vs ${r.away}" onclick="seePrediction(this)" title="看完整比分概率矩阵">看预测</button>`;
+
+function liveCard(r){
+  const pred = r.pred_gh!=null?`赛前 ${r.pred_gh}–${r.pred_ga}`:'';
+  const w=r.wdl;
+  const wdl = w?`<div class="lc-wdl">
+      <div class="lc-wdlh"><span>实时胜平负</span><span class="muted" title="基于当前比分 + 剩余时间的终场概率（赛前 λ 按剩余时间缩放）">剩 ${Math.round(w.t_rem*90)}′ 估算 ⓘ</span></div>
+      <div class="lc-wdlbar"><i style="width:${(w.p_home*100).toFixed(1)}%"></i><i class="d" style="width:${(w.p_draw*100).toFixed(1)}%"></i><i class="a" style="width:${(w.p_away*100).toFixed(1)}%"></i></div>
+      <div class="lc-wdlnum"><b>${r.home} ${(w.p_home*100).toFixed(0)}%</b><span class="muted">平 ${(w.p_draw*100).toFixed(0)}%</span><b>${(w.p_away*100).toFixed(0)}% ${r.away}</b></div>
+    </div>`:'';
+  return `<div class="livecard">
+    <div class="lc-top"><span class="lc-live">● LIVE ${r.clock||''}</span>
+      <span class="muted">${STAGEZH[r.stage]||''}${r.detail?' · '+r.detail:''}</span></div>
+    <div class="lc-score"><span class="lc-tm">${r.home}</span>
+      <b class="lc-sc">${r.gh} - ${r.ga}</b><span class="lc-tm">${r.away}</span></div>
+    ${wdl}
+    <div class="lc-foot"><span class="muted lc-pred">${pred}</span>${seeBtn(r)}</div>
+  </div>`;
+}
+
+const WD=['周日','周一','周二','周三','周四','周五','周六'];
+function dayLabel(date){
+  if(!date) return '待定';
+  const dt=new Date(date+'T00:00:00'); const w=isNaN(dt.getTime())?'':' '+WD[dt.getDay()];
+  return date.slice(5).replace('-','/')+w;
+}
+function upRow(u){
+  const hm=(u.kickoff||'').slice(11);
+  return `<div class="uprow">
+    <div class="up-t">${hm?`<b>${hm}</b><small>北京</small>`:'<b>待定</b>'}</div>
+    <div class="up-vs"><span>${u.home}</span><span class="up-x">vs</span><span>${u.away}</span></div>
+    <div class="up-pred"><span class="scpill" title="模型最可能比分">${u.pred_gh}–${u.pred_ga}</span></div>
+    <div class="up-p" title="主胜/平/客胜概率%（加粗=模型判定的最可能结果）">${P3(u)}</div>
+    <div class="up-act">${seeBtn(u)}</div>
+  </div>`;
+}
+// 按比赛日分组渲染（list 已按开球时间升序）
+function dayBlocks(list){
+  let html='', curDate=null;
+  for(const u of list){
+    if(u.date!==curDate){ curDate=u.date;
+      const n=list.filter(x=>x.date===curDate).length;
+      html+=`<div class="up-day">📅 ${dayLabel(curDate)} <span class="up-day-n">${n} 场</span></div>`; }
+    html+=upRow(u);
+  }
+  return html;
+}
+function renderUpcoming(list){
+  if(!list.length) return '<div class="card dempty">没有即将开赛的场次。</div>';
+  // 折叠：默认展开"今明两天"（前 N 个不同日期），其余收起
+  const days=[...new Set(list.map(u=>u.date))];
+  const headDays=new Set(days.slice(0,2));
+  const head=list.filter(u=>headDays.has(u.date)), rest=list.filter(u=>!headDays.has(u.date));
+  const more=rest.length?`<div id="upmore" style="display:none">${dayBlocks(rest)}</div>
+    <button class="go upmore-btn" data-lab="展开后续 ${rest.length} 场（共 ${list.length}）" onclick="toggleUpMore(this)">展开后续 ${rest.length} 场（共 ${list.length}）▾</button>`:'';
+  return `<div class="card">${dayBlocks(head)}${more}</div>`;
+}
+function toggleUpMore(btn){ const m=$('#upmore'); const show=m.style.display==='none';
+  m.style.display=show?'block':'none'; btn.textContent=show?'收起 ▴':btn.dataset.lab+' ▾'; }
+
+// —— 看预测弹窗：复用 /api/predict 的比分矩阵 ——
+function openModal(title,body){ $('#pmodal-title').innerHTML=title; $('#pmodal-body').innerHTML=body;
+  $('#pmodal').style.display='flex'; }
+function closeModal(){ $('#pmodal').style.display='none'; }
+function setModal(body){ $('#pmodal-body').innerHTML=body; }
+async function seePrediction(btn){
+  const h=btn.dataset.h, a=btn.dataset.a;
+  if(!h||!a){ return; }
+  openModal(btn.dataset.t, '<div class="card spin" style="border:none">计算预测…</div>');
+  try{
+    const d=await (await fetch(`/api/predict?home=${encodeURIComponent(h)}&away=${encodeURIComponent(a)}&neutral=1`)).json();
+    setModal(d.error?`<div class="err">✗ ${d.error}</div>`:matrixHTML(d));
+  }catch(e){ setModal(`<div class="err">✗ ${e}</div>`); }
+}
+function matrixHTML(d){
+  const top=d.top_scores[0], NG=7, mx=Math.max(...d.matrix.flat());
+  let th='<tr><th></th>'; for(let j=0;j<NG;j++) th+=`<th>${j}</th>`; th+='</tr>';
+  let body='';
+  for(let i=0;i<NG;i++){ body+=`<tr><th>${i}</th>`;
+    for(let j=0;j<NG;j++){ const p=d.matrix[i][j];
+      const bold=(i===top.h&&j===top.a)?'font-weight:800;outline:2px solid #3fb950':'';
+      body+=`<td style="${heat(p,mx)};${bold}">${(p*100).toFixed(0)}</td>`; } body+='</tr>'; }
+  return `<div class="scoreline">${d.home} ${top.h}–${top.a} ${d.away}
+      <small>（最可能比分 ${pct(top.p)} · 中立场快算）</small></div>
+    <div class="xg">期望进球 xG：${d.home} ${d.xg_home} － ${d.xg_away} ${d.away}</div>
+    <div class="wdl"><div class="nm">${d.home} 胜</div><div class="barwrap"><div class="bar h" style="width:${d.p_home*100}%"></div></div><div class="pct">${pct(d.p_home)}</div></div>
+    <div class="wdl"><div class="nm">平局</div><div class="barwrap"><div class="bar d" style="width:${d.p_draw*100}%"></div></div><div class="pct">${pct(d.p_draw)}</div></div>
+    <div class="wdl"><div class="nm">${d.away} 胜</div><div class="barwrap"><div class="bar a" style="width:${d.p_away*100}%"></div></div><div class="pct">${pct(d.p_away)}</div></div>
+    <h3 style="margin:14px 0 6px;font-size:13px">比分概率矩阵（%，行=${d.home} 进球，列=${d.away} 进球）</h3>
+    <table class="mtx">${th}${body}</table>
+    <div class="muted" style="font-size:11px;margin-top:8px">中立场快算；看板「即将开赛」的概率含东道主主场修正，二者在美/墨/加主场场次可能略有差异。</div>`;
+}
+
+// 已结束：预测 vs 实际 + 分桶/冷门统计（原预测验证内容）
+function renderDone(ev){
+  const s=ev.summary||{}, rows=ev.rows||[];
+  if(!s.done) return '<div class="card dempty">还没有已结束的比赛，开赛后这里逐场核对预测。</div>';
+  const stat=(num,lab)=>`<div class="vstat"><div class="vnum">${num}</div><div class="vlab">${lab}</div></div>`;
+  // 命中率按数值着色（去红化：红只留给逐场失手/冷门，汇总命中率用 绿/黄/灰）
+  const hitCol=p=> p==null?'var(--mut)':(p>=55?'var(--grn2)':(p>=40?'#e3b341':'var(--mut)'));
+  const pctTag=(p)=> p!=null?`<br><b style="color:${hitCol(p)};font-size:13px">${p}%</b>`:'';
+  // 小样本提醒：开赛初期 n 小、命中率噪声大，给出长期基线锚点对抗"模型很差"的误判
+  const smallN = s.evaluated && s.evaluated<20 ?
+    `<div class="card vnote">📊 当前仅 <b>${s.evaluated}</b> 场样本，胜平负命中率波动很大、参考意义有限——模型<b>样本外长期命中率约 60%</b>（千场回测）。开赛初期看「赋予实际结果的平均概率 / RPS」比看命中率更可信。</div>` : '';
+  const cards='<div class="vstats">'
+    +stat(s.done,'已完赛场次')
+    +stat(s.evaluated?`${s.outcome_hits}/${s.evaluated}`:'—','赛果命中（胜平负）'+pctTag(s.outcome_pct))
+    +stat(s.evaluated?`${s.score_hits}/${s.evaluated}`:'—','精确比分命中'+pctTag(s.score_pct))
+    +stat(s.avg_p_actual_outcome!=null?(s.avg_p_actual_outcome*100).toFixed(1)+'%':'—','赋予实际赛果的<br>平均概率')
+    +stat(s.avg_rps!=null?s.avg_rps:'—','平均 RPS<br>（越小越好）')
+    +stat(s.pending_frozen,'即将开赛<br>已锁定预测')
+    +'</div>'+smallN;
+  const b=s.bins||{}, pill=(x,lab)=> x&&x.n?
+    `<span class="vbin"><b>${lab}</b> ${x.hits}/${x.n}<small> ${x.pct}%</small></span>`:'';
+  const breakdown = s.evaluated?`<div class="card vbreak">
+    <div class="vbk-row"><span class="vbk-lab">按把握分桶命中率</span>
+      ${pill(b.high,'高把握 ≥60%')}${pill(b.mid,'中等 45–60%')}${pill(b.coin,'硬币局 <45%')}</div>
+    <div class="vbk-row"><span class="vbk-lab">失手归因</span>
+      <span class="vbin vmuted">被逼平 <b>${s.miss_draw}</b>（共 ${s.draws_actual} 场平局）</span>
+      <span class="vbin vmuted">选错胜方 <b>${s.wrong_winner}</b></span>
+      <span class="vbin vups">🚨 冷门 <b>${s.upsets}</b>${s.upsets_major?`（大冷门 ${s.upsets_major}）`:''}</span></div>
+    <div class="muted" style="font-size:11.5px;margin-top:8px">平局的「最可能赛果」几乎永远是胜或负（平局概率很难成为三向里最大的一项），故<b>每场真平局基本都是必丢</b>——这是所有概率模型的共同天花板，非本模型缺陷。看<b>高把握场</b>的命中率才反映真实判断力。</div>
+  </div>`:'';
+  const badge=r=> r.score_hit?'<span class="b" style="background:#2ea04333;color:#3fb950">🎯 比分+赛果全中</span>'
+    : r.outcome_hit?'<span class="b b-fin">✓ 赛果命中</span>'
+    : '<span class="b" style="background:#f8514922;color:#f85149">✗ 未中</span>';
+  const why=r=> r.upset?(r.upset_level==='major'
+      ?`<span class="b" style="background:#bb280033;color:#ff7b52" title="模型给头号热门 ${(r.conf*100).toFixed(0)}%，却没踢出">🚨 大冷门</span>`
+      :`<span class="b" style="background:#9e6a0033;color:#e3b341" title="模型给头号热门 ${(r.conf*100).toFixed(0)}%，却没踢出">⚠️ 冷门</span>`)
+    : r.miss_type==='draw'?'<span class="b b-set" title="模型判定一方获胜，实际打平。平局是「概率最大方」判定法的结构性盲区">被逼平</span>'
+    : r.miss_type==='wrong_winner'?'<span class="b b-set" title="模型押了一方，另一方取胜">选错胜方</span>':'';
+  const list=rows.map(r=>`<div class="vrow">
+    <div class="muted">${(r.date||'').slice(5).replace('-','/')}</div>
+    <div class="muted">${STAGEZH[r.stage]||r.stage}</div>
+    <div>${r.home} <b>${r.act_gh}–${r.act_ga}</b> ${r.away}</div>
+    <div>预测 <b>${r.pred_gh}–${r.pred_ga}</b></div>
+    <div class="muted" title="主胜/平/客胜概率%（加粗=模型判定）">${P3(r)}</div>
+    <div>${badge(r)} ${why(r)}${r.p_actual_score!=null?` <small class="muted">赛前给该比分 ${(r.p_actual_score*100).toFixed(1)}%</small>`:''}</div>
+    <div>${r.retro?'<span class="b b-set" title="账本缺失，用只含开球前数据训练的回溯模型补">⏪ 回溯</span>'
+                  :'<span class="b b-fin" title="开球前冻结存盘">🔒 赛前</span>'}</div>
+  </div>`).join('');
+  return cards+breakdown+`<div class="card">
+    <h3 style="margin-top:0">逐场对比（${rows.length} 场 · 最新在前）</h3>
+    <div class="vrow vhead"><div>日期</div><div>阶段</div><div>对阵 · 实际比分</div><div>预测比分</div><div>胜/平/负%</div><div>判定</div><div>留痕</div></div>
+    ${list}
+    <div class="muted" style="margin-top:12px">判定口径：<b>赛果命中</b>＝模型给的<b>胜/平/负概率最大的那一方</b> vs 实际胜平负——<b>注意它可能与左侧「预测比分」的方向不一致</b>（平局边界处，最可能比分是 1-0 但三向概率最大的是"平"）。<b>比分命中</b>＝最可能比分恰好等于实际比分。
+    🔒 赛前＝预测在开球前冻结存盘（开球后不可改）；⏪ 回溯＝账本缺失时用<b>只含开球前数据</b>训练的模型补算，与赛前口径一致、不偷看结果。</div>
+  </div>`;
+}
+
+// —— 实力榜（贝叶斯分层评级 + 94% 可信区间）——
+async function loadRatings(){
+  $('#ratingsres').innerHTML='<div class="card spin">加载评级…</div>';
+  const d=await (await fetch('/api/ratings')).json();
+  if(!d.available || !d.rows.length){
+    $('#ratingsres').innerHTML='<div class="card err">贝叶斯评级尚未生成。请在项目目录运行 <code>python3 bayes.py</code> 后刷新。</div>';
+    return;
+  }
+  // 统一坐标轴：覆盖所有队的区间范围
+  const lo=Math.min(...d.rows.map(r=>r.lo)), hi=Math.max(...d.rows.map(r=>r.hi));
+  const span=hi-lo||1, X=v=>((v-lo)/span*100);
+  const m=d.meta||{};
+  const rows=d.rows.map((r,i)=>`
+    <div class="rr">
+      <div class="rk">${i+1}</div>
+      <div class="rnm">${r.team}</div>
+      <div class="rci">
+        <div class="ciline"></div>
+        <div class="cibar" style="left:${X(r.lo).toFixed(1)}%;width:${(X(r.hi)-X(r.lo)).toFixed(1)}%"></div>
+        <div class="cidot" style="left:${X(r.net).toFixed(1)}%" title="净实力 ${r.net}"></div>
+      </div>
+      <div class="rval">${r.net>=0?'+':''}${r.net.toFixed(2)}<small>[${r.lo.toFixed(2)}, ${r.hi.toFixed(2)}]</small></div>
+    </div>`).join('');
+  $('#ratingsres').innerHTML=`<div class="card">
+    <h3 style="margin-top:0">📊 贝叶斯分层评级 · 净实力 94% 可信区间</h3>
+    <div class="muted" style="margin-bottom:10px">
+      PyMC 分层双泊松模型（${m.draws||'?'}×${m.chains||'?'} 采样，有效权重和 ${m.weight_sum||'?'}）。
+      圆点=后验均值，横条=94% 可信区间。区间普遍重叠 → 顶尖队在近 8 个月时间加权数据下统计上难分高下。
+      <b>这是 DC 预测引擎的不确定性补充视图，预测/模拟仍由经回测验证的 DC 模型驱动。</b>
+    </div>
+    ${rows}
+  </div>`;
+}
+
+// —— 💹 市场对标 / CLV：模型 vs 闭盘线，做诚实检验、不做下注诱导 ——
+async function loadMarket(){
+  const host=$('#marketres');
+  host.innerHTML='<div class="card spin">加载市场对标…（首次需训练无泄漏的冻结评级，约 10 秒）</div>';
+  try{
+    const d=await (await fetch('/api/market')).json();
+    host.innerHTML = d.error?`<div class="card err">✗ ${d.error}</div>`:renderMarket(d);
+  }catch(e){ host.innerHTML=`<div class="card err">✗ 加载失败：${e}</div>`; }
+}
+function renderMarket(d){
+  const c=d.clv||{};
+  const guard=`<div class="card mkt-guard">
+    <div class="mkt-guard-h">⚠️ 理性博彩护栏 · 本页是「检验」，不是下注建议</div>
+    <ul class="mkt-guard-l">
+      <li>庄家长期抽水（margin）使<b>多数人长期 EV 为负</b>；本模型<b>未被证明能持续赢过市场</b>，闭盘线才是金标准。</li>
+      <li>概率 ≠ 确定：70% 也会输 3/10。只用<b>可承受损失</b>的钱，设预算上限、不追损。</li>
+      <li>无显著正 CLV 证据时，本页<b>不显示任何"价值/注码"</b>——分歧(edge)永远算得出，但多是抽水＋估计误差的噪声。</li>
+    </ul></div>`;
+  let verdict;
+  if(!c.available) verdict=`<div class="mkt-verdict v-mut">🧪 CLV 待数据：odds.csv 暂无<b>开盘赔率</b>列（odds_*_open），无法计算闭盘线价值。补齐<b>开盘+闭盘</b>两套赔率即可启用此检验。</div>`;
+  else if(!c.enough_n) verdict=`<div class="mkt-verdict v-mut">🧪 样本不足：CLV 仅 ${c.n} 场（需 ≥30）——<b>不下结论</b>。</div>`;
+  else if(c.proven_edge) verdict=`<div class="mkt-verdict v-ok">✅ 有信息优势证据：平均 CLV ${(c.avg_clv*100).toFixed(1)}% · 跑赢闭盘 ${(c.beat_rate*100).toFixed(0)}% · t=${c.t_stat}</div>`;
+  else verdict=`<div class="mkt-verdict v-no">❌ 未证明信息优势：平均 CLV ${(c.avg_clv*100).toFixed(1)}% · t=${c.t_stat}（未达显著）——edge 视为噪声，不显示注码。</div>`;
+  const stat=(n,l)=>`<div class="vstat"><div class="vnum">${n}</div><div class="vlab">${l}</div></div>`;
+  const cards='<div class="vstats">'
+    +stat(d.n,'对标场次')
+    +stat(d.avg_margin!=null?(d.avg_margin*100).toFixed(1)+'%':'—','闭盘平均抽水<br>(margin/vig)')
+    +stat(d.model_rps??'—','模型 RPS')
+    +stat(d.line_rps??'—','闭盘线 RPS<br>(金标准)')
+    +stat(d.rps_diff!=null?(d.rps_diff>0?'+':'')+d.rps_diff:'—','RPS 差<br>(负=模型更准)')
+    +'</div>';
+  const f3=(a,vs)=>a.map((v,i)=>i===vs?`<b style="color:#79c0ff">${(v*100).toFixed(0)}</b>`:(v*100).toFixed(0)).join('/');
+  const rows=(d.rows||[]).map(x=>`<div class="mkt-row">
+    <div>${x.home} <span class="muted">vs</span> ${x.away}<br><small class="muted">${x.date} · 实际 ${x.outcome_lab}</small></div>
+    <div class="muted" title="模型 主/平/客%">${f3(x.model,x.outcome)}<small>%</small></div>
+    <div class="muted" title="闭盘隐含 主/平/客%（已去 margin）">${f3(x.line,x.outcome)}<small>%</small></div>
+    <div title="模型 − 闭盘 最大分歧档（仅供观察，非推荐）"><span class="scpill">${x.value_side_lab} ${x.value_edge>0?'+':''}${(x.value_edge*100).toFixed(0)}%</span></div>
+  </div>`).join('');
+  const table=`<div class="card">
+    <h3 style="margin-top:0">模型 vs 闭盘线（逐场 · 加粗=实际结果那档）</h3>
+    <div class="mkt-row mkt-head"><div>对阵 · 实际</div><div>模型%</div><div>闭盘%</div><div>最大分歧</div></div>
+    ${rows||'<div class="muted" style="padding:10px 0">odds.csv 无可对标样本。</div>'}
+    <div class="muted" style="margin-top:10px">「最大分歧」＝模型概率 − 闭盘隐含概率最大的一档，<b>仅供观察，不是投注建议</b>；
+    它要成为"价值"必须由 CLV 证明，否则只是噪声。评级冻结于 ${d.cutoff} 之前（无泄漏）。</div>
+  </div>`;
+  const value = d.show_value
+    ? `<div class="card">（已有正 CLV 证据，此处可显示分数 Kelly 注码——需接入实时赔率源后启用）</div>`
+    : `<div class="card mkt-locked">🔒 <b>价值投注 / Kelly 注码：未解锁</b>。需先用 CLV 证明模型对闭盘线有<b>显著正向</b>信息优势（当前：${c.available?(c.enough_n?'未达显著':'样本不足'):'缺开盘赔率数据'}）。这是<b>刻意的诚实门槛</b>——没有证据就不给"稳赢"暗示。</div>`;
+  const intro=`<div class="card"><div class="muted" style="font-size:12.5px"><b>这是什么</b>：把模型概率与<b>博彩闭盘线</b>（市场吸收全部信息后的金标准）在同一批比赛上对标。
+    博彩的真相不是"预测准不准"，而是 <b>CLV（闭盘线价值）</b>——你下注时的隐含概率能否持续跑赢闭盘线。数据填 <code>data/odds.csv</code>（队名对齐 martj42）。</div></div>`;
+  return guard+intro+verdict+cards+table+value;
+}
+
+predict();
+// 深链：#bracket / #champ / #ratings 直达对应 tab（便于分享与截图）；无 hash 时默认进赛事看板
+(function(){const h=location.hash.slice(1);const t=h&&document.querySelector(`.tab[data-t="${h}"]`);
+  if(t)t.click(); else loadDashboard();})();
+// 赛事看板可见时每 60s 静默刷新实时比分（不重训，仅拉 ESPN 状态）
+setInterval(()=>{ if(document.visibilityState==='visible' && $('#verify').style.display!=='none'
+  && $('#dashres').dataset.loaded) loadDashboard(); }, 60*1000);
+</script>
+</body>
+</html>

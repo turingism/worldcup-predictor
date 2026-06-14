@@ -1,0 +1,6 @@
+numpy>=1.24
+pandas>=2.0
+scipy>=1.10
+statsmodels>=0.14
+flask>=2.0
+pymc>=5.0      # 仅 bayes.py 实力榜可信区间用；不装则实力榜 tab 提示需生成缓存

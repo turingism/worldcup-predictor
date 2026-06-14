@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>世界杯比分预测器 · 测算逻辑白皮书</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: #1a1f29; line-height: 1.7; font-size: 13px; margin: 0; }
+  h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: .5px; }
+  h2 { font-size: 19px; margin: 30px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #1f6feb;
+    color: #0d2a5e; page-break-after: avoid; }
+  h3 { font-size: 15px; margin: 18px 0 6px; color: #1a3a6b; page-break-after: avoid; }
+  h4 { font-size: 13.5px; margin: 12px 0 4px; color: #333; }
+  p { margin: 6px 0; }
+  code { background: #eef1f6; padding: 1px 5px; border-radius: 4px; font-size: 12px;
+    font-family: "SF Mono", Menlo, Consolas, monospace; color: #b3286b; }
+  .cover { text-align: center; padding: 40px 0 14px; border-bottom: 3px solid #1f6feb; margin-bottom: 8px; }
+  .cover .sub { color: #5a6473; font-size: 14px; margin-top: 6px; }
+  .cover .meta { color: #8a93a3; font-size: 12px; margin-top: 14px; }
+  .lead { background: #f3f7ff; border-left: 4px solid #1f6feb; padding: 12px 16px; border-radius: 6px;
+    margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; page-break-inside: avoid; }
+  th, td { border: 1px solid #d4dae3; padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: #1f6feb; color: #fff; font-weight: 600; }
+  tr:nth-child(even) td { background: #f6f8fb; }
+  .formula { background: #0d1117; color: #d6e2f5; padding: 12px 16px; border-radius: 8px; margin: 10px 0;
+    font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.9;
+    white-space: pre-wrap; page-break-inside: avoid; }
+  .formula .c { color: #7ee787; }
+  .pipe { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0; font-size: 12px; }
+  .pipe .box { background: #e8f0fe; border: 1px solid #1f6feb55; border-radius: 6px; padding: 6px 10px; }
+  .pipe .arr { color: #1f6feb; font-weight: 700; }
+  .tag { display: inline-block; background: #2ea04322; color: #1a7f37; border-radius: 4px;
+    padding: 1px 8px; font-size: 11px; margin-right: 4px; }
+  .tag.warn { background: #d2992222; color: #9a6700; }
+  .tag.bad { background: #cf222e22; color: #cf222e; }
+  ul, ol { margin: 6px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card { border: 1px solid #d4dae3; border-radius: 8px; padding: 12px 14px; page-break-inside: avoid; }
+  .card h4 { margin-top: 0; }
+  .muted { color: #6b7585; font-size: 11.5px; }
+  .pagebreak { page-break-before: always; }
+  footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #d4dae3; color: #8a93a3; font-size: 11px; }
+  .ok { color: #1a7f37; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>⚽ 世界杯比分预测器 · 测算逻辑白皮书</h1>
+  <div class="sub">Dixon-Coles 双泊松模型 × 蒙特卡洛赛事模拟 × 贝叶斯不确定性量化</div>
+  <div class="sub">—— 与高盛（Goldman Sachs）大赛预测方法论的对比分析</div>
+  <div class="meta">生成日期：2026-06-07 ｜ 数据源：martj42 国际赛果（1872–2026）｜ 引擎经样本外回测验证</div>
+</div>
+
+<div class="lead">
+<b>一句话概括：</b>本系统把"预测一场球赛"拆成两层——先用 <b>Dixon-Coles 双泊松回归</b>从 150 年真实国际比赛数据里学出每支球队的<b>进攻/防守强度</b>，再用 <b>10 万级蒙特卡洛模拟</b>把单场概率滚成整届赛事的出线/夺冠概率。所有"优化"都必须通过<b>样本外回测（RPS / LogLoss / 命中率）</b>用数字证明更好才采纳，绝不凭感觉。
+</div>
+
+<h2>一、设计哲学：为什么这么建模</h2>
+<p>足球比赛的本质是<b>低频泊松事件</b>（进球稀少且近似独立），结果由两队的<b>相对攻防实力</b>加上不可消除的<b>随机性</b>共同决定。因此我们刻意选择一个<b>可解释、可回测、训练秒级</b>的统计模型，而非黑箱大模型：</p>
+<ul>
+  <li><b>可解释</b>：每支球队两个数字（进攻、防守），任何预测都能追溯到这两个系数，便于发现数据问题。</li>
+  <li><b>可回测</b>：模型轻，可在多个历史时点反复"只用过去预测未来"，量化真实预测力。</li>
+  <li><b>诚实的不确定性</b>：用蒙特卡洛与贝叶斯两条腿，分别量化"赛事随机性"和"评级估计误差"。</li>
+</ul>
+
+<h2>二、我们的测算逻辑（五层）</h2>
+
+<div class="pipe">
+  <span class="box">① 数据层<br><span class="muted">清洗·加权</span></span><span class="arr">→</span>
+  <span class="box">② DC 双泊松<br><span class="muted">攻防评级</span></span><span class="arr">→</span>
+  <span class="box">③ 比分矩阵<br><span class="muted">单场概率</span></span><span class="arr">→</span>
+  <span class="box">④ 蒙特卡洛<br><span class="muted">整届模拟</span></span><span class="arr">→</span>
+  <span class="box">⑤ 贝叶斯<br><span class="muted">区间量化</span></span>
+</div>
+
+<h3>2.1 数据层：不是所有比赛都一样重要</h3>
+<p>原始数据为 martj42 公开数据集的 <code>results.csv</code>（约 <b>4.9 万场</b>国际比赛，1872 年至今）。关键在于<b>加权</b>——把每场比赛拆成"主队视角 / 客队视角"两行长表，每行配一个权重：</p>
+<div class="formula">weight = <span class="c">时间衰减</span> × <span class="c">赛事强度</span>
+       = 0.5^(比赛年龄_天 / <b>half_life</b>)  ×  (友谊赛 0.5 / 正式赛 1.0)</div>
+<ul>
+  <li><b>时间衰减</b>：半衰期 <code>half_life=240</code> 天（≈8 个月）。一年前的比赛权重只剩约 1/3，三年前几乎归零——反映"国家队阵容和状态会换血"。</li>
+  <li><b>赛事强度</b>：友谊赛队伍不齐、强度低，权重下调到 0.5。</li>
+  <li><b>中立场处理</b>：世界杯多为中立场，主场优势只给真正的东道主（中立场两边 home=0）。</li>
+  <li><b>样本过滤</b>：最多回溯 16 年；出场不足 12 场的球队剔除（拟合不稳）。</li>
+</ul>
+<p class="muted">经时间加权后，4.9 万场的"有效权重和"仅约 <b>1519</b>——这意味着真正主导评级的是最近一年多的比赛。这个数字在第 2.5 节解释可信区间为何偏宽时还会用到。</p>
+
+<h3>2.2 核心模型：Dixon-Coles 双泊松回归</h3>
+<p>每队单场进球数建模为泊松分布，进球期望 λ 由对数线性模型给出（Maher 1982 / Dixon-Coles 1997 的经典框架）：</p>
+<div class="formula">log λ_主 = 截距 + 主场优势·(非中立) + <span class="c">进攻[主]</span> + <span class="c">失球[客]</span>
+log λ_客 = 截距 +                       <span class="c">进攻[客]</span> + <span class="c">失球[主]</span></div>
+<p>用 statsmodels 的 <b>Poisson GLM</b> 拟合（凸优化，秒级收敛），把上面的时间衰减权重作为 <code>freq_weights</code> 喂入。每支球队最终得到两个系数：<b>进攻强度</b>（越高进球越多）与<b>失球倾向</b>（越负防守越好）。</p>
+<h4>Dixon-Coles 低分修正</h4>
+<p>独立双泊松会系统性低估 <b>0-0、1-1</b> 这类低比分平局（现实中两队都谨慎时强相关）。我们引入一个相关参数 <b>ρ</b>，只修正 (0,0)(0,1)(1,0)(1,1) 四个低分格，用一维优化单独估计：</p>
+<div class="formula">τ(0,0) = 1 − λμρ    τ(0,1) = 1 + λρ
+τ(1,0) = 1 + μρ     τ(1,1) = 1 − ρ</div>
+<p>最终输出一个 <b>11×11 的比分概率矩阵</b>（0–10 球），归一化后即可读出：最可能比分、胜/平/负概率、期望进球 xG。</p>
+
+<h3>2.3 参数标定：用回测说话，不靠拍脑袋</h3>
+<p>这是本系统的纪律核心。任何参数改动都要在<b>样本外回测</b>里用数字证明更好。回测方法：选若干历史 cutoff，<b>只用 cutoff 之前的数据训练</b>，预测之后 270 天的真实比赛，比较预测的胜平负概率与真实结果。</p>
+<table>
+  <tr><th>指标</th><th>含义</th><th>方向</th></tr>
+  <tr><td><b>RPS</b>（Ranked Probability Score）</td><td>有序三分类（主胜/平/客胜）的概率打分，足球预测金标准</td><td>越低越好</td></tr>
+  <tr><td><b>LogLoss</b></td><td>对数损失，重罚"自信却错"的预测</td><td>越低越好</td></tr>
+  <tr><td><b>命中率</b></td><td>最大概率方向是否押中</td><td>越高越好</td></tr>
+</table>
+<p><b>实测证据</b>（cutoffs = 2024-11 / 2025-08，horizon = 270 天，样本 n = 1399 场，本次现跑）：</p>
+<table>
+  <tr><th>配置</th><th>样本 n</th><th>RPS ↓</th><th>LogLoss ↓</th><th>命中率 ↑</th></tr>
+  <tr><td>half_life = 547 天（旧）</td><td>1399</td><td>0.1474</td><td>0.7872</td><td>63.0%</td></tr>
+  <tr><td><b>half_life = 240 天（采纳）</b></td><td>1399</td><td><b class="ok">0.1440</b></td><td><b class="ok">0.7745</b></td><td><b class="ok">65.2%</b></td></tr>
+</table>
+<p class="muted">240 天在三项指标上全面更优，因此采纳。同样的方法论让我们<b>否决</b>了两个看似合理的"优化"：</p>
+<ul>
+  <li><span class="tag warn">已否决</span> <b>身价先验</b>：把评级向 Transfermarkt 阵容身价收缩——回测 RPS 无改善（国家队样本本就够大），默认关闭（身价数值仍在 UI 展示）。</li>
+  <li><span class="tag warn">已否决</span> <b>动态 Elo 集成</b>：回测不如纯 Dixon-Coles，未启用，仅留作对照。</li>
+</ul>
+
+<h3>2.4 赛事蒙特卡洛模拟：从单场到夺冠</h3>
+<p>有了任意两队的比分概率，就能模拟整届世界杯。流程严格遵循 <b>2026 官方赛制</b>（12 组 × 4 队，32 队晋级含最佳第三名分配，官方淘汰赛括号槽位）：</p>
+<ol>
+  <li><b>小组赛</b>：每场按比分概率分布<b>随机抽样</b>一个比分 → 算积分、净胜球、排名。</li>
+  <li><b>出线</b>：每组前 2 + 成绩最好的 8 个第三名，按官方约束匹配到 R32 槽位。</li>
+  <li><b>淘汰赛</b>：单场对阵按模型胜率推进，平局按热门方"点球"决出，直到冠军。</li>
+  <li><b>重复 N 次</b>（默认 5000–10000）→ 统计每队的出线 / 八强 / 四强 / 决赛 / <b>夺冠概率</b>，并给出基于模拟的 95% 区间。</li>
+</ol>
+<p>系统还提供<b>确定性投影</b>（project）：把已踢的真实赛果当事实锁定，未踢的取模型"最可能走势"，实时画出当前最可能的官方括号与冠军——支持用户<b>改小组赛比分 / 录入或假设淘汰赛结果</b>做 what-if，括号与夺冠概率即时重算。</p>
+
+<h3>2.5 贝叶斯分层评级：诚实回答"我们到底多确定"</h3>
+<p>蒙特卡洛量化的是<b>赛事随机性</b>，但还有一层不确定性被忽略了：<b>评级本身的估计误差</b>（数据有限，我们对"某队到底多强"并不确定）。为此我们用 <b>PyMC</b> 搭了一个<b>分层贝叶斯双泊松</b>模型作为补充视图：</p>
+<ul>
+  <li>同样的加权泊松似然，但对攻防系数施加<b>分层正态先验</b>（部分汇合 partial pooling，非中心化参数化），NUTS 采样 ≈ 15 秒。</li>
+  <li>输出每队净实力的<b>后验分布</b>，从而得到 <b>94% 可信区间</b>。</li>
+</ul>
+<div class="lead" style="background:#fff8ec;border-color:#9a6700">
+<b>关键守则：</b>贝叶斯评级是<b>不确定性补充视图，不替换预测引擎</b>。预测与模拟仍由经回测验证的 Dixon-Coles 引擎驱动，未违反"改模型必须回测证明"的铁律。由于分层收缩 + 时间加权后有效样本仅 ~1519，可信区间普遍较宽且互相重叠——这是对"近 8 个月数据下顶尖球队统计上难分高下"的<b>诚实表达</b>，而非模型缺陷。
+</div>
+
+<h3>2.6 工程闭环：让预测随真实世界更新</h3>
+<div class="two">
+  <div class="card"><h4>实时赛果驱动</h4>已踢的世界杯比赛=事实（蓝色锁定），其余按模型预测。一键"刷新真实赛果"拉取最新数据，并<b>用新数据重训评级</b>（自动 refit，≈9 秒）。</div>
+  <div class="card"><h4>淘汰赛自动套入</h4>已踢淘汰赛赛果按对阵<b>顺序无关</b>自动套进括号；平局的<b>点球胜者</b>查 shootouts 数据，解决官方比分库不记点球胜者的痛点。</div>
+  <div class="card"><h4>赛果持久化</h4>用户录入/假设的赛果<b>原子写入磁盘</b>，刷新或重启都不丢。</div>
+  <div class="card"><h4>本地化体验</h4>队名中文+国旗、北京时间 ↔ 场馆当地时间一键切换（104 场场馆时区经维基逐场核对）。</div>
+</div>
+
+<div class="pagebreak"></div>
+<h2>三、高盛（Goldman Sachs）的测算逻辑</h2>
+<p>高盛自 2010 年起发布《The World Cup and Economics》系列研究报告（由其 Global Investment Research 团队撰写）。下述事实<b>主要取自 2018 与 2026 两版官方报告 PDF 原文</b>，2022 细节取自 2026 报告中的官方回测段，2014 以报告转述为准。</p>
+
+<div class="lead" style="background:#fff4f4;border-color:#cf222e">
+<b>一个反直觉但有据可查的事实：</b>高盛只有 <b>2018 一届</b>真正用了机器学习集成（随机森林 + 贝叶斯岭回归 + Lasso + 梯度提升，20 万模型、100 万次模拟，自评比旧泊松回归准 5 倍）。但 <b>2014 / 2022 / 2026 三届都是以 Elo 为核心的泊松回归</b>——高盛试过 ML 之后又回到了 Poisson。
+</div>
+
+<h3>3.1 模型与预测对象</h3>
+<p>与我们一致，高盛<b>直接预测的是"每队每场进球数"</b>，建模为<b>泊松分布</b>，胜平负 / 出线 / 夺冠概率全部由进球预测 + 模拟二次推导。2026 官方原文："a regression model to predict the number of goals scored by a particular team ('team i') against a particular opponent ('team j')… described by a so-called 'Poisson' distribution."</p>
+
+<h3>3.2 特征工程：领域知识是其最大差异点</h3>
+<p>这是高盛与纯统计模型最不同之处——它往进球回归里塞了大量<b>足球领域变量</b>（以 2026 版最详尽）：</p>
+<table>
+  <tr><th>特征类别</th><th>具体内容</th></tr>
+  <tr><td><b>Elo 评分差</b>（主驱动）</td><td>赛前两队 Elo 之差；并随赛程<b>递归更新</b>。来源 eloratings.net。</td></tr>
+  <tr><td><b>得分天赋</b></td><td>进入欧洲顶级联赛前 50 射手榜的本队球员数，<b>每队封顶 4 人</b>（防极端值）。来源 Transfermarkt。</td></tr>
+  <tr><td><b>动量 Momentum</b></td><td>i 队最近 10 场正式赛进球数 + j 队最近 5 场正式赛失球数。</td></tr>
+  <tr><td><b>心态 Mentality</b></td><td>卫冕冠军下滑（winner's slump）、首次参赛超常发挥、对欧洲球队更难进球、足球强国"世界杯加成"——写进回归的哑变量。</td></tr>
+  <tr><td><b>地理 Geography</b></td><td>主场效应、首都到赛地距离、低海拔国家在高海拔球场罚分、本国与赛地温差罚分。</td></tr>
+</table>
+<p class="muted">数据跨度：1978 年至今约 <b>2 万场</b>正式国际比赛；数据源 eloratings.net / Transfermarkt / FIFA。<b>刻意排除友谊赛</b>——2018 报告实证"加入友谊赛会让模型变差"。</p>
+
+<h3>3.3 模拟、输出与自评</h3>
+<ul>
+  <li><b>蒙特卡洛</b>：2026 用 <b>5 万次</b>抽样（2018 曾用 100 万次）；每场从该对阵的泊松分布随机抽比分。严格套官方 FIFA 平分规则，处理 48 队赛制下 R32 的 <b>495 种可能配对</b>；淘汰赛若抽到平局则"烧掉该抽样"（burning draws），机械性让均值略高方胜出，近似加时 / 点球。</li>
+  <li><b>输出</b>：每场最可能比分点估计 + 蒙特卡洛各轮 / 夺冠概率分布；赛中<b>逐比赛日滚动重算</b>。<span class="tag bad">注意</span><b>不提供传统置信 / 可信区间</b>。</li>
+  <li><b>诚实自评</b>：2026 官方回测"预测净胜球 vs 实际净胜球的相关系数"——历届约 <b>49%</b>、2018 届 43%、2022 届 45%，自评"correlation remains modest"；并把自家概率与<b>博彩盘口对标</b>。</li>
+</ul>
+
+<h3>3.4 公开的"翻车"记录</h3>
+<p>高盛<b>连续多届未押中冠军</b>（且自己不回避）：</p>
+<table>
+  <tr><th>届次</th><th>高盛首选</th><th>实际冠军</th></tr>
+  <tr><td>2014</td><td>巴西夺冠（给东道主 48.5%），决赛巴西 vs 荷兰</td><td><b>德国</b>（巴西半决赛 1-7 惨败）</td></tr>
+  <tr><td>2018</td><td>巴西夺冠（18.5%），决赛胜德国</td><td><b>法国</b>（巴西八强出局、德国小组未出线）</td></tr>
+  <tr><td>2022</td><td>巴西 24% 居首，阿根廷 21% 第二</td><td><b>阿根廷</b>（高盛给的是第二高）</td></tr>
+</table>
+<p class="muted">印证其官方结论：再花哨的统计技术也难抵足球的内在不可预测性。</p>
+
+
+<div class="pagebreak"></div>
+<h2>四、对比分析：我们 vs 高盛</h2>
+
+<h3>4.1 相同点（殊途同归的共识）</h3>
+<p>两套系统由完全不同的团队独立搭建，却在几个根本选择上高度一致——这本身就是对这些方法的交叉验证：</p>
+<ol>
+  <li><b>都把进球建模为泊松分布</b>，且都是"先预测进球数，再二次推导胜平负 / 夺冠概率"，而非直接分类。</li>
+  <li><b>都用蒙特卡洛模拟完整官方括号</b>（我们 5k–10k 次，高盛 2026 用 5 万次），都严格套官方出线 / 平分规则。</li>
+  <li><b>都强调"时间相关性"</b>：高盛靠 Elo 递归更新 + 近 5/10 场动量窗口；我们靠指数时间衰减加权（half_life=240 天）。本质都是"近期比赛更重要"。</li>
+  <li><b>都对友谊赛降权</b>：高盛实证后<b>直接排除</b>友谊赛，我们把友谊赛权重降到 0.5——两边独立得出"友谊赛会污染信号"的同一结论。</li>
+  <li><b>都做赛中滚动更新</b>：真实赛果一出就回灌、重算下游概率。</li>
+  <li><b>都对不确定性保持诚实</b>：都公开承认足球本质难测，不吹"精准预测"。</li>
+</ol>
+
+<h3>4.2 各自优劣</h3>
+<div class="two">
+  <div class="card">
+    <h4>🟢 我们的优势</h4>
+    <ul>
+      <li><b>完全透明可解释</b>：每队仅两参数，任何预测可追溯，开源可复现、本地秒级运行。</li>
+      <li><b>严格回测纪律</b>：每个改动必须用 RPS/LogLoss 数字证明更好才采纳（身价、Elo 集成都因此被否决）。</li>
+      <li><b>输出完整比分概率矩阵</b>（11×11），不止胜平负——可读任意比分概率。</li>
+      <li><b>DC 低分修正</b>显式建模 0-0/1-1 平局相关，高盛泊松未提及此修正。</li>
+      <li><b>独有评级可信区间</b>：贝叶斯分层给出 94% 可信区间——这恰恰是高盛<b>不提供</b>的。</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>🔴 我们的劣势</h4>
+    <ul>
+      <li><b>特征单一</b>：只有历史进球数据，缺 Elo 动量、球员个体天赋、卫冕下滑、地理 / 海拔 / 温差等领域信息。</li>
+      <li><b>评级偏静态</b>：单时点 GLM 拟合（虽用时间衰减近似），不如高盛 Elo 逐场递归更新动态。</li>
+      <li><b>无显式领域修正项</b>（心态 / 回归均值等）。</li>
+      <li><b>赛事强度颗粒度粗</b>：只分友谊 / 非友谊，未区分预选赛 vs 大赛。</li>
+      <li>淘汰赛平局用"热门方点球"近似，比高盛"烧抽样"略粗。</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>🟢 高盛的优势</h4>
+    <ul>
+      <li><b>特征丰富、领域知识深</b>：Elo + 动量 + 球员天赋 + 心态 + 地理多维融合。</li>
+      <li><b>Elo 递归更新</b>更贴近实时实力变化。</li>
+      <li><b>赛制工程细致</b>：5 万次模拟、495 种 R32 配对、烧抽样处理加时点球。</li>
+      <li><b>评估口径稳健</b>：用"净胜球相关系数"+ 与博彩盘口对标，可跨年比较。</li>
+      <li>研究资源与品牌背书。</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>🔴 高盛的劣势</h4>
+    <ul>
+      <li><b>黑箱、不可复现</b>：2018 ML 集成尤甚，外部无法验证 / 复跑。</li>
+      <li><b>战绩平平</b>：连续三届（14/18/22）未押中冠军，自评相关系数仅 ~45–49%。</li>
+      <li><b>不给评级置信 / 可信区间</b>，不输出完整比分矩阵。</li>
+      <li><b>重型</b>：20 万模型 / 100 万模拟，对个人 / 实时场景不友好。</li>
+      <li>大量主观"领域修正项"有<b>过拟合 / 人为偏见</b>风险。</li>
+    </ul>
+  </div>
+</div>
+
+<h3>4.3 可借鉴之处（借鉴思路，不抄实现，且必须过回测）</h3>
+<p>核心原则不变：<b>任何借鉴来的新特征 / 新机制，都要先在 <code>backtest.py</code> 里用 RPS 增益证明，否则不纳入</b>。这恰是我们相对高盛"黑箱"的纪律优势，借鉴时不能丢。</p>
+<ol>
+  <li><b>把 Elo 差作为 GLM 外生特征再试一次</b>。我们曾验证"Elo 集成"无增益，但高盛是把 Elo 当<b>核心协变量</b>而非事后集成——这是不同形式，值得用"在双泊松 log λ 里加一项 Elo 差"的方式重测（项目已有 <code>elo.py</code> 可复用）。</li>
+  <li><b>引入少量可解释领域修正哑变量</b>：如"卫冕冠军"、"对欧洲球队"等。但每个都要单独回测，有 RPS 增益才留——把高盛的领域直觉，套进我们的回测纪律里。</li>
+  <li><b>升级评估口径</b>：除 RPS/LogLoss，增加"预测净胜球 vs 实际净胜球相关系数"和"与博彩盘口对标"两个 benchmark，让模型评估更稳健、可跨年横比。<span class="tag">低成本高价值</span></li>
+  <li><b>赛事强度分级加权</b>：把现有"友谊 0.5 / 正式 1.0"细化为"友谊 / 预选赛 / 洲际杯 / 世界杯"多级权重，回测验证颗粒度收益。</li>
+  <li><b>更细的在线更新</b>：我们已做"刷新后自动全量 refit"，可借鉴高盛"逐比赛日 + Elo 增量更新"做更轻量的实时滚动。</li>
+  <li><b>领域约束防极端值</b>：高盛"得分天赋封顶 4 人"的思路，可用于未来任何球员级特征的稳健化处理。</li>
+</ol>
+
+<h2>五、结论</h2>
+<div class="lead">
+两套系统在<b>泊松内核 + 蒙特卡洛模拟 + 友谊赛降权 + 滚动更新</b>上殊途同归，验证了这条技术路线的合理性。<b>高盛胜在特征工程的广度与领域深度</b>，但以黑箱、重型、不可复现为代价，且战绩证明再多特征也跑不赢足球的随机性；<b>我们胜在透明、可回测、可复现，并独有评级可信区间这一诚实的不确定性表达</b>。最值得借鉴的不是高盛的某个具体特征，而是它"把足球领域知识显式编码"的思路——但我们要用自己的<b>回测纪律</b>去筛选，让每一个借鉴来的想法都经得起"用数字证明更好"的检验。这样既吸收其长，又不丢自己的根。
+</div>
+
+<footer>
+世界杯比分预测器 · 测算逻辑白皮书 ｜ 本文所有回测数字均由 <code>backtest.py</code> 现场跑出，可复现 ｜ 模型与代码细节见项目 <code>CLAUDE.md</code>
+</footer>
+
+</body>
+</html>

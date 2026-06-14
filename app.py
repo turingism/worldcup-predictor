@@ -1,0 +1,581 @@
+#!/usr/bin/env python3
+"""
+Web 服务：把比分预测 + 夺冠模拟做成网页。
+
+启动：
+    python3 app.py
+    浏览器打开 http://127.0.0.1:5000
+
+接口：
+    GET /                     单页 UI
+    GET /api/teams            可选球队列表
+    GET /api/predict?home=&away=&neutral=1   单场预测(JSON)
+    GET /api/champions?sims=  夺冠概率模拟(JSON, 内存缓存)
+"""
+from __future__ import annotations
+import datetime as dt
+import json
+import os
+import pickle
+import time
+import urllib.request
+
+import numpy as np
+from flask import Flask, jsonify, render_template, request
+
+import clv as clvmod
+import data as datamod
+import inplay as inplaymod
+import live as livemod
+import market
+import schedule
+import teams_zh
+import verify as verifymod
+import wc2026
+from model import DixonColesModel
+from predict import CACHE_PATH, get_model
+from simulate import TournamentSimulator
+
+app = Flask(__name__)
+
+# 只读分享模式：READONLY=1 时禁用一切写接口（刷新/实时/录入假设），公网分享更安全。
+READONLY = os.environ.get("READONLY", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _readonly_block():
+    """只读模式下返回 403；否则返回 None（放行）。写接口开头调用。"""
+    if READONLY:
+        return jsonify({"ok": False, "readonly": True,
+                        "error": "只读分享模式：写操作（刷新/实时/录入假设）已禁用。"}), 403
+    return None
+
+
+HALF_LIFE = 730.0   # 回测最优半衰期（天，修复时间泄漏后重扫定值）；refresh/live 重训同用
+MODEL = get_model(use_cache=True, half_life=HALF_LIFE, verbose=True)
+DF = datamod.load_raw()
+_CHAMP_CACHE: dict[int, list] = {}
+
+# 关键球员可用性『上下文层』：从 data/availability.json 现装 xG 乘子（补充层，不入缓存）。
+_AVAIL_N = MODEL.set_availability()
+if _AVAIL_N:
+    print(f"[avail] 已装载关键球员可用性调整：{_AVAIL_N} 队受影响")
+
+# Elo 排名缓存（解读层用，比对『模型 vs 名气』；refresh 时重算）
+_ELO = {}
+def _compute_elo():
+    global _ELO
+    try:
+        import elo as elomod
+        _, _ELO = elomod.prematch_ratings(DF)
+    except Exception as e:  # noqa
+        print(f"[elo] 解读层 Elo 计算失败（不影响主功能）：{e}"); _ELO = {}
+_compute_elo()
+
+_RAW_CHAMP: dict = {}   # 英文队名原始夺冠模拟行缓存（解读层复用，避免重复模拟）
+
+def _champ_rows_en(sims, grp, ko_ovr):
+    key = (sims, tuple(sorted(grp.items())), tuple(sorted(ko_ovr.items())))
+    if key not in _RAW_CHAMP:
+        _RAW_CHAMP[key] = TournamentSimulator(MODEL, DF, sims=sims).run(
+            known=grp or None, ko_known=ko_ovr or None)
+    return _RAW_CHAMP[key]
+
+
+@app.route("/")
+def index():
+    return render_template("index.html", readonly=READONLY)
+
+
+@app.route("/api/config")
+def api_config():
+    """前端启动配置：是否只读分享模式（据此隐藏写操作按钮）。"""
+    return jsonify({"readonly": READONLY})
+
+
+_MARKET_CACHE: dict = {}
+
+
+@app.route("/api/market")
+def api_market():
+    """市场对标 / CLV 诚实检验：模型 vs 闭盘线 RPS、抽水、分歧；有开盘赔率才算 CLV + 显著性。
+    无显著正 CLV 时 show_value=False（前端据此禁止显示价值/注码）。结果缓存（含 ~10s as_of 训练）。"""
+    if not _MARKET_CACHE:
+        try:
+            r = clvmod.evaluate(df=DF)
+        except Exception as e:  # noqa
+            return jsonify({"n": 0, "error": f"市场对标计算失败：{e}"}), 500
+        for x in r.get("rows", []):
+            x["home"], x["away"] = teams_zh.disp(x["home"]), teams_zh.disp(x["away"])
+        _MARKET_CACHE.update(r)
+    return jsonify(_MARKET_CACHE)
+
+
+@app.route("/api/teams")
+def api_teams():
+    # 仅 2026 世界杯 48 强；中文+国旗，按官方 A–L 组序展示，便于浏览
+    teams = [t for g in wc2026.GROUPS.values() for t in g]
+    return jsonify([teams_zh.disp(t) for t in teams])
+
+
+@app.route("/api/predict")
+def api_predict():
+    home = request.args.get("home", "").strip()
+    away = request.args.get("away", "").strip()
+    neutral = request.args.get("neutral", "1") not in ("0", "false", "False")
+    try:
+        r = MODEL.predict(home, away, neutral=neutral)
+    except KeyError as e:
+        return jsonify({"error": str(e)}), 400
+
+    M = r["matrix"]
+    side = M.shape[0]
+    return jsonify({
+        "home": teams_zh.disp(r["home"]), "away": teams_zh.disp(r["away"]), "neutral": neutral,
+        "xg_home": round(r["xg_home"], 3), "xg_away": round(r["xg_away"], 3),
+        "p_home": r["p_home"], "p_draw": r["p_draw"], "p_away": r["p_away"],
+        "top_scores": [{"h": i, "a": j, "p": p} for (i, j), p in r["top_scores"]],
+        "matrix": M.tolist(), "side": side,
+        "mv_home": market.value(r["home"]), "mv_away": market.value(r["away"]),
+    })
+
+
+_RATINGS = None
+
+
+def _ratings():
+    global _RATINGS
+    if _RATINGS is None:
+        path = os.path.join(os.path.dirname(__file__), "data", "bayes_ratings.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _RATINGS = json.load(f)
+        except (FileNotFoundError, ValueError, OSError):
+            _RATINGS = {"ratings": {}, "meta": {}}
+    return _RATINGS
+
+
+@app.route("/api/ratings")
+def api_ratings():
+    """贝叶斯分层评级（净实力 + 94% 可信区间），仅本届 48 强，附 DC 点估值参照。"""
+    data = _ratings()
+    R = data.get("ratings", {})
+    rows = []
+    for t in (x for g in wc2026.GROUPS.values() for x in g):
+        r = R.get(t)
+        if not r:
+            continue
+        dc = MODEL.attack.get(t, 0.0) - MODEL.defence.get(t, 0.0)
+        rows.append({"team": teams_zh.disp(t), "net": r["net"], "lo": r["net_lo"],
+                     "hi": r["net_hi"], "atk": r["atk"], "dfc": r["dfc"],
+                     "dc_net": round(dc, 2)})
+    rows.sort(key=lambda x: -x["net"])
+    return jsonify({"rows": rows, "meta": data.get("meta", {}), "available": bool(rows)})
+
+
+@app.route("/api/availability")
+def api_availability():
+    """关键球员可用性『上下文层』当前生效的 xG 调整（供前端展示，非引擎核心）。"""
+    import adjust
+    mods = adjust.team_modifiers()
+    rows = []
+    for t, m in sorted(mods.items(), key=lambda kv: kv[1]["att"]):
+        rows.append({"team": teams_zh.disp(t), "att": m["att"], "def_pen": m["def_pen"],
+                     "items": [{"player": i["player"], "reason": i.get("reason", ""),
+                                "status": i.get("status"), "prob": i.get("prob"),
+                                "role": i.get("role"), "exp_penalty": i.get("exp_penalty")}
+                               for i in m["items"]]})
+    return jsonify({"rows": rows, "active": bool(rows)})
+
+
+@app.route("/api/environment")
+def api_environment():
+    """环境上下文层：高海拔/高温场馆 + 适应/受影响球队（供前端展示，非引擎核心）。"""
+    import env as envmod
+    cfg = envmod._cfg()
+    geo = cfg["geo"]
+    venues = []
+    for city, g in sorted(geo.items(), key=lambda kv: -(kv[1].get("alt") or 0)):
+        if (g.get("alt") or 0) >= 1200 or g.get("heat") in ("extreme", "high"):
+            venues.append({"city": city, "alt": g.get("alt"), "heat": g.get("heat")})
+    return jsonify({"venues": venues,
+                    "alt_adapted": [teams_zh.disp(t) for t in sorted(cfg["alt_adapted"])],
+                    "cool_climate": [teams_zh.disp(t) for t in sorted(cfg["cool"])]})
+
+
+@app.route("/api/champions", methods=["GET", "POST"])
+def api_champions():
+    sims = int(request.args.get("sims", 5000))
+    sims = max(500, min(sims, 20000))
+    grp, ko_ovr = ({}, {})
+    if request.method == "POST":
+        grp, ko_ovr = _parse_overrides(request.get_json(silent=True) or {})
+    key = (sims, tuple(sorted(grp.items())), tuple(sorted(ko_ovr.items())))
+    if key not in _CHAMP_CACHE:
+        rows = _champ_rows_en(sims, grp, ko_ovr)
+        _CHAMP_CACHE[key] = [
+            {"team": teams_zh.disp(t), "champ": ch, "final": fi, "sf": sf, "qf": qf, "ko": ko}
+            for (t, ch, fi, sf, qf, ko) in rows
+        ]
+    return jsonify({"sims": sims, "conditioned": len(grp) + len(ko_ovr),
+                    "rows": _CHAMP_CACHE[key]})
+
+
+@app.route("/api/insights", methods=["GET", "POST"])
+def api_insights():
+    """解读层：模型 vs 名气(Elo) 偏差 + 伤病/环境暴露 合成每队叙事（纯展示，不算概率）。"""
+    import insights
+    sims = max(500, min(int(request.args.get("sims", 4000)), 20000))
+    grp, ko_ovr = ({}, {})
+    if request.method == "POST":
+        grp, ko_ovr = _parse_overrides(request.get_json(silent=True) or {})
+    rows = _champ_rows_en(sims, grp, ko_ovr)
+    sim = _sim()
+    cards = insights.build(rows, MODEL, sim, _ELO, topn=12)
+    return jsonify({"cards": cards, "has_elo": bool(_ELO)})
+
+
+_SIM = None
+
+
+def _sim():
+    global _SIM
+    if _SIM is None:
+        _SIM = TournamentSimulator(MODEL, DF, sims=1)
+    return _SIM
+
+
+@app.route("/api/bracket")
+def api_bracket():
+    """模拟完整一届，返回小组排名 + 晋级树 + 冠军（队名本地化）。"""
+    seed = request.args.get("seed")
+    seed = int(seed) if seed not in (None, "") else None
+    d = _sim().simulate_once(seed=seed)
+    L = teams_zh.disp
+    for g in d["groups"]:
+        for s in g["standings"]:
+            s["team"] = L(s["team"])
+        for mt in g["matches"]:
+            mt["home"], mt["away"] = L(mt["home"]), L(mt["away"])
+    for rd in d["rounds"]:
+        for mt in rd["matches"]:
+            mt["a"], mt["b"], mt["winner"] = L(mt["a"]), L(mt["b"]), L(mt["winner"])
+    d["champion"] = L(d["champion"])
+    return jsonify(d)
+
+
+# martj42 数据的多个镜像源——一个 503/被墙就换下一个（urllib 默认走系统代理）
+def _mirror_urls(repo_path: str) -> list[str]:
+    user_repo, rest = repo_path.split("/master/")     # martj42/international_results , results.csv
+    return [
+        f"https://raw.githubusercontent.com/{repo_path}",
+        f"https://cdn.jsdelivr.net/gh/{user_repo}@master/{rest}",
+        f"https://ghproxy.net/https://raw.githubusercontent.com/{repo_path}",
+    ]
+
+
+def _fetch(repo_path: str, dest: str, retries: int = 2) -> str:
+    """多源+重试下载到 dest（原子写：先 .tmp 再 replace，坏档不覆盖好档）。返回成功的源。"""
+    last = None
+    for url in _mirror_urls(repo_path):
+        for _ in range(retries):
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=20) as r:
+                    data = r.read()
+                if len(data) < 1000:                  # 太小=异常（错误页等）
+                    raise ValueError(f"返回内容过小({len(data)}B)")
+                tmp = dest + ".tmp"
+                with open(tmp, "wb") as f:
+                    f.write(data)
+                os.replace(tmp, dest)
+                return url
+            except Exception as e:  # noqa
+                last = e
+    raise RuntimeError(f"所有镜像源均失败：{last}")
+
+
+def _refit_all():
+    """用磁盘最新数据（results.csv + live_results.json）重训模型并重建全部缓存。
+    /api/refresh 与 /api/live 共用。"""
+    global MODEL, DF, _SIM
+    DF = datamod.load_raw()
+    MODEL = DixonColesModel(half_life_days=HALF_LIFE).fit(DF, verbose=False)
+    with open(CACHE_PATH, "wb") as f:
+        pickle.dump(MODEL, f)
+    MODEL.set_availability()   # 重训后重装可用性上下文层（pickle 不含它）
+    _SIM = None
+    _CHAMP_CACHE.clear()
+    _RAW_CHAMP.clear()
+    _compute_elo()             # 解读层 Elo 随新数据重算
+    import insights; insights._AVAIL_ITEMS = None
+    try:                       # 重训后用最新模型冻结未开球场次的赛前预测（验证账本）
+        verifymod.freeze(_sim())
+    except Exception as e:  # noqa
+        print(f"[verify] 重训后冻结预测失败（不影响主功能）：{e}")
+
+
+@app.route("/api/refresh", methods=["POST"])
+def api_refresh():
+    """拉取最新国际比赛结果（含已踢世界杯赛果）→ 用新数据重训评级 → 刷新预测。"""
+    if (blocked := _readonly_block()):
+        return blocked
+    ddir = os.path.join(os.path.dirname(__file__), "data")
+    try:
+        src = _fetch("martj42/international_results/master/results.csv",
+                     os.path.join(ddir, "results.csv"))
+    except Exception as e:  # noqa  下载失败：保留旧数据，给清晰提示
+        return jsonify({"ok": False, "error": f"赛果数据下载失败（已试 3 个镜像源）：{e}。"
+                        "多为网络/代理临时问题，稍后重试。"}), 502
+    try:    # 点球数据用于淘汰赛平局判胜，缺失不致命
+        _fetch("martj42/international_results/master/shootouts.csv",
+               os.path.join(ddir, "shootouts.csv"))
+    except Exception:  # noqa
+        pass
+    try:    # ESPN 实时完场顺带拉一把（martj42 滞后期兜底），失败不致命
+        livemod.fetch_and_save()
+    except Exception:  # noqa
+        pass
+    try:
+        _refit_all()
+        played = len(_sim().actual_results)
+        return jsonify({"ok": True, "wc_played": played, "refit": True,
+                        "teams": len(MODEL.teams), "source": src})
+    except Exception as e:  # noqa
+        return jsonify({"ok": False, "error": f"数据已下载但重训失败：{e}"}), 500
+
+
+@app.route("/api/live", methods=["POST"])
+def api_live():
+    """轻量实时刷新：只查 ESPN 完场赛果（秒级，增量窗口），有新完场才重训+重建。
+    供前端比赛日自动轮询；无变化时几乎零开销。"""
+    if (blocked := _readonly_block()):
+        return blocked
+    try:
+        changed, summary = livemod.fetch_and_save()
+    except Exception as e:  # noqa
+        return jsonify({"ok": False, "error": f"ESPN 实时源拉取失败：{e}"}), 502
+    if changed:
+        try:
+            _refit_all()
+        except Exception as e:  # noqa
+            return jsonify({"ok": False, "error": f"实时数据已更新但重训失败：{e}"}), 500
+    s = _sim()
+    return jsonify({"ok": True, "changed": changed,
+                    "wc_played": len(s.actual_results), "ko_played": len(s.actual_ko),
+                    "live_total": summary.get("total", 0),
+                    "updated": dt.datetime.now().strftime("%H:%M:%S")})
+
+
+OVERRIDES_PATH = os.path.join(os.path.dirname(__file__), "data", "overrides.json")
+
+
+def _load_overrides_file():
+    """读出磁盘上保存的赛果录入/假设（list）；无文件或损坏则空。"""
+    try:
+        with open(OVERRIDES_PATH, encoding="utf-8") as f:
+            ov = json.load(f).get("overrides", [])
+        return ov if isinstance(ov, list) else []
+    except (FileNotFoundError, ValueError, OSError):
+        return []
+
+
+def _save_overrides_file(ov):
+    """原子写入（先写 .tmp 再 rename），避免并发/中断写坏文件。"""
+    os.makedirs(os.path.dirname(OVERRIDES_PATH), exist_ok=True)
+    tmp = OVERRIDES_PATH + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump({"overrides": ov}, f, ensure_ascii=False)
+    os.replace(tmp, OVERRIDES_PATH)
+
+
+@app.route("/api/overrides", methods=["GET", "POST"])
+def api_overrides():
+    """赛果录入/假设的持久化：GET 取回已存盘列表，POST 覆盖保存。"""
+    if request.method == "POST":
+        if (blocked := _readonly_block()):
+            return blocked
+        ov = (request.get_json(silent=True) or {}).get("overrides", [])
+        if not isinstance(ov, list):
+            return jsonify({"ok": False, "error": "overrides must be a list"}), 400
+        try:
+            _save_overrides_file(ov)
+        except OSError as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": True, "count": len(ov)})
+    return jsonify({"overrides": _load_overrides_file()})
+
+
+def _parse_overrides(body):
+    """把前端 overrides 列表拆成 小组赛(known) + 淘汰赛(ko_known，含胜者)。
+    小组赛对阵顺序无关匹配（兼容旧存档里与官方赛程相反的主客序），反序翻转比分。"""
+    sim = _sim()
+    canon = {frozenset(p): p for ps in sim.fixtures.values() for p in ps}
+    known, ko = {}, {}
+    for o in (body or {}).get("overrides", []):
+        h = teams_zh.to_en(o.get("home", "")) or o.get("home")
+        a = teams_zh.to_en(o.get("away", "")) or o.get("away")
+        try:
+            gh, ga = int(o["gh"]), int(o["ga"])
+        except (KeyError, ValueError, TypeError):
+            continue
+        cp = canon.get(frozenset((h, a)))
+        if cp:
+            known[cp] = (gh, ga) if cp == (h, a) else (ga, gh)
+        else:  # 淘汰赛：平局需胜者（点球），缺省给主位
+            if gh > ga: w = h
+            elif ga > gh: w = a
+            else: w = teams_zh.to_en(o.get("win", "")) or h
+            ko[(h, a)] = (gh, ga, w)
+    return known, ko
+
+
+@app.route("/api/project", methods=["GET", "POST"])
+def api_project():
+    """官方赛制「最可能走势」投影；POST overrides 可做赛果假设/录入（小组赛+淘汰赛）。"""
+    known, ko = ({}, {})
+    if request.method == "POST":
+        known, ko = _parse_overrides(request.get_json(silent=True) or {})
+    p = _sim().project(known=known or None, ko_known=ko or None,
+                       today=dt.date.today().isoformat())
+    L = teams_zh.disp
+    for g in p["groups"]:
+        for s in g["standings"]:
+            s["team"] = L(s["team"])
+        for mt in g["matches"]:
+            mt["home_en"], mt["away_en"] = mt["home"], mt["away"]
+            mt["home"], mt["away"] = L(mt["home"]), L(mt["away"])
+    for rd in p["rounds"]:
+        for mt in rd["matches"]:
+            mt["a_en"], mt["b_en"], mt["winner_en"] = mt["a"], mt["b"], mt["winner"]
+            mt["a"], mt["b"], mt["winner"] = L(mt["a"]), L(mt["b"]), L(mt["winner"])
+    p["champion"] = L(p["champion"])
+    p["facts"] = len(_sim().actual_results)      # 已采用的小组赛真实赛果场数
+    p["ko_facts"] = len(_sim().actual_ko)        # 已自动套入的淘汰赛真实赛果场数
+    return jsonify(p)
+
+
+@app.route("/api/verify")
+def api_verify():
+    """预测验证：已完赛场次的「预测 vs 实际」对比 + 命中统计。
+    账本（data/predictions.json）开球前冻结、开球后只读；缺失场次用回溯模型补（不偷看结果）。"""
+    s = _sim()
+    try:
+        verifymod.freeze(s)
+        verifymod.backfill(s, DF)     # 首次遇到账本缺失的已完赛场次会训回溯模型（~10s/截止日）
+    except Exception as e:  # noqa  账本写失败不阻塞只读评估
+        print(f"[verify] freeze/backfill 失败：{e}")
+    r = verifymod.evaluate(s, DF)
+    for x in r["rows"]:
+        x["home"], x["away"] = teams_zh.disp(x["home"]), teams_zh.disp(x["away"])
+    return jsonify(r)
+
+
+# —— 主页看板：正在比赛 / 即将开赛 / 已结束 三态聚合 ——
+_STATUS_CACHE = {"t": 0.0, "data": []}
+
+
+def _live_status(max_age: float = 30.0) -> list[dict]:
+    """ESPN 实时状态快照（pre/in/post），进程内缓存 max_age 秒，避免每次看板加载都打 ESPN。"""
+    now = time.time()
+    if not _STATUS_CACHE["data"] or now - _STATUS_CACHE["t"] > max_age:
+        try:
+            _STATUS_CACHE["data"] = livemod.fetch_status()
+            _STATUS_CACHE["t"] = now
+        except Exception as e:  # noqa  实时源失败不致命：看板退化为只有账本数据
+            print(f"[dashboard] ESPN 状态拉取失败：{e}")
+    return _STATUS_CACHE["data"]
+
+
+@app.route("/api/dashboard")
+def api_dashboard():
+    """主页看板数据：把全部场次按 正在比赛 / 即将开赛 / 已结束 三态聚合。
+    已结束沿用预测验证（预测 vs 实际 + 分桶/冷门统计）；即将开赛带模型赛前预测；
+    正在比赛叠加 ESPN 实时比分+分钟。实时状态只读、不进训练。"""
+    s = _sim()
+    try:                                  # 账本对齐：冻结未开球预测 + 回补已完赛
+        verifymod.freeze(s)
+        verifymod.backfill(s, DF)
+    except Exception as e:  # noqa
+        print(f"[dashboard] freeze/backfill 失败：{e}")
+    ev = verifymod.evaluate(s, DF)        # 已结束：rows + summary（含 bins/冷门）
+    for x in ev["rows"]:
+        x["home"], x["away"] = teams_zh.disp(x["home"]), teams_zh.disp(x["away"])
+    ev["rows"].sort(key=lambda x: (x.get("date") or "", x["home"]), reverse=True)  # 最新在前
+
+    completed = verifymod._completed(s, DF)
+    done_keys = {c["key"] for c in completed}
+    done_pairs = {frozenset((c["home"], c["away"])) for c in completed}
+
+    preds = verifymod.load_ledger()
+    pred_by_pair = {frozenset((e["home"], e["away"])): e for e in preds.values()}
+    status = _live_status()
+    busy_pairs = {frozenset((r["home"], r["away"])) for r in status if r["state"] in ("in", "post")}
+
+    def _probs(e):
+        return {"p_home": e["p_home"], "p_draw": e["p_draw"], "p_away": e["p_away"],
+                "pred_gh": e["gh"], "pred_ga": e["ga"],
+                "pick": max((("H", e["p_home"]), ("D", e["p_draw"]), ("A", e["p_away"])),
+                            key=lambda t: t[1])[0]}
+
+    # 正在比赛（ESPN state=in）：叠加赛前预测
+    live = []
+    for r in status:
+        if r["state"] != "in":
+            continue
+        e = pred_by_pair.get(frozenset((r["home"], r["away"])))
+        row = {"home": teams_zh.disp(r["home"]), "away": teams_zh.disp(r["away"]),
+               "home_en": r["home"], "away_en": r["away"],
+               "gh": r["gh"], "ga": r["ga"], "clock": r.get("clock", ""),
+               "detail": r.get("detail", ""), "stage": e["stage"] if e else "group"}
+        if e:
+            row.update(_probs(e))
+        try:    # 实时胜平负：赛前 λ 按剩余时间缩放 + 当前比分卷积（只读引擎，不入账本/统计）
+            minute = inplaymod.parse_minute(r.get("clock"), r.get("period"))
+            row["wdl"] = inplaymod.win_draw_loss(MODEL, r["home"], r["away"],
+                                                 r["gh"], r["ga"], minute, neutral=True)
+            row["minute"] = minute
+        except Exception as ex:  # noqa  in-play 失败不致命，live 卡退化为只显示比分
+            print(f"[inplay] {r['home']} vs {r['away']} 计算失败：{ex}")
+        live.append(row)
+
+    # 即将开赛（账本里未完赛、未在进行/刚完场，按北京开球时间升序）
+    now_bj = verifymod._now_bj()
+    upcoming = []
+    for k, e in preds.items():
+        if k in done_keys or frozenset((e["home"], e["away"])) in busy_pairs:
+            continue
+        loc = None
+        if e.get("stage") == "group":
+            gv = schedule.group_venue(e["home"], e["away"])
+            loc = gv.get("local") if gv else None
+        row = {"stage": e.get("stage"), "home": teams_zh.disp(e["home"]),
+               "away": teams_zh.disp(e["away"]), "home_en": e["home"], "away_en": e["away"],
+               "kickoff": e.get("kickoff") or "",
+               "date": e.get("date"), "city": e.get("city"), "local": loc,
+               "retro": False}
+        row.update(_probs(e))
+        upcoming.append(row)
+    upcoming.sort(key=lambda x: (x["kickoff"] or "9999-99-99 99:99"))
+
+    post_pairs = {frozenset((r["home"], r["away"])) for r in status if r["state"] == "post"}
+    return jsonify({
+        "live": live, "upcoming": upcoming, "done": ev, "now": now_bj,
+        "stale_finished": len(post_pairs - done_pairs),   # ESPN 已完场但本地未 ingest → 提示刷新
+        "counts": {"live": len(live), "upcoming": len(upcoming), "done": len(completed)},
+        "status_updated": (dt.datetime.fromtimestamp(_STATUS_CACHE["t"]).strftime("%H:%M:%S")
+                           if _STATUS_CACHE["t"] else ""),
+    })
+
+
+# 启动即冻结所有未开球场次的赛前预测（开球后账本条目不可再写，保证可验证性）
+try:
+    verifymod.freeze(_sim())
+except Exception as e:  # noqa
+    print(f"[verify] 启动冻结失败（不影响主功能）：{e}")
+
+
+if __name__ == "__main__":
+    # 端口避开 5000：macOS 的 AirPlay 接收器(ControlCenter/AirTunes)占用 *:5000，
+    # 浏览器开 localhost:5000 会被解析到 IPv6 ::1 命中 AirPlay 返回 403「未获授权」。
+    print("\n  ➜  http://127.0.0.1:8000   （也可用 http://localhost:8000）\n")
+    app.run(host="127.0.0.1", port=8000, debug=False)
