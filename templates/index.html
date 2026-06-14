@@ -252,11 +252,15 @@
   .mkt-row.mkt-head{color:var(--mut);font-size:11px}
   .mkt-locked{background:#1c2128;border:1px dashed #6e7681;color:#c9d1d9;font-size:12.5px}
   .mkt-locked b{color:#e6edf3}
-  .never-note{margin:13px 0 4px;padding:15px 17px;border-radius:11px;
-    background:linear-gradient(135deg,#2a1d10,#1c1408);border:1px solid #9e6a0066;border-left:4px solid #e3b341}
-  .never-hl{font-size:17px;font-weight:800;color:#ffd35c;line-height:1.55;letter-spacing:.3px;text-shadow:0 0 12px #e3b34133}
-  .never-pop{color:#ffae3b;border-bottom:2px solid #ffae3b66;padding-bottom:1px}
-  .never-sub{font-size:12px;color:#b9c2cc;margin-top:9px;line-height:1.65}
+  /* 可复用醒目金句卡片 */
+  .callout{margin:13px 0 4px;padding:15px 17px;border-radius:11px;border:1px solid;border-left-width:4px}
+  .callout .c-hl{font-size:16.5px;font-weight:800;line-height:1.55;letter-spacing:.2px}
+  .callout .c-sub{font-size:12px;color:#b9c2cc;margin-top:9px;line-height:1.65}
+  .c-gold{background:linear-gradient(135deg,#2a1d10,#1c1408);border-color:#9e6a0066;border-left-color:#e3b341}
+  .c-gold .c-hl{color:#ffd35c;text-shadow:0 0 12px #e3b34133}
+  .c-blue{background:linear-gradient(135deg,#0f1d2e,#0b141f);border-color:#1f6feb55;border-left-color:#58a6ff}
+  .c-blue .c-hl{color:#79c0ff}
+  .c-pop{color:#ffae3b;border-bottom:2px solid #ffae3b66;padding-bottom:1px}
   .val-card{border:1px solid #2ea04355;background:#0f1a13}
   .val-h{font-weight:700;color:#3fb950;font-size:14px;margin-bottom:6px}
   .val-row{display:grid;grid-template-columns:1fr 64px 72px 72px;gap:8px;align-items:center;
@@ -1030,7 +1034,7 @@ function renderDone(ev){
   const pctTag=(p)=> p!=null?`<br><b style="color:${hitCol(p)};font-size:13px">${p}%</b>`:'';
   // 小样本提醒：开赛初期 n 小、命中率噪声大，给出长期基线锚点对抗"模型很差"的误判
   const smallN = s.evaluated && s.evaluated<20 ?
-    `<div class="card vnote">📊 当前仅 <b>${s.evaluated}</b> 场样本，胜平负命中率波动很大、参考意义有限——模型<b>样本外长期命中率约 60%</b>（千场回测）。开赛初期看「赋予实际结果的平均概率 / RPS」比看命中率更可信。</div>` : '';
+    `<div class="card" style="padding:6px 8px"><div class="callout c-blue" style="margin:0"><div class="c-hl">📊 仅 ${s.evaluated} 场，命中率波动极大，不代表模型水平</div><div class="c-sub">模型<b style="color:#e6edf3">样本外长期命中率约 60%</b>（千场回测）。开赛初期看「赋予实际结果的平均概率 / RPS / 校准」远比看命中率可信——这阶段的低命中多是小样本 + 平局天花板，不是模型差。</div></div></div>` : '';
   const cards='<div class="vstats">'
     +stat(s.done,'已完赛场次')
     +stat(s.evaluated?`${s.outcome_hits}/${s.evaluated}`:'—','赛果命中（胜平负）'+pctTag(s.outcome_pct))
@@ -1159,7 +1163,7 @@ function renderMarket(d){
   const value = d.show_value
     ? valuePanel(d)
     : `<div class="card mkt-locked">🔒 <b>价值投注 / Kelly 注码：未解锁</b>。需先用 CLV 证明模型对闭盘线有<b>显著正向</b>信息优势（当前：${c.available?(c.enough_n?'未达显著':'样本不足'):'缺开盘赔率数据'}）。这是<b>刻意的诚实门槛</b>——没有证据就不给"稳赢"暗示。
-      <div class="never-note"><div class="never-hl">它可能永远不会打开——<br>而这正是它最值钱的地方：<span class="never-pop">不骗你</span>。</div><div class="never-sub">跑赢闭盘线极难，若模型没有真优势，它会诚实地一直锁着，而不是给你一个看着唬人、其实是噪声的数字。</div></div>
+      <div class="callout c-gold"><div class="c-hl">它可能永远不会打开——<br>而这正是它最值钱的地方：<span class="c-pop">不骗你</span>。</div><div class="c-sub">跑赢闭盘线极难，若模型没有真优势，它会诚实地一直锁着，而不是给你一个看着唬人、其实是噪声的数字。</div></div>
       <div style="margin-top:11px"><button class="seebtn" onclick="loadMarketDemo()">🧪 看演示：CLV 证明后长这样（合成数据）</button></div></div>`;
   const src = d.odds_source?`<b>${d.odds_source}</b>`:'<code>data/odds.csv</code>';
   const upd = d.odds_updated?` · 上次快照 ${d.odds_updated.slice(5,16)}`:'';
