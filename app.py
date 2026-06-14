@@ -45,6 +45,9 @@ app = Flask(__name__)
 
 # 只读分享模式：READONLY=1 时禁用一切写接口（刷新/实时/录入假设），公网分享更安全。
 READONLY = os.environ.get("READONLY", "").strip().lower() in ("1", "true", "yes", "on")
+# 市场价值/Kelly 手动开闸：MARKET_UNLOCK=1 时强制显示价值/Kelly 面板（含未开赛场次的算法 EV/Kelly），
+# 绕过 CLV 诚实门槛——**默认关闭**（公开默认仍诚实锁定）；开闸后前端会大字标注"未验证·非建议·不担责"。
+MARKET_UNLOCK = os.environ.get("MARKET_UNLOCK", "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def _readonly_block():
@@ -216,7 +219,7 @@ def api_market():
         except Exception as e:  # noqa
             print(f"[market] 重建 odds.csv 失败：{e}")
         try:
-            r = clvmod.evaluate(df=DF)
+            r = clvmod.evaluate(df=DF, include_upcoming=MARKET_UNLOCK)
         except Exception as e:  # noqa
             return jsonify({"n": 0, "error": f"市场对标计算失败：{e}"}), 500
         for x in r.get("rows", []):
@@ -224,6 +227,9 @@ def api_market():
         r["odds_source"] = "ESPN · DraftKings 1X2"
         r["odds_updated"] = _ODDS_JOB.get("updated")
         r["odds_capturing"] = _ODDS_JOB["running"]
+        if MARKET_UNLOCK:          # 手动开闸：强制显示面板（绕过 CLV 门槛），前端据 unlock_override 大字标注
+            r["show_value"] = True
+            r["unlock_override"] = True
         _MARKET_CACHE.clear()
         _MARKET_CACHE.update(r)
     return jsonify(_MARKET_CACHE)

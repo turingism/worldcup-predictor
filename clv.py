@@ -81,9 +81,11 @@ def _as_of_model(df, cutoff):
     return _AS_OF_MODEL[cutoff]
 
 
-def evaluate(odds_path: str = ODDS_PATH, df=None) -> dict:
+def evaluate(odds_path: str = ODDS_PATH, df=None, include_upcoming: bool = False) -> dict:
     """读 odds.csv，算 模型vs闭盘线 RPS、抽水、分歧(edge)，以及（若有开盘列）CLV + 显著性。
-    返回结构化 dict 供 /api/market 与 CLI 共用。"""
+    返回结构化 dict 供 /api/market 与 CLI 共用。
+    include_upcoming=True：额外把**未开赛**场次也产出行（含模型概率/盘口/edge/EV/Kelly，无结果、无 CLV），
+    仅供"手动开闸演示"展示算法在真实盘口上的输出；准确率统计（RPS/CLV）仍只用已完赛场次，不被污染。"""
     if not os.path.exists(odds_path):
         return {"n": 0, "error": "缺 data/odds.csv"}
     odds = pd.read_csv(odds_path)
@@ -99,21 +101,21 @@ def evaluate(odds_path: str = ODDS_PATH, df=None) -> dict:
     has_open = all(c in odds.columns for c in ("odds_1_open", "odds_x_open", "odds_2_open"))
     LAB = {0: "主胜", 1: "平", 2: "客胜"}
     rows, m_rps, l_rps, margins, clvs, beats = [], 0.0, 0.0, [], [], []
+    n_eval = 0                                 # 已完赛、进入 RPS/CLV 统计的场次数
     for _, o in odds.iterrows():
         oc = _result(played, o["home_team"], o["away_team"], o["date"])
-        if oc is None:
+        upcoming = oc is None
+        if upcoming and not include_upcoming:
             continue
         line, margin = implied(o["odds_1"], o["odds_x"], o["odds_2"])   # 闭盘隐含
         r = model.predict(o["home_team"], o["away_team"], neutral=True)
         mp = np.array([r["p_home"], r["p_draw"], r["p_away"]])
         edge = mp - line                       # 模型 − 闭盘：正=模型认为被低估
         vside = int(np.argmax(edge))           # 模型分歧最大的一档（"价值"候选，需 CLV 背书）
-        m_rps += _rps(mp[0], mp[1], mp[2], oc)
-        l_rps += _rps(line[0], line[1], line[2], oc)
-        margins.append(margin)
         odds3 = [float(o["odds_1"]), float(o["odds_x"]), float(o["odds_2"])]
-        row = {"home": o["home_team"], "away": o["away_team"],
-               "date": o["date"].strftime("%Y-%m-%d"), "outcome": oc, "outcome_lab": LAB[oc],
+        row = {"home": o["home_team"], "away": o["away_team"], "upcoming": upcoming,
+               "date": o["date"].strftime("%Y-%m-%d"),
+               "outcome": oc, "outcome_lab": (LAB[oc] if oc is not None else "未赛"),
                "model": [round(float(x), 4) for x in mp],
                "line": [round(float(x), 4) for x in line],
                "margin": round(margin, 4),
@@ -121,15 +123,20 @@ def evaluate(odds_path: str = ODDS_PATH, df=None) -> dict:
                "value_side": vside, "value_side_lab": LAB[vside],
                "value_edge": round(float(edge[vside]), 4),
                **_kelly(float(mp[vside]), odds3[vside])}
-        if has_open:    # 有开盘赔率 → 算 CLV（闭盘隐含 − 开盘隐含，价值档）
-            opn, _ = implied(o["odds_1_open"], o["odds_x_open"], o["odds_2_open"])
-            clv = float(line[vside] - opn[vside])   # 市场朝我们这档移动多少
-            row["clv"] = round(clv, 4)
-            clvs.append(clv)
-            beats.append(1.0 if clv > 0 else 0.0)
+        if not upcoming:                       # 仅已完赛进入准确率/CLV 统计
+            n_eval += 1
+            m_rps += _rps(mp[0], mp[1], mp[2], oc)
+            l_rps += _rps(line[0], line[1], line[2], oc)
+            margins.append(margin)
+            if has_open:    # 有开盘赔率 → 算 CLV（闭盘隐含 − 开盘隐含，价值档）
+                opn, _ = implied(o["odds_1_open"], o["odds_x_open"], o["odds_2_open"])
+                clv = float(line[vside] - opn[vside])   # 市场朝我们这档移动多少
+                row["clv"] = round(clv, 4)
+                clvs.append(clv)
+                beats.append(1.0 if clv > 0 else 0.0)
         rows.append(row)
 
-    n = len(rows)
+    n = n_eval
     out = {"n": n, "cutoff": str(cutoff), "has_open": has_open,
            "avg_margin": round(float(np.mean(margins)), 4) if margins else None,
            "model_rps": round(m_rps / n, 4) if n else None,

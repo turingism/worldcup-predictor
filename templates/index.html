@@ -1166,24 +1166,35 @@ function renderMarket(d){
   return demoBanner+guard+intro+verdict+cards+table+value;
 }
 function valuePanel(d){
+  const ov=d.unlock_override;
   const bets=(d.rows||[]).filter(x=>x.ev>0).sort((a,b)=>b.ev-a.ev);
   const totalK=bets.reduce((s,x)=>s+(x.kelly_frac||0),0);
   const avgEv=bets.length?bets.reduce((s,x)=>s+x.ev,0)/bets.length:0;
   const rows=bets.map(x=>`<div class="val-row">
-    <div>${x.home} <span class="muted">vs</span> ${x.away}<br><small class="muted">押 <b>${x.value_side_lab}</b> @ ${x.value_odds}</small></div>
+    <div>${x.home} <span class="muted">vs</span> ${x.away}${x.upcoming?' <span class="b b-up" style="font-size:9px">未赛</span>':''}<br><small class="muted">押 <b>${x.value_side_lab}</b> @ ${x.value_odds}</small></div>
     <div class="muted">${(x.model[x.value_side]*100).toFixed(0)}%<br><small>模型</small></div>
     <div class="val-pos">+${(x.ev*100).toFixed(1)}%<br><small class="muted">EV</small></div>
     <div class="val-k">${(x.kelly_frac*100).toFixed(1)}%<br><small class="muted">¼Kelly</small></div>
   </div>`).join('');
-  return `<div class="card val-card">
-    <div class="val-h">✅ 价值标的（CLV 已证明信息优势 → 解锁）· 分数 Kelly（¼）注码</div>
-    <div class="muted" style="font-size:11.5px;margin-bottom:10px">仅列真实赔率口径下 <b>EV>0</b> 的标的；注码＝占总资金比例的 <b>¼ Kelly</b>（全 Kelly 必过注、易破产）。EV 用<b>含 margin 的真实赔率</b>算——去 margin 的"分歧"未必正 EV。</div>
+  const head = ov
+    ? `<div class="val-h" style="color:#ff7b52">⚠️ 价值/Kelly 面板 · 门槛已手动解除（MARKET_UNLOCK）</div>`
+    : `<div class="val-h">✅ 价值标的（CLV 已证明信息优势 → 解锁）· 分数 Kelly（¼）注码</div>`;
+  const ovBanner = ov
+    ? `<div class="mkt-guard" style="margin:0 0 11px"><div class="mkt-guard-h">🚨 这不是经过验证的"价值"，也不衡量准确率</div>
+      <ul class="mkt-guard-l">
+      <li>CLV <b>未通过</b>显著性门槛——下列 EV/Kelly 直接用模型概率 vs 当前盘口算出，<b>大概率是抽水＋估计误差的噪声</b>。</li>
+      <li>含<b>未开赛</b>场次（无结果、无 CLV），仅为<b>展示算法在真实盘口上的输出</b>；<b>不衡量准确率、非投注建议、作者不对任何人负责</b>。</li>
+      <li>真正证明准确率看：预测验证 tab（已完赛逐场打分）、`backtest.py`（RPS/ECE）、模型 vs 闭盘线 RPS。</li></ul></div>`
+    : '';
+  return `<div class="card val-card"${ov?' style="border-color:#bb280055;background:#1a1310"':''}>
+    ${head}${ovBanner}
+    <div class="muted" style="font-size:11.5px;margin-bottom:10px">列出真实赔率口径下 <b>EV>0</b> 的标的；注码＝占总资金比例的 <b>¼ Kelly</b>（全 Kelly 必过注、易破产）。EV 用<b>含 margin 的真实赔率</b>算——去 margin 的"分歧"未必正 EV。</div>
     <div class="val-row val-head"><div>对阵 · 押注 @赔率</div><div>模型</div><div>EV</div><div>¼Kelly</div></div>
-    ${rows||'<div class="muted" style="padding:8px 0">无正 EV 标的（CLV 为正≠单场正 EV，margin 可能吃掉它）。</div>'}
-    <div class="val-foot">共 <b>${bets.length}</b> 个 +EV 标的 · 建议总仓位 <b>${(totalK*100).toFixed(1)}%</b> bankroll · 平均 EV <b>+${(avgEv*100).toFixed(1)}%</b></div>
-    <div class="mkt-guard" style="margin-top:12px"><div class="mkt-guard-h">⚠️ 即便解锁也务必记住</div>
+    ${rows||'<div class="muted" style="padding:8px 0">无正 EV 标的。</div>'}
+    <div class="val-foot">共 <b>${bets.length}</b> 个 +EV 标的 · 合计 <b>${(totalK*100).toFixed(1)}%</b> bankroll · 平均 EV <b>+${(avgEv*100).toFixed(1)}%</b></div>
+    <div class="mkt-guard" style="margin-top:12px"><div class="mkt-guard-h">⚠️ 务必记住</div>
       <ul class="mkt-guard-l"><li>概率≠确定：正 EV 是<b>长期统计</b>，单场仍大概率波动、甚至连输多场。</li>
-      <li>只用<b>可承受损失</b>的钱、设上限、不追损；过去的正 CLV 不保证未来。</li></ul></div>
+      <li>只用<b>可承受损失</b>的钱、设上限、不追损。博彩长期对多数人 EV 为负。</li></ul></div>
   </div>`;
 }
 async function loadMarketDemo(){
