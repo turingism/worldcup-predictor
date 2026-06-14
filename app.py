@@ -156,6 +156,22 @@ def regen_odds_async():
     print("[odds] 已在后台启动 ESPN 赔率快照")
 
 
+# app 运行期间的盘口定时快照间隔（分钟，0=关闭）；比赛日开着网页即自动积累开盘/闭盘线。
+ODDS_SNAP_MIN = float(os.environ.get("ODDS_SNAP_MIN", "30"))
+
+
+def _odds_scheduler():
+    """守护线程：启动后 1 分钟先快照一次，之后每 ODDS_SNAP_MIN 分钟一次（只读模式不启用）。"""
+    first = True
+    while True:
+        time.sleep(60 if first else ODDS_SNAP_MIN * 60)
+        first = False
+        try:
+            regen_odds_async()
+        except Exception as e:  # noqa
+            print(f"[odds] 定时快照触发失败：{e}")
+
+
 @app.route("/api/champ_ci")
 def api_champ_ci():
     """夺冠概率参数不确定性区间（bayes 分层后验驱动）。含后台重算状态（computing/updated/error），
@@ -683,4 +699,7 @@ if __name__ == "__main__":
     # 端口避开 5000：macOS 的 AirPlay 接收器(ControlCenter/AirTunes)占用 *:5000，
     # 浏览器开 localhost:5000 会被解析到 IPv6 ::1 命中 AirPlay 返回 403「未获授权」。
     print("\n  ➜  http://127.0.0.1:8000   （也可用 http://localhost:8000）\n")
+    if not READONLY and ODDS_SNAP_MIN > 0:   # 比赛日定时快照盘口（仅在 app 运行期间）
+        threading.Thread(target=_odds_scheduler, daemon=True).start()
+        print(f"  ⏱ 盘口定时快照已开启：每 {ODDS_SNAP_MIN:.0f} 分钟自动抓一次 ESPN 盘口（积累 CLV 数据）\n")
     app.run(host="127.0.0.1", port=8000, debug=False)
