@@ -98,7 +98,10 @@ _MARKET_CACHE: dict = {}
 @app.route("/api/market")
 def api_market():
     """市场对标 / CLV 诚实检验：模型 vs 闭盘线 RPS、抽水、分歧；有开盘赔率才算 CLV + 显著性。
-    无显著正 CLV 时 show_value=False（前端据此禁止显示价值/注码）。结果缓存（含 ~10s as_of 训练）。"""
+    无显著正 CLV 时 show_value=False（前端据此禁止显示价值/注码）。结果缓存（含 ~10s as_of 训练）。
+    ?demo=1 返回**合成演示数据**（CLV 已证明，解锁价值/Kelly 面板）——纯展示能力，非真实赔率。"""
+    if request.args.get("demo"):
+        return jsonify(clvmod.demo_result())
     if not _MARKET_CACHE:
         try:
             r = clvmod.evaluate(df=DF)

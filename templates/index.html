@@ -252,6 +252,20 @@
   .mkt-row.mkt-head{color:var(--mut);font-size:11px}
   .mkt-locked{background:#1c2128;border:1px dashed #6e7681;color:#c9d1d9;font-size:12.5px}
   .mkt-locked b{color:#e6edf3}
+  .val-card{border:1px solid #2ea04355;background:#0f1a13}
+  .val-h{font-weight:700;color:#3fb950;font-size:14px;margin-bottom:6px}
+  .val-row{display:grid;grid-template-columns:1fr 64px 72px 72px;gap:8px;align-items:center;
+    padding:8px 4px;border-bottom:1px solid var(--line);font-size:13px}
+  .val-row:last-of-type{border-bottom:none}
+  .val-row.val-head{color:var(--mut);font-size:11px}
+  .val-row small{font-size:10px}
+  .val-pos{color:#3fb950;font-weight:700;font-variant-numeric:tabular-nums}
+  .val-k{color:#79c0ff;font-weight:700;font-variant-numeric:tabular-nums}
+  .val-foot{margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:12.5px;color:#c9d1d9}
+  .val-foot b{color:#e6edf3}
+  .val-demo{background:#2a1d10;border:1px solid #9e6a0066;color:#e3b341;font-size:12.5px}
+  .val-demo b{color:#ffd9a0}
+  @media(max-width:520px){ .val-row{grid-template-columns:1fr 50px 58px 58px;font-size:12px} }
   @media(max-width:520px){ .mkt-row{grid-template-columns:1fr 70px 70px;font-size:12px}
     .mkt-row>div:nth-child(4){display:none} }
   @media(max-width:430px){
@@ -1119,16 +1133,47 @@ function renderMarket(d){
     它要成为"价值"必须由 CLV 证明，否则只是噪声。评级冻结于 ${d.cutoff} 之前（无泄漏）。</div>
   </div>`;
   const value = d.show_value
-    ? `<div class="card">（已有正 CLV 证据，此处可显示分数 Kelly 注码——需接入实时赔率源后启用）</div>`
-    : `<div class="card mkt-locked">🔒 <b>价值投注 / Kelly 注码：未解锁</b>。需先用 CLV 证明模型对闭盘线有<b>显著正向</b>信息优势（当前：${c.available?(c.enough_n?'未达显著':'样本不足'):'缺开盘赔率数据'}）。这是<b>刻意的诚实门槛</b>——没有证据就不给"稳赢"暗示。</div>`;
+    ? valuePanel(d)
+    : `<div class="card mkt-locked">🔒 <b>价值投注 / Kelly 注码：未解锁</b>。需先用 CLV 证明模型对闭盘线有<b>显著正向</b>信息优势（当前：${c.available?(c.enough_n?'未达显著':'样本不足'):'缺开盘赔率数据'}）。这是<b>刻意的诚实门槛</b>——没有证据就不给"稳赢"暗示。
+      <div style="margin-top:11px"><button class="seebtn" onclick="loadMarketDemo()">🧪 看演示：CLV 证明后长这样（合成数据）</button></div></div>`;
   const intro=`<div class="card"><div class="muted" style="font-size:12.5px"><b>这是什么</b>：把模型概率与<b>博彩闭盘线</b>（市场吸收全部信息后的金标准）在同一批比赛上对标。
     博彩的真相不是"预测准不准"，而是 <b>CLV（闭盘线价值）</b>——你下注时的隐含概率能否持续跑赢闭盘线。数据填 <code>data/odds.csv</code>（队名对齐 martj42）。</div></div>`;
-  return guard+intro+verdict+cards+table+value;
+  const demoBanner = d.demo ? `<div class="card val-demo">🧪 <b>合成演示数据</b>（非真实赔率、非投注建议）：展示「CLV 证明信息优势后」价值/Kelly 面板的样子。真实数据仍受诚实门槛约束、保持锁定。
+    <button class="seebtn" style="margin-left:8px" onclick="loadMarket()">← 返回真实数据</button></div>` : '';
+  return demoBanner+guard+intro+verdict+cards+table+value;
+}
+function valuePanel(d){
+  const bets=(d.rows||[]).filter(x=>x.ev>0).sort((a,b)=>b.ev-a.ev);
+  const totalK=bets.reduce((s,x)=>s+(x.kelly_frac||0),0);
+  const avgEv=bets.length?bets.reduce((s,x)=>s+x.ev,0)/bets.length:0;
+  const rows=bets.map(x=>`<div class="val-row">
+    <div>${x.home} <span class="muted">vs</span> ${x.away}<br><small class="muted">押 <b>${x.value_side_lab}</b> @ ${x.value_odds}</small></div>
+    <div class="muted">${(x.model[x.value_side]*100).toFixed(0)}%<br><small>模型</small></div>
+    <div class="val-pos">+${(x.ev*100).toFixed(1)}%<br><small class="muted">EV</small></div>
+    <div class="val-k">${(x.kelly_frac*100).toFixed(1)}%<br><small class="muted">¼Kelly</small></div>
+  </div>`).join('');
+  return `<div class="card val-card">
+    <div class="val-h">✅ 价值标的（CLV 已证明信息优势 → 解锁）· 分数 Kelly（¼）注码</div>
+    <div class="muted" style="font-size:11.5px;margin-bottom:10px">仅列真实赔率口径下 <b>EV>0</b> 的标的；注码＝占总资金比例的 <b>¼ Kelly</b>（全 Kelly 必过注、易破产）。EV 用<b>含 margin 的真实赔率</b>算——去 margin 的"分歧"未必正 EV。</div>
+    <div class="val-row val-head"><div>对阵 · 押注 @赔率</div><div>模型</div><div>EV</div><div>¼Kelly</div></div>
+    ${rows||'<div class="muted" style="padding:8px 0">无正 EV 标的（CLV 为正≠单场正 EV，margin 可能吃掉它）。</div>'}
+    <div class="val-foot">共 <b>${bets.length}</b> 个 +EV 标的 · 建议总仓位 <b>${(totalK*100).toFixed(1)}%</b> bankroll · 平均 EV <b>+${(avgEv*100).toFixed(1)}%</b></div>
+    <div class="mkt-guard" style="margin-top:12px"><div class="mkt-guard-h">⚠️ 即便解锁也务必记住</div>
+      <ul class="mkt-guard-l"><li>概率≠确定：正 EV 是<b>长期统计</b>，单场仍大概率波动、甚至连输多场。</li>
+      <li>只用<b>可承受损失</b>的钱、设上限、不追损；过去的正 CLV 不保证未来。</li></ul></div>
+  </div>`;
+}
+async function loadMarketDemo(){
+  const host=$('#marketres'); host.innerHTML='<div class="card spin">生成合成演示数据…</div>';
+  try{ const d=await (await fetch('/api/market?demo=1')).json(); host.innerHTML=renderMarket(d); }
+  catch(e){ host.innerHTML=`<div class="card err">✗ ${e}</div>`; }
 }
 
 predict();
 // 深链：#bracket / #champ / #ratings 直达对应 tab（便于分享与截图）；无 hash 时默认进赛事看板
-(function(){const h=location.hash.slice(1);const t=h&&document.querySelector(`.tab[data-t="${h}"]`);
+(function(){const h=location.hash.slice(1);
+  if(h==='market-demo'){ marketLoaded=true; document.querySelector('.tab[data-t="market"]').click(); setTimeout(loadMarketDemo,60); return; }
+  const t=h&&document.querySelector(`.tab[data-t="${h}"]`);
   if(t)t.click(); else loadDashboard();})();
 // 赛事看板可见时每 60s 静默刷新实时比分（不重训，仅拉 ESPN 状态）
 setInterval(()=>{ if(document.visibilityState==='visible' && $('#verify').style.display!=='none'

@@ -30,11 +30,28 @@ MIN_N = 30                       # CLV 出结论的最小样本量
 _AS_OF_MODEL = {}               # cutoff -> 冻结模型缓存（避免重复 ~10s 训练）
 
 
+KELLY_FRACTION = 0.25       # 分数 Kelly（1/4）——全 Kelly 在评级有估计误差时必过注、破产风险高
+
+
 def implied(o1: float, ox: float, o2: float):
     """十进制赔率 → (去 margin 的隐含概率 [主,平,客], overround/margin)。"""
     inv = np.array([1.0 / o1, 1.0 / ox, 1.0 / o2])
     margin = float(inv.sum() - 1.0)         # 抽水（庄家长期优势的来源）
     return inv / inv.sum(), margin
+
+
+def _kelly(p: float, odds: float) -> dict:
+    """给定模型概率 p 和该档真实十进制赔率 odds，算 EV 与分数 Kelly 注码（占 bankroll 比例）。
+    EV 用真实赔率（含庄家 margin）——去 margin 的"价值"未必正 EV，这里诚实按真实赔付算。
+    EV≤0 时 Kelly=0（不该下）。返回的 kelly_* 只有在 CLV 证明有正信息优势时前端才展示。"""
+    b = odds - 1.0                          # 净赔率
+    ev = p * odds - 1.0                     # 单位注码期望收益（真实赔率口径）
+    f_full = (p * odds - 1.0) / b if b > 0 else 0.0   # 全 Kelly 比例 = (bp−q)/b
+    f_full = max(0.0, f_full)               # 负=无优势，不下
+    return {"value_odds": round(odds, 3),
+            "ev": round(float(ev), 4),
+            "kelly_full": round(float(f_full), 4),
+            "kelly_frac": round(float(f_full * KELLY_FRACTION), 4)}
 
 
 def _result(played, home, away, date, tol_days=2):
@@ -92,6 +109,7 @@ def evaluate(odds_path: str = ODDS_PATH, df=None) -> dict:
         m_rps += _rps(mp[0], mp[1], mp[2], oc)
         l_rps += _rps(line[0], line[1], line[2], oc)
         margins.append(margin)
+        odds3 = [float(o["odds_1"]), float(o["odds_x"]), float(o["odds_2"])]
         row = {"home": o["home_team"], "away": o["away_team"],
                "date": o["date"].strftime("%Y-%m-%d"), "outcome": oc, "outcome_lab": LAB[oc],
                "model": [round(float(x), 4) for x in mp],
@@ -99,7 +117,8 @@ def evaluate(odds_path: str = ODDS_PATH, df=None) -> dict:
                "margin": round(margin, 4),
                "edge": [round(float(x), 4) for x in edge],
                "value_side": vside, "value_side_lab": LAB[vside],
-               "value_edge": round(float(edge[vside]), 4)}
+               "value_edge": round(float(edge[vside]), 4),
+               **_kelly(float(mp[vside]), odds3[vside])}
         if has_open:    # 有开盘赔率 → 算 CLV（闭盘隐含 − 开盘隐含，价值档）
             opn, _ = implied(o["odds_1_open"], o["odds_x_open"], o["odds_2_open"])
             clv = float(line[vside] - opn[vside])   # 市场朝我们这档移动多少
@@ -138,6 +157,56 @@ def evaluate(odds_path: str = ODDS_PATH, df=None) -> dict:
     # 是否允许显示 Kelly/价值：必须 CLV 证明有正边际（否则 edge 只是噪声）
     out["show_value"] = clv_block["proven_edge"]
     return out
+
+
+def demo_result(n: int = 40) -> dict:
+    """合成演示数据：构造 n 场『市场持续朝模型观点收紧（正 CLV）』的比赛，使 CLV 显著为正
+    → 解锁价值/Kelly 面板。**纯合成、非真实赔率、非投注建议**，只为展示"CLV 证明信息优势后"
+    的样子（真实数据仍受 evaluate() 的诚实门槛约束，不会被此函数影响）。"""
+    rng = np.random.default_rng(7)
+    pool = [("蓝队", "红队"), ("黄队", "绿队"), ("白队", "黑队"), ("橙队", "紫队"), ("青队", "棕队")]
+    rows, clvs, beats, margins = [], [], [], []
+    m_rps = l_rps = 0.0
+    for i in range(n):
+        o1_open = 2.50 + float(rng.normal(0, 0.06))         # 开盘对主队偏保守（赔率高）
+        o1_close = o1_open - (0.18 + abs(float(rng.normal(0, 0.03))))  # 闭盘收紧 → 正 CLV
+        ox, o2 = 3.40, 3.30
+        line_c, margin = implied(o1_close, ox, o2)
+        line_o, _ = implied(o1_open, ox, o2)
+        clv = float(line_c[0] - line_o[0])
+        clvs.append(clv); beats.append(1.0 if clv > 0 else 0.0); margins.append(margin)
+        ph = min(0.62, float(line_c[0] + 0.05 + rng.normal(0, 0.01)))   # 模型对主胜有真实优势
+        mp = np.array([ph, (1 - ph) * 0.45, (1 - ph) * 0.55])
+        mp = mp / mp.sum()
+        edge = mp - line_c
+        oc = int(rng.choice(3, p=mp))                       # 结果自洽于模型概率
+        m_rps += _rps(mp[0], mp[1], mp[2], oc)
+        l_rps += _rps(line_c[0], line_c[1], line_c[2], oc)
+        vside = int(np.argmax(edge))
+        odds3 = [o1_close, ox, o2]
+        h, a = pool[i % len(pool)]
+        LAB = {0: "主胜", 1: "平", 2: "客胜"}
+        rows.append({"home": h, "away": a, "date": f"2025-{i % 9 + 1:02d}-{i % 28 + 1:02d}",
+                     "outcome": oc, "outcome_lab": LAB[oc],
+                     "model": [round(float(x), 4) for x in mp],
+                     "line": [round(float(x), 4) for x in line_c],
+                     "margin": round(margin, 4),
+                     "edge": [round(float(x), 4) for x in edge],
+                     "value_side": vside, "value_side_lab": LAB[vside],
+                     "value_edge": round(float(edge[vside]), 4),
+                     **_kelly(float(mp[vside]), odds3[vside])})
+    arr = np.array(clvs)
+    avg = float(arr.mean())
+    t = avg / (arr.std(ddof=1) / np.sqrt(len(arr))) if arr.std(ddof=1) > 0 else 99.0
+    proven = bool(n >= MIN_N and avg > 0 and t > 1.65)
+    return {"demo": True, "n": n, "cutoff": "合成数据", "has_open": True,
+            "avg_margin": round(float(np.mean(margins)), 4),
+            "model_rps": round(m_rps / n, 4), "line_rps": round(l_rps / n, 4),
+            "rps_diff": round((m_rps - l_rps) / n, 4), "rows": rows,
+            "clv": {"available": True, "n": n, "avg_clv": round(avg, 4),
+                    "beat_rate": round(float(np.mean(beats)), 3),
+                    "t_stat": round(float(t), 3), "enough_n": n >= MIN_N, "proven_edge": proven},
+            "show_value": proven}
 
 
 def _selftest():
