@@ -92,6 +92,23 @@ def api_config():
     return jsonify({"readonly": READONLY})
 
 
+@app.route("/api/champ_ci")
+def api_champ_ci():
+    """夺冠概率参数不确定性区间（bayes 分层后验驱动，预计算自 champ_ci.py）。
+    缺缓存文件时 available=False（前端提示需先跑 champ_ci.py）。"""
+    path = os.path.join(os.path.dirname(__file__), "data", "champ_ci.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+    except (FileNotFoundError, ValueError, OSError):
+        return jsonify({"available": False})
+    rows = [r for r in d.get("rows", []) if r["med"] > 0 or r["hi"] > 0][:24]
+    for r in rows:
+        r["team"] = teams_zh.disp(r["team"])
+    return jsonify({"available": True, "n_draws": d.get("n_draws"),
+                    "draw_sims": d.get("draw_sims"), "rows": rows})
+
+
 _MARKET_CACHE: dict = {}
 
 

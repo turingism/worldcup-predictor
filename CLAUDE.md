@@ -9,7 +9,7 @@
   - **只读分享** `READONLY=1` → 写接口 403 + 前端隐藏写按钮（`/api/config`）。
   - **看板打磨**：看预测弹窗、即将开赛按日分组、命中率去红化、小样本说明、赛果命中口径歧义说明。
   - **model.py τ 截零护栏**：`score_matrix` 加 `np.clip(M,0,None)`——标准 DC 做法，**已验证对真实预测/回测恒等**（勿误删，它护住参数扰动等异常 λ）。
-- **⚠️ 未完成：夺冠参数不确定性区间**（`champ_ci.py` 标实验性、未接 UI）。独立按队边际 SE 扰动统计无效（点估落带外）。正确做法：全协方差 MVN 或 bayes 后验注入 DC 模拟器。
+- **✅ 夺冠参数不确定性区间已解决**（`champ_ci.py` + `/api/champ_ci` + 夺冠 tab whisker 图）：naive 法（独立 GLM 边际 SE 扰动）统计无效已弃；改用 **bayes 分层后验抽样**驱动模拟器——`bayes.py` 导出 `bayes_draws.npz`（300 套 atk/dfc/intercept/home_adv），`champ_ci.py` 整套替换 DC 系数逐位复现 bayes log_mu → MC → 5/50/95 分位。分层收缩根除稀疏队 SE 爆炸，中位全落带内。**改预测口径后重跑 `bayes.py`→`champ_ci.py` 刷新**。是补充视图，主引擎仍 DC。
 - test_core 18 项全绿；全部端点 200。
 
 ## 📌 上一次接手（2026-06-14 上午）

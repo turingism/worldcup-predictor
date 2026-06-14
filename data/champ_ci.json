@@ -1,0 +1,343 @@
+{
+ "n_draws": 300,
+ "draw_sims": 500,
+ "method": "bayes-hierarchical-posterior",
+ "rows": [
+  {
+   "team": "Argentina",
+   "med": 0.115,
+   "lo": 0.026,
+   "hi": 0.2985,
+   "mean": 0.12942
+  },
+  {
+   "team": "Spain",
+   "med": 0.09,
+   "lo": 0.022,
+   "hi": 0.22,
+   "mean": 0.09695
+  },
+  {
+   "team": "Morocco",
+   "med": 0.064,
+   "lo": 0.014,
+   "hi": 0.1762,
+   "mean": 0.07317
+  },
+  {
+   "team": "Japan",
+   "med": 0.06,
+   "lo": 0.016,
+   "hi": 0.1723,
+   "mean": 0.07207
+  },
+  {
+   "team": "Brazil",
+   "med": 0.054,
+   "lo": 0.0139,
+   "hi": 0.1522,
+   "mean": 0.0654
+  },
+  {
+   "team": "England",
+   "med": 0.044,
+   "lo": 0.006,
+   "hi": 0.1681,
+   "mean": 0.06093
+  },
+  {
+   "team": "France",
+   "med": 0.04,
+   "lo": 0.008,
+   "hi": 0.1121,
+   "mean": 0.04812
+  },
+  {
+   "team": "Portugal",
+   "med": 0.036,
+   "lo": 0.004,
+   "hi": 0.128,
+   "mean": 0.04793
+  },
+  {
+   "team": "Colombia",
+   "med": 0.028,
+   "lo": 0.004,
+   "hi": 0.134,
+   "mean": 0.04439
+  },
+  {
+   "team": "Australia",
+   "med": 0.024,
+   "lo": 0.0039,
+   "hi": 0.1002,
+   "mean": 0.03343
+  },
+  {
+   "team": "Mexico",
+   "med": 0.022,
+   "lo": 0.004,
+   "hi": 0.078,
+   "mean": 0.02876
+  },
+  {
+   "team": "United States",
+   "med": 0.02,
+   "lo": 0.002,
+   "hi": 0.0721,
+   "mean": 0.02583
+  },
+  {
+   "team": "Germany",
+   "med": 0.018,
+   "lo": 0.002,
+   "hi": 0.092,
+   "mean": 0.02742
+  },
+  {
+   "team": "Netherlands",
+   "med": 0.017,
+   "lo": 0.0,
+   "hi": 0.0741,
+   "mean": 0.02451
+  },
+  {
+   "team": "Ecuador",
+   "med": 0.014,
+   "lo": 0.0,
+   "hi": 0.0661,
+   "mean": 0.02138
+  },
+  {
+   "team": "Senegal",
+   "med": 0.014,
+   "lo": 0.002,
+   "hi": 0.0703,
+   "mean": 0.02392
+  },
+  {
+   "team": "Belgium",
+   "med": 0.012,
+   "lo": 0.0,
+   "hi": 0.0541,
+   "mean": 0.01699
+  },
+  {
+   "team": "Uruguay",
+   "med": 0.012,
+   "lo": 0.0,
+   "hi": 0.054,
+   "mean": 0.01921
+  },
+  {
+   "team": "Canada",
+   "med": 0.01,
+   "lo": 0.0,
+   "hi": 0.0441,
+   "mean": 0.01511
+  },
+  {
+   "team": "Iran",
+   "med": 0.01,
+   "lo": 0.0,
+   "hi": 0.068,
+   "mean": 0.01969
+  },
+  {
+   "team": "South Korea",
+   "med": 0.01,
+   "lo": 0.0,
+   "hi": 0.044,
+   "mean": 0.01529
+  },
+  {
+   "team": "Algeria",
+   "med": 0.008,
+   "lo": 0.0,
+   "hi": 0.048,
+   "mean": 0.01389
+  },
+  {
+   "team": "Norway",
+   "med": 0.008,
+   "lo": 0.0,
+   "hi": 0.0321,
+   "mean": 0.01154
+  },
+  {
+   "team": "Croatia",
+   "med": 0.006,
+   "lo": 0.0,
+   "hi": 0.03,
+   "mean": 0.00841
+  },
+  {
+   "team": "Tunisia",
+   "med": 0.004,
+   "lo": 0.0,
+   "hi": 0.02,
+   "mean": 0.00627
+  },
+  {
+   "team": "Switzerland",
+   "med": 0.004,
+   "lo": 0.0,
+   "hi": 0.0301,
+   "mean": 0.00791
+  },
+  {
+   "team": "Ivory Coast",
+   "med": 0.004,
+   "lo": 0.0,
+   "hi": 0.03,
+   "mean": 0.00734
+  },
+  {
+   "team": "Austria",
+   "med": 0.002,
+   "lo": 0.0,
+   "hi": 0.014,
+   "mean": 0.00358
+  },
+  {
+   "team": "Scotland",
+   "med": 0.002,
+   "lo": 0.0,
+   "hi": 0.01,
+   "mean": 0.00255
+  },
+  {
+   "team": "Uzbekistan",
+   "med": 0.002,
+   "lo": 0.0,
+   "hi": 0.026,
+   "mean": 0.00649
+  },
+  {
+   "team": "DR Congo",
+   "med": 0.002,
+   "lo": 0.0,
+   "hi": 0.012,
+   "mean": 0.00279
+  },
+  {
+   "team": "Egypt",
+   "med": 0.002,
+   "lo": 0.0,
+   "hi": 0.0161,
+   "mean": 0.00395
+  },
+  {
+   "team": "Jordan",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.006,
+   "mean": 0.00097
+  },
+  {
+   "team": "Iraq",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.0081,
+   "mean": 0.00184
+  },
+  {
+   "team": "Saudi Arabia",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.004,
+   "mean": 0.00092
+  },
+  {
+   "team": "Bosnia and Herzegovina",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.0,
+   "mean": 0.00015
+  },
+  {
+   "team": "Cape Verde",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.0001,
+   "mean": 0.00011
+  },
+  {
+   "team": "Curaçao",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.002,
+   "mean": 0.00043
+  },
+  {
+   "team": "Czech Republic",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.004,
+   "mean": 0.00099
+  },
+  {
+   "team": "Ghana",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.002,
+   "mean": 0.00029
+  },
+  {
+   "team": "Haiti",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.002,
+   "mean": 0.00044
+  },
+  {
+   "team": "New Zealand",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.014,
+   "mean": 0.00274
+  },
+  {
+   "team": "Panama",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.006,
+   "mean": 0.00146
+  },
+  {
+   "team": "Paraguay",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.006,
+   "mean": 0.00116
+  },
+  {
+   "team": "Qatar",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.002,
+   "mean": 0.00023
+  },
+  {
+   "team": "South Africa",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.004,
+   "mean": 0.00121
+  },
+  {
+   "team": "Sweden",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.004,
+   "mean": 0.00099
+  },
+  {
+   "team": "Turkey",
+   "med": 0.0,
+   "lo": 0.0,
+   "hi": 0.006,
+   "mean": 0.00144
+  }
+ ]
+}

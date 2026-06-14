@@ -34,6 +34,8 @@ import data as datamod
 sys.setrecursionlimit(100000)   # Potential 大图克隆需要更高递归上限
 
 RATINGS_PATH = os.path.join(os.path.dirname(__file__), "data", "bayes_ratings.json")
+DRAWS_PATH = os.path.join(os.path.dirname(__file__), "data", "bayes_draws.npz")
+N_EXPORT_DRAWS = 300      # 导出的后验抽样套数（供 champ_ci 夺冠区间用，分层收缩→稳定）
 
 
 def fit(half_life: float = 730.0, draws: int = 1000, tune: int = 1000,
@@ -75,6 +77,8 @@ def fit(half_life: float = 730.0, draws: int = 1000, tune: int = 1000,
 
     A = idata.posterior["atk"].values.reshape(-1, n)
     D = idata.posterior["dfc"].values.reshape(-1, n)
+    icpt = idata.posterior["intercept"].values.reshape(-1)
+    hadv = idata.posterior["home_adv"].values.reshape(-1)
     net = A + D                                   # 净实力（攻+守）
     mean = net.mean(0)
     lo = np.percentile(net, 3, 0)                 # 94% 可信区间
@@ -86,6 +90,17 @@ def fit(half_life: float = 730.0, draws: int = 1000, tune: int = 1000,
                   "net_hi": round(float(hi[i]), 3),
                   "atk": round(float(A[:, i].mean()), 3),
                   "dfc": round(float(D[:, i].mean()), 3)}
+
+    # 导出后验抽样（供 champ_ci 夺冠概率区间用）：均匀子采样 N_EXPORT_DRAWS 套，
+    # 含每队 atk/dfc + 全局 intercept/home_adv。分层收缩已驯服稀疏队 → 注入模拟器稳定。
+    tot = A.shape[0]
+    sel = np.linspace(0, tot - 1, min(N_EXPORT_DRAWS, tot)).astype(int)
+    np.savez_compressed(DRAWS_PATH, teams=np.array(teams, dtype=object),
+                        atk=A[sel].astype(np.float32), dfc=D[sel].astype(np.float32),
+                        intercept=icpt[sel].astype(np.float32), home_adv=hadv[sel].astype(np.float32),
+                        half_life=half_life)
+    if verbose:
+        print(f"[bayes] 导出 {len(sel)} 套后验抽样 → {DRAWS_PATH}")
     return {"ratings": out,
             "meta": {"half_life": half_life, "draws": draws, "tune": tune,
                      "chains": chains, "n_teams": n, "weight_sum": round(float(w.sum()), 1)}}

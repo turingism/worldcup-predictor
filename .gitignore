@@ -15,3 +15,6 @@ data/overrides.json
 
 # 实验性 / 临时
 _seed_live_demo.py
+
+# bayes 后验抽样中间产物（可由 bayes.py 重生成；champ_ci.json 已提交）
+data/bayes_draws.npz
