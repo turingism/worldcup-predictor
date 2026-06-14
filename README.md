@@ -1,197 +1,199 @@
-# ⚽ 世界杯比分预测器 · World Cup Score Predictor
+# ⚽ World Cup Score Predictor · 世界杯比分预测器
 
-> ## ⚠️ 免责声明 / Disclaimer
-> 本项目为**个人学习与技术研究的开源作品**，仅用于统计建模、数据分析与编程学习目的，**不构成任何形式的投注、投资或决策建议**。作者不对任何人使用本项目的行为、以及由此**直接或间接关联的任何赌球、博彩等行为及其后果**承担任何责任。所有输出均为统计概率估计——**概率不等于确定结果**；博彩长期对绝大多数人期望收益为负，且在许多法域受法律限制。是否参与、以及由此产生的一切风险与法律责任**完全由使用者自行承担**。本项目按"现状"（as-is）提供，不附带任何明示或默示担保；使用即视为已阅读并同意本声明。
+<p align="right"><strong>English</strong> · <a href="./README.zh-CN.md">简体中文</a></p>
+
+> ## ⚠️ Disclaimer / 免责声明
+> This is a **personal, educational open-source project** for statistical modeling, data analysis, and programming study only. It is **not** betting, investment, or any other advice. The author accepts **no liability** for anyone's use of it or for **any gambling/betting activity directly or indirectly associated with it**. All outputs are probabilistic estimates — **probability is not certainty**; gambling is negative-EV for most people over time and is legally restricted in many jurisdictions. You bear **all** risk and legal responsibility. Provided "as is" without warranty; using it means you have read and accepted this notice.
 >
-> *This is a personal, educational open-source project for statistical modeling and programming study only. It is **not** betting, investment, or any other advice. The author accepts **no liability** for anyone's use of it or for **any gambling/betting activity directly or indirectly associated with it**. All outputs are probabilistic estimates — probability is not certainty; gambling is negative-EV for most people over time and is legally restricted in many jurisdictions. You bear all risk and legal responsibility. Provided "as is" without warranty.*
+> *本项目为**个人学习与技术研究的开源作品**，仅用于统计建模、数据分析与编程学习，**不构成任何形式的投注、投资或决策建议**。作者不对任何人使用本项目、以及由此**直接或间接关联的任何赌球、博彩等行为及其后果**承担任何责任。概率不等于确定结果；博彩长期对绝大多数人 EV 为负且多地受法律限制。一切风险与法律责任由使用者自负。按"现状"提供，不附带任何担保。*
 
 ---
 
-> **不是又一个"AI 凭感觉吹球"的玩具。** 这是一台用 1872–2026 全量真实国际比赛数据、Dixon‑Coles 双泊松统计引擎驱动、经样本外回测校准过的**可交互实时概率机器**——每一个数字都能被回测证伪，每一次刷新都跟着真实赛果走。
+> **Not another "AI vibes-picking" toy.** This is an **interactive, real-time probability machine** driven by a Dixon-Coles double-Poisson engine fit on every international match from 1872–2026, calibrated by out-of-sample backtesting — every number is falsifiable, and every refresh follows the real results.
 
 <p align="center">
-  <code>Dixon-Coles 双泊松</code> · <code>蒙特卡洛模拟</code> · <code>2026 官方赛制括号</code> · <code>ESPN 分钟级实时</code> · <code>In-play 实时胜平负</code> · <code>贝叶斯可信区间</code> · <code>Flask 一键起网页</code>
+  <code>Dixon-Coles double-Poisson</code> · <code>Monte-Carlo</code> · <code>Official 2026 bracket</code> · <code>ESPN minute-level live</code> · <code>In-play W/D/L</code> · <code>Bayesian credible intervals</code> · <code>One-command Flask app</code>
 </p>
 
 ---
 
-## 🎯 一句话价值
+## 🎯 Value in one line
 
-**输入两支球队 → 给你最可能比分、完整比分概率矩阵、胜平负、期望进球(xG)。**
-**点一下模拟 → 给你 48 强每一队的夺冠 / 进决赛 / 四强 / 出线概率，带 90% 可信区间。**
-**开赛之后 → 真实赛果秒级同步、预测随事实自动重算；比赛进行中，胜平负概率随比分和剩余时间实时跳动。**
-**事后 → 每场赛前预测开球前冻结存证，逐场核对命中率，谁也别想事后改口。**
+**Enter two teams →** most likely scoreline, full score-probability matrix, win/draw/loss, expected goals (xG).
+**Click simulate →** every team's title / final / semi / round-of-32 probability, with **90% credible intervals**.
+**After kickoff →** real results sync in seconds and predictions retrain automatically; **while a match is live, win/draw/loss shifts in real time with the score and minutes remaining.**
+**Afterwards →** every pre-match prediction is **frozen before kickoff** and scored match by match — no hindsight, no quiet edits.
 
-别人给你一句"我觉得阿根廷夺冠"，我们给你 **一个带 90% 可信区间、能被回测证伪、随真实赛果自动更新的概率分布**——还告诉你这个数字是怎么算出来的、为什么可信、以及它有多不确定。
+Where others say "I think Argentina wins," this gives you **a probability distribution with a 90% credible interval, falsifiable by backtest, auto-updating with real results** — and tells you how it was computed, why it's trustworthy, and how uncertain it is.
 
 ---
 
-## 🆕 这一版新增（开赛期实战能力）
+## 🆕 New in this version (in-tournament capabilities)
 
-| 能力 | 一句话 |
+| Capability | In one line |
 |---|---|
-| 📋 **赛事看板**（首屏） | 正在比赛 / 即将开赛 / 已结束 三态聚合，一屏掌握全局，每场可弹比分预测 |
-| ⚡ **In-play 实时胜平负** | 比赛进行中，用赛前 λ 按剩余时间缩放 + 当前比分卷积，给出"从现状到终场"的实时胜平负——**赛前一锤子 → 实时概率引擎** |
-| 🎯 **预测验证层** | 赛前预测**开球前冻结**存证；逐场核对赛果/比分命中，按置信度分桶、标注冷门——拿数字逼自己诚实 |
-| 💹 **市场对标 / CLV** | 模型 vs 博彩闭盘线 + 闭盘线价值(CLV)**可证伪检验**；**没有显著正 CLV 就不显示任何"价值/注码"**——做诚实检验，不做下注诱导 |
-| 📈 **夺冠 90% 可信区间** | 贝叶斯分层后验驱动，给夺冠概率配可信区间（参数不确定性），新赛果后**自动后台重算** |
+| 📋 **Match dashboard** (home) | Live / upcoming / finished, all in one view; tap any match for its score prediction |
+| ⚡ **In-play W/D/L** | While a match is live: pre-match λ scaled by remaining time, convolved with the current score → "from now to full time" win/draw/loss — **a one-shot pre-match call becomes a real-time probability engine** |
+| 🎯 **Prediction verification** | Pre-match predictions **frozen before kickoff**; scored per match for result/scoreline hits, bucketed by confidence and tagged for upsets — numbers force honesty |
+| 💹 **Market / CLV** | Model vs bookmaker closing line + closing-line-value **falsifiability test**; **no "value/stake" is shown without a proven positive CLV** — an honest check, not a betting nudge |
+| 📈 **Title 90% credible interval** | Hierarchical-Bayes posterior gives title odds a credible interval (parameter uncertainty); **auto-recomputed in the background** after new results |
 
 ---
 
-## 🔥 为什么它不一样（核心卖点）
+## 🔥 Why it's different (core selling points)
 
-| 普通"预测" | 世界杯比分预测器 |
+| Ordinary "prediction" | World Cup Score Predictor |
 |---|---|
-| 拍脑袋、抄热搜 | **学术级统计模型**：Maher(1982) → Dixon‑Coles(1997) 一脉相承 |
-| 一个"谁赢"的结论 | **整张比分概率矩阵** + xG + 胜平负 + Top7 比分 |
-| 无法验证对错 | **样本外回测**（RPS / LogLoss / 命中率）逼自己说真话 |
-| 赛前算一次就完事 | **开赛期实时引擎**：ESPN 分钟级完场 → 自动重训 → 概率随赛况漂移 |
-| 黑箱 | **全程可编辑、可解读**：改任意比分做假设，括号与夺冠率实时重算 |
+| Gut feeling, copy the trending takes | **Academic-grade statistical model**: Maher (1982) → Dixon-Coles (1997) lineage |
+| A single "who wins" verdict | **Full score-probability matrix** + xG + W/D/L + top-7 scorelines |
+| Can't tell if it's right | **Out-of-sample backtest** (RPS / LogLoss / hit-rate) forces honesty |
+| Computed once before kickoff | **In-tournament live engine**: ESPN minute-level finals → auto-retrain → probabilities drift with reality |
+| Black box | **Fully editable & interpretable**: change any score as a what-if, bracket and title odds recompute live |
 
-> 我们甚至完整拆读了 Kimi 的 224 页、300+ agent 世界杯研报，做了两组对标回测——结论：**把它的核心方法论照搬过来会让我们更差**。我方单一可回测引擎在同口径上已是最优。详见 [对标章节](#-我们和-kimi-研报比过了)。
-
----
-
-## 🧠 预测引擎：你买到的到底是什么算法
-
-### 1. 真实数据，不是模拟数据
-- 数据源 `martj42/international_results`：**1872–2026 全部国家队比分**。
-- 世界杯是国家队赛事，**俱乐部联赛数据无效**——我们从根上选对了样本。
-
-### 2. 双泊松 GLM + Dixon‑Coles 修正
-- 每队进球服从 Poisson(λ)，用**进攻力 / 防守力 / 主场优势**建模 log λ，凸优化几秒收敛。
-- Dixon‑Coles 相关参数 ρ 专门修正独立泊松对 **0‑0 / 1‑1 等低分平局**的低估——这是足球建模的学术标准动作。
-
-### 3. 时间衰减加权（回测调出来的，不是猜的）
-- 越近的比赛权重越高，**半衰期 730 天**为修复时间泄漏后的样本外回测最优值。
-- 短期状态 > 历史声誉：模型信**近期真实场上证据**，不信光环——同一支队的近期战绩，比它的名气更能决定我们给的概率。
-
-### 4. 中立场 / 东道主主场，分得清
-- 世界杯多为中立场，主场优势**只给真正的主队**（如东道主美 / 墨 / 加在本国城市，+23% xG）。
-- 模拟器精确到**城市→东道主国映射**，实测把东道主出线率拉到 美 51% / 墨 95% / 加 94%。
-
-### 5. 蒙特卡洛整届模拟
-- 自动从赛程构建 **2026 官方 12 组 + 官方括号 + 最佳第三名分配**。
-- 抽小组赛比分 → 算排名 → 出线 32 队 → 单场淘汰（平局点球模拟）→ 统计每队各轮频率。
-- **5000 次约 1–2 秒**，夺冠概率带模拟置信区间。
+> We even fully read Kimi's 224-page, 300+ agent World Cup report and ran two benchmark backtests — conclusion: **adopting its core methodology would make us worse.** Our single backtestable engine is already optimal on the same footing. See [the comparison](#-we-benchmarked-against-the-kimi-report).
 
 ---
 
-## 🖥️ 三种用法，从命令行到一键网页
+## 🧠 The prediction engine: what algorithm you're actually getting
 
-### A. 命令行单场预测
+### 1. Real data, not simulated data
+- Source `martj42/international_results`: **every national-team result, 1872–2026**.
+- The World Cup is a national-team event, so **club-league data is invalid** — we picked the right sample at the root.
+
+### 2. Double-Poisson GLM + Dixon-Coles correction
+- Each team's goals follow Poisson(λ); log λ is modeled by **attack / defence / home advantage**, converging in seconds via convex optimization.
+- The Dixon-Coles correlation parameter ρ specifically fixes independent-Poisson's under-counting of **low scores like 0-0 / 1-1** — the standard academic move in football modeling.
+
+### 3. Time-decay weighting (tuned by backtest, not guessed)
+- Recent matches weigh more; the **730-day half-life** is the out-of-sample optimum after fixing a time leak.
+- Recent form > historical reputation: the model trusts **recent on-pitch evidence**, not aura — a team's recent record decides our probability more than its name.
+
+### 4. Neutral venue vs host advantage, told apart
+- Most World Cup games are neutral; home advantage goes **only to a genuine host** (e.g. USA / Mexico / Canada in their own cities, +23% xG).
+- The simulator maps **city → host nation** precisely, lifting host advancement to USA 51% / Mexico 95% / Canada 94% in tests.
+
+### 5. Monte-Carlo whole-tournament simulation
+- Auto-builds the **official 2026 12 groups + official bracket + best-third-place allocation** from the schedule.
+- Sample group scores → standings → 32 qualifiers → single-elimination (with penalty shootouts on draws) → tally each team's per-round frequency.
+- **~1–2s for 5000 runs**, title odds with simulation confidence intervals.
+
+---
+
+## 🖥️ Three ways to use it, from CLI to one-command web app
+
+### A. CLI single-match prediction
 ```bash
-python3 predict.py "Argentina" "France" --cache    # 支持中文队名，--cache 后秒开
+python3 predict.py "Argentina" "France" --cache    # Chinese team names supported; instant after --cache
 ```
 ```
-  ⚽ Argentina  vs  France   (中立场)
+  ⚽ Argentina  vs  France   (neutral)
   ──────────────────────────────────────────────
-  期望进球 (xG):   Argentina 1.17  -  0.75 France
+  Expected goals (xG):   Argentina 1.17  -  0.75 France
 
-  赛果概率
-    Argentina      胜   45.4%  ███████████·············
-    平局               30.9%  ███████·················
-    France         胜   23.7%  ██████··················
+  Result probability
+    Argentina   win   45.4%  ███████████·············
+    Draw              30.9%  ███████·················
+    France      win   23.7%  ██████··················
 
-  最可能比分 (Top 7)
+  Most likely scorelines (Top 7)
     1-0    16.9%   1-1 13.0% ...
 
-  ➜ 最可能比分: Argentina 1-0 France  (16.9%)
+  ➜ Most likely score: Argentina 1-0 France  (16.9%)
 ```
 
-### B. 命令行夺冠概率
+### B. CLI title odds
 ```bash
-python3 simulate.py --sims 5000      # 模拟整届，输出夺冠/进决赛/四强/八强/出线概率
+python3 simulate.py --sims 5000      # simulate the tournament: title / final / semi / quarter / qualify odds
 ```
 
-### C. 一键起网页（核心体验）
+### C. One-command web app (the core experience)
 ```bash
-python3 app.py        # 打开 http://127.0.0.1:8000
+python3 app.py        # open http://127.0.0.1:8000
 ```
 
-**网页六大 Tab，把整个"预测期"做成了一个能玩的实时产品：**
+**Six tabs turn the whole "prediction window" into a playable, real-time product:**
 
-#### 📋 赛事看板（首屏 / 产品入口）
-- **三态聚合**：🔴 正在比赛（ESPN 实时比分 + 分钟 + **实时胜平负条**）/ 🟡 即将开赛（按比赛日分组，带模型预测比分 + 三向概率）/ ✅ 已结束（逐场核对命中）。
-- 每场一键「**看预测**」→ 弹出完整比分概率矩阵。
-- 「**🔄 刷新事实数据**」秒级拉 ESPN 完场赛果，有新赛果模型自动重训；看板每 60s 自动刷新实时比分。
+#### 📋 Match dashboard (home / entry point)
+- **Three states**: 🔴 Live (ESPN live score + minute + **real-time W/D/L bar**) / 🟡 Upcoming (grouped by match day, with model scoreline + 3-way probabilities) / ✅ Finished (per-match hit checking).
+- One-tap "**See prediction**" on any match → pop-up full score-probability matrix.
+- "**🔄 Refresh facts**" pulls ESPN finals in seconds and auto-retrains on new results; the dashboard auto-refreshes live scores every 60s.
 
-#### ⚡ In-play 实时胜平负（差异化护城河）
-比赛进行中，看板的 LIVE 卡片显示一条实时胜平负堆叠条：赛前 Dixon‑Coles 的期望进球 λ 按**剩余时间缩放**，叠加**当前比分**做泊松卷积，得"从现状到终场"的主胜/平/客胜——随每一个进球和分钟跳动。**只读引擎、严格隔离，绝不污染赛前预测的可证伪性。**
+#### ⚡ In-play W/D/L (the differentiating moat)
+While a match is live, the dashboard's LIVE card shows a real-time W/D/L stacked bar: the pre-match Dixon-Coles expected goals λ are **scaled by remaining time**, convolved with the **current score** into a Poisson "from now to full time" home/draw/away — shifting with every goal and minute. **Read-only engine, strictly isolated, never contaminating the falsifiability of the pre-match prediction.**
 
-#### 🔮 单场预测
-两队下拉 + 中立场开关 → **比分热力图 / 胜平负 / xG / Top7 比分**，一屏看全。
+#### 🔮 Single-match prediction
+Two dropdowns + neutral toggle → **score heatmap / W/D/L / xG / top-7 scorelines** in one screen.
 
-#### 🌳 本届实时晋级树
-- **2026 官方赛制**：12 组 + 官方括号 + 最佳第三名分配，投影最可能的官方括号与冠军。
-- 真实赛果蓝色锁定，其余按模型预测；**全程可编辑**：改任意比分 / 录入或假设淘汰赛结果（平局可设点球胜者）→ 括号 + 夺冠概率实时重算；录入自动存盘、刷新不丢。
-- 每场标注日期 + 北京/当地时间切换 + 状态。
+#### 🌳 Live tournament bracket
+- **Official 2026 format**: 12 groups + official bracket + best-third allocation, projecting the most likely official bracket and champion.
+- Real results locked in blue, the rest by model; **fully editable**: change any score / enter or hypothesize knockout results (set the shootout winner on a draw) → bracket + title odds recompute live; entries auto-saved, survive refresh.
+- Each match labeled with date + Beijing/local time toggle + status.
 
-#### 🏆 夺冠概率（点估 + 90% 可信区间）
-- 一键蒙特卡洛点估 + 晋级漏斗（出线→八强→四强→决赛→夺冠），条件化在你录入/假设的赛果上。
-- **贝叶斯分层后验驱动的 90% 可信区间**（whisker 图）：区间宽且重叠＝夺冠次序本就高度不确定。新赛果后**后台自动重算**。
+#### 🏆 Title odds (point estimate + 90% credible interval)
+- One-click Monte-Carlo point estimate + advancement funnel (qualify → quarter → semi → final → title), conditioned on your entered/hypothetical results.
+- **Hierarchical-Bayes-driven 90% credible interval** (whisker chart): wide, overlapping intervals = the title ordering is genuinely uncertain. **Auto-recomputed in the background** after new results.
 
-#### 🎯 预测验证 & 💹 市场对标
-- **预测验证**：赛前预测开球前冻结存证，逐场核对赛果/比分命中、按把握分桶、标注冷门——账本不可事后篡改。
-- **市场对标**：模型 vs 博彩闭盘线 + CLV 可证伪检验；**理性博彩护栏 + 严格门槛**——无显著正 CLV 不显示任何价值/Kelly 注码。
+#### 🎯 Verification & 💹 Market
+- **Verification**: pre-match predictions frozen before kickoff, scored per match for result/scoreline hits, bucketed by confidence, upsets tagged — the ledger can't be edited after the fact.
+- **Market**: model vs bookmaker closing line + CLV falsifiability test; **responsible-gambling guardrails + a strict gate** — no value/Kelly stake is shown without a significant positive CLV.
 
 ---
 
-## 📊 我们用数字逼自己说真话（回测）
+## 📊 Forcing honesty with numbers (backtesting)
 
-改任何模型 / 参数，**必须跑 `python3 backtest.py` 用 RPS / LogLoss / 命中率证明更好，否则不采用**。这是项目铁律。
+Any model/param change **must run `python3 backtest.py` and prove itself better by RPS / LogLoss / hit-rate, or it's not adopted.** This is the project's iron rule.
 
 ```bash
-python3 backtest.py     # 只用 cutoff 之前数据训练，预测之后真实比赛
+python3 backtest.py     # train only on pre-cutoff data, predict the real matches after
 ```
 
-样本外校准成绩（修复时间泄漏后诚实口径）：
-- **训练集 ECE = 1.06%**（Kimi 自述行业基准 8–10%、<5% 算良好）——我们**天生就比行业基准更校准**。
-- 可靠性对角线近乎完美：预测 .95 → 实际 .944。
+Out-of-sample calibration (honest footing after fixing the time leak):
+- **Training ECE = 1.06%** (Kimi cites an 8–10% industry baseline; <5% is "good") — we are **more calibrated than the industry baseline by construction**.
+- The reliability diagonal is near-perfect: predicted .95 → actual .944.
 
-被回测**否决**、因此默认关闭的"看起来很美"的改动（避免你交智商税）：
+"Looks great" changes **rejected by backtest** and therefore off by default (so you don't pay the sucker's tax):
 
-| 试过的"高级"改动 | 回测结论 |
+| "Advanced" change tried | Backtest verdict |
 |---|---|
-| 身价 / 转会市值先验 | 对概率准度无改善 → 关闭（数值仍在 UI 展示） |
-| 动态 Elo 评级（替代 / 集成 / 收缩先验） | 被 Dixon‑Coles 进球级信息支配 → 不整合 |
-| 赛事强度分级加权 | 砍有效样本、升方差 → 全部更差 |
-| 负二项过离散 | GLM 扣实力后残差近 Poisson → 单调更差 |
-| Isotonic / Platt 后校准 | 我方已足够校准 → 后校准只会过拟合 |
+| Market-value / transfer-value prior | No accuracy gain → off (value still shown in UI) |
+| Dynamic Elo (replace / ensemble / shrinkage prior) | Dominated by Dixon-Coles goal-level info → not integrated |
+| Tournament-strength tier weighting | Cuts effective sample, raises variance → all worse |
+| Negative-binomial over-dispersion | Residuals near-Poisson after GLM → monotonically worse |
+| Isotonic / Platt post-calibration | Already well-calibrated → post-cal just overfits |
 
-> **这恰恰是卖点**：不是功能少，是我们替你试过了所有花哨方案，留下来的每一项都有回测背书。
-
----
-
-## 🆚 我们和 Kimi 研报比过了
-
-完整读完 Kimi 224 页 / 300+ agent / 20 维度的 2026 世界杯报告后，做了两组对标回测，结论清晰：
-
-- **Kimi 强在广度与叙事**（地缘 / 伤病 / 天气 / 海拔 / 战术相克 / 黑天鹅），**弱在可证伪性**（多为定性，冠军概率上限自承 ≤25%）。
-- **我方强在单一可回测引擎 + 真实场上证据 + 校准**。把 Kimi 的 Elo 收缩先验、后校准照搬过来，**回测全部单调恶化**。
-- 两者非同类：**Kimi 像研报，我方像可交互的实时概率引擎。**
-
-> 修复早期一处时间泄漏后，我方夺冠榜（阿根廷 / 西班牙 / 英格兰领跑）已与市场共识同量级；曾经"挪威排很前、法国偏后"的分歧主要是泄漏伪影。诚实记账、发现就改——详见 `CHANGELOG.md`。
+> **That's exactly the selling point**: not fewer features — we tried all the fancy options for you, and everything that remains has backtest backing.
 
 ---
 
-## 🚀 快速开始
+## 🆚 We benchmarked against the Kimi report
+
+After fully reading Kimi's 224-page / 300+ agent / 20-dimension 2026 World Cup report, we ran two benchmark backtests; the conclusion is clear:
+
+- **Kimi is strong on breadth and narrative** (geopolitics / injuries / weather / altitude / tactical matchups / black swans), **weak on falsifiability** (mostly qualitative; self-caps title probability at ≤25%).
+- **We are strong on a single backtestable engine + real on-pitch evidence + calibration.** Porting Kimi's Elo shrinkage prior and post-calibration over **made every backtest monotonically worse**.
+- They're different animals: **Kimi is like a research report, we're like an interactive real-time probability engine.**
+
+> After fixing an early time leak, our title board (Argentina / Spain / England leading) is now in line with market consensus; the earlier "Norway very high, France low" divergence was mostly a leak artifact. Honest bookkeeping, fix it when found — see `CHANGELOG.md`.
+
+---
+
+## 🚀 Quick start
 
 ```bash
-# 1) 依赖（anaconda 通常已自带 numpy/pandas/scipy/statsmodels/flask）
+# 1) Dependencies (anaconda usually ships numpy/pandas/scipy/statsmodels/flask)
 pip install -r requirements.txt
 
-# 2) 数据已自带 data/results.csv；要更新再跑
+# 2) data/results.csv is bundled; re-run to update
 python3 download_data.py
 
-# 3) 预测（首次训练约 1 分钟，--cache 后秒开）
+# 3) Predict (first train ~1 min, instant after --cache)
 python3 predict.py "Argentina" "France" --cache
 
-# 4) 起网页
+# 4) Web app
 python3 app.py        # http://127.0.0.1:8000
 ```
 
-### 在你自己的代码里调用
+### Call it from your own code
 ```python
 import data
 from model import DixonColesModel
@@ -200,42 +202,42 @@ m = DixonColesModel(half_life_days=730).fit(data.load_raw())
 r = m.predict("Argentina", "France", neutral=True)
 print(r["top_scores"][0])   # ((1, 0), 0.169)
 print(r["p_home"], r["p_draw"], r["p_away"])
-print(r["matrix"])          # 11x11 完整比分概率矩阵
+print(r["matrix"])          # full 11x11 score-probability matrix
 ```
 
 ---
 
-## 📁 工程一览
+## 📁 Project layout
 
 ```
 worldcup-predictor/
-├── data.py        数据层：清洗 + 时间/赛事加权 + 长表 + 实时赛果合并
-├── model.py       DixonColesModel：GLM + ρ 修正 + 比分矩阵
-├── predict.py     CLI：单场 / 实力榜 / 赛程批量
-├── simulate.py    蒙特卡洛：整届模拟 → 夺冠概率（含东道主主场）
-├── wc2026.py      2026 官方赛制：分组 + 官方括号 + 第三名分配
-├── schedule.py    全 104 场开球时间 + 场馆/当地时间换算
-├── live.py        ESPN 实时层：完场抓取 + 进行中状态（分钟级、含点球）
-├── inplay.py      ⚡ In-play 实时胜平负（赛前 λ 缩放 + 当前比分卷积）
-├── verify.py      🎯 预测验证：赛前冻结存证 + 逐场核对 + 分桶/冷门
-├── clv.py         💹 市场对标 / CLV 诚实检验 + EV/分数 Kelly（门槛 gating）
-├── bayes.py       PyMC 分层贝叶斯评级（补充视图）+ 导出后验抽样
-├── champ_ci.py    📈 夺冠概率 90% 可信区间（bayes 后验驱动 MC）
-├── backtest.py    样本外回测（RPS / LogLoss / 命中率）；bt_*.py 各类对比回测
-├── app.py         Flask 后端（看板/预测/模拟/验证/市场/区间 + 后台自动重算）
-└── templates/index.html   单页 UI（看板 + 热力图 + 晋级树 + 夺冠榜 + 区间 + 市场）
+├── data.py        Data layer: cleaning + time/competition weighting + long table + live merge
+├── model.py       DixonColesModel: GLM + ρ correction + score matrix
+├── predict.py     CLI: single match / power ranking / batch fixtures
+├── simulate.py    Monte-Carlo: whole-tournament sim → title odds (with host advantage)
+├── wc2026.py      Official 2026 format: groups + official bracket + best-third allocation
+├── schedule.py    All 104 kickoff times + venue / local-time conversion
+├── live.py        ESPN live layer: finals fetch + in-progress status (minute-level, with shootouts)
+├── inplay.py      ⚡ In-play W/D/L (pre-match λ scaling + current-score convolution)
+├── verify.py      🎯 Prediction verification: frozen pre-match ledger + per-match scoring + bins/upsets
+├── clv.py         💹 Market / CLV honesty check + EV / fractional Kelly (gated)
+├── bayes.py       PyMC hierarchical-Bayes ratings (supplementary view) + posterior-sample export
+├── champ_ci.py    📈 Title 90% credible interval (bayes-posterior-driven MC)
+├── backtest.py    Out-of-sample backtest (RPS / LogLoss / hit-rate); bt_*.py = various A/B backtests
+├── app.py         Flask backend (dashboard/predict/simulate/verify/market/CI + background auto-recompute)
+└── templates/index.html   Single-page UI (dashboard + heatmap + bracket + title board + intervals + market)
 ```
 
 ---
 
-## 📚 方法出处（站在巨人肩上）
-- **Maher (1982)** — 泊松建模足球进球
-- **Dixon & Coles (1997)** — 低分相关修正 + 时间加权
-- **Lee (1997)** — 双泊松独立模型
+## 📚 Method provenance (standing on giants' shoulders)
+- **Maher (1982)** — Poisson modeling of football goals
+- **Dixon & Coles (1997)** — low-score correlation correction + time weighting
+- **Lee (1997)** — independent double-Poisson model
 
 ---
 
 <p align="center">
-  <strong>⚽ 看球之前，先看概率。</strong><br>
-  <em>真实数据驱动 · 样本外校准 · 实时随赛况更新 —— 一台你能亲手拨动的世界杯概率机器。</em>
+  <strong>⚽ Before you watch the match, look at the probabilities.</strong><br>
+  <em>Real-data-driven · out-of-sample calibrated · updating live with the games — a World Cup probability machine you can turn the dials of yourself.</em>
 </p>
