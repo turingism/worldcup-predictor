@@ -12,6 +12,11 @@
 > **Not another "AI vibes-picking" toy.** This is an **interactive, real-time probability machine** driven by a Dixon-Coles double-Poisson engine fit on every international match from 1872–2026, calibrated by out-of-sample backtesting — every number is falsifiable, and every refresh follows the real results.
 
 <p align="center">
+  <img src="./docs/hero-dashboard.png" alt="Match dashboard with live in-play win/draw/loss" width="760">
+  <br><sub><em>The match dashboard — live in-play win/draw/loss bars + day-grouped upcoming predictions. (In-play scores shown here are illustrative.)</em></sub>
+</p>
+
+<p align="center">
   <code>Dixon-Coles double-Poisson</code> · <code>Monte-Carlo</code> · <code>Official 2026 bracket</code> · <code>ESPN minute-level live</code> · <code>In-play W/D/L</code> · <code>Bayesian credible intervals</code> · <code>One-command Flask app</code>
 </p>
 

@@ -12,6 +12,11 @@
 > **不是又一个"AI 凭感觉吹球"的玩具。** 这是一台用 1872–2026 全量真实国际比赛数据、Dixon‑Coles 双泊松统计引擎驱动、经样本外回测校准过的**可交互实时概率机器**——每一个数字都能被回测证伪，每一次刷新都跟着真实赛果走。
 
 <p align="center">
+  <img src="./docs/hero-dashboard.png" alt="赛事看板与实时胜平负" width="760">
+  <br><sub><em>赛事看板 —— 实时胜平负条 + 按日分组的即将开赛预测。（图中实时比分为示意。）</em></sub>
+</p>
+
+<p align="center">
   <code>Dixon-Coles 双泊松</code> · <code>蒙特卡洛模拟</code> · <code>2026 官方赛制括号</code> · <code>ESPN 分钟级实时</code> · <code>In-play 实时胜平负</code> · <code>贝叶斯可信区间</code> · <code>Flask 一键起网页</code>
 </p>
 
