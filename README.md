@@ -198,6 +198,8 @@ After fully reading Kimi's 224-page / 300+ agent / 20-dimension 2026 World Cup r
 
 ## 🚀 Quick start
 
+> 📓 Running it on a match day? See the one-page **[Match-day Runbook](./docs/RUNBOOK.md)**.
+
 ```bash
 # 1) Dependencies (anaconda usually ships numpy/pandas/scipy/statsmodels/flask)
 pip install -r requirements.txt
