@@ -1155,8 +1155,12 @@ function renderMarket(d){
     ? valuePanel(d)
     : `<div class="card mkt-locked">🔒 <b>价值投注 / Kelly 注码：未解锁</b>。需先用 CLV 证明模型对闭盘线有<b>显著正向</b>信息优势（当前：${c.available?(c.enough_n?'未达显著':'样本不足'):'缺开盘赔率数据'}）。这是<b>刻意的诚实门槛</b>——没有证据就不给"稳赢"暗示。
       <div style="margin-top:11px"><button class="seebtn" onclick="loadMarketDemo()">🧪 看演示：CLV 证明后长这样（合成数据）</button></div></div>`;
+  const src = d.odds_source?`<b>${d.odds_source}</b>`:'<code>data/odds.csv</code>';
+  const upd = d.odds_updated?` · 上次快照 ${d.odds_updated.slice(5,16)}`:'';
+  const cap = d.odds_capturing?' · <span style="color:#79c0ff">⟳ 抓取中</span>':'';
   const intro=`<div class="card"><div class="muted" style="font-size:12.5px"><b>这是什么</b>：把模型概率与<b>博彩闭盘线</b>（市场吸收全部信息后的金标准）在同一批比赛上对标。
-    博彩的真相不是"预测准不准"，而是 <b>CLV（闭盘线价值）</b>——你下注时的隐含概率能否持续跑赢闭盘线。数据填 <code>data/odds.csv</code>（队名对齐 martj42）。</div></div>`;
+    博彩的真相不是"预测准不准"，而是 <b>CLV（闭盘线价值）</b>——你下注时的隐含概率能否持续跑赢闭盘线。
+    <br>赔率源：${src}${upd}${cap}（复用 ESPN 公开 API 的 DraftKings 盘口，<b>非抓取博彩站</b>）。<b>开盘/闭盘线随赛事多次快照逐步积累</b>，已完赛且有跨时段快照的场次才进入 CLV 统计——所以开赛初期多为"样本不足"，这是诚实的。</div></div>`;
   const demoBanner = d.demo ? `<div class="card val-demo">🧪 <b>合成演示数据</b>（非真实赔率、非投注建议）：展示「CLV 证明信息优势后」价值/Kelly 面板的样子。真实数据仍受诚实门槛约束、保持锁定。
     <button class="seebtn" style="margin-left:8px" onclick="loadMarket()">← 返回真实数据</button></div>` : '';
   return demoBanner+guard+intro+verdict+cards+table+value;

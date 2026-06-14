@@ -29,6 +29,7 @@ from flask import Flask, jsonify, render_template, request
 
 import clv as clvmod
 import data as datamod
+import espn_odds as oddsmod
 import inplay as inplaymod
 import live as livemod
 import market
@@ -130,6 +131,31 @@ def regen_champ_ci_async():
     print("[champ_ci] 已在后台启动夺冠区间重算（bayes→champ_ci，约 90s）")
 
 
+# ESPN 赔率快照后台任务：espn_odds.py（~64 次 summary 调用，约数分钟），子进程异步跑。
+_ODDS_JOB = {"running": False, "updated": None}
+
+
+def _regen_odds_worker():
+    try:
+        r = subprocess.run([sys.executable, os.path.join(_BASE_DIR, "espn_odds.py")],
+                           capture_output=True, text=True, cwd=_BASE_DIR, timeout=600)
+        _ODDS_JOB["updated"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[odds] 后台快照完成 {_ODDS_JOB['updated']}：{(r.stdout or '').strip().splitlines()[:1]}")
+    except Exception as e:  # noqa
+        print(f"[odds] 后台快照失败：{e}")
+    finally:
+        _ODDS_JOB["running"] = False
+
+
+def regen_odds_async():
+    """触发后台 ESPN 赔率快照（只读/已在跑则跳过）。刷新真实赛果后调用——随赛事积累开盘/闭盘线。"""
+    if READONLY or _ODDS_JOB["running"]:
+        return
+    _ODDS_JOB["running"] = True
+    threading.Thread(target=_regen_odds_worker, daemon=True).start()
+    print("[odds] 已在后台启动 ESPN 赔率快照")
+
+
 @app.route("/api/champ_ci")
 def api_champ_ci():
     """夺冠概率参数不确定性区间（bayes 分层后验驱动）。含后台重算状态（computing/updated/error），
@@ -168,13 +194,21 @@ def api_market():
     ?demo=1 返回**合成演示数据**（CLV 已证明，解锁价值/Kelly 面板）——纯展示能力，非真实赔率。"""
     if request.args.get("demo"):
         return jsonify(clvmod.demo_result())
-    if not _MARKET_CACHE:
+    if request.args.get("fresh") or not _MARKET_CACHE:
+        try:                       # 从最新 ESPN 快照重建 odds.csv（快、无网络；无快照则不动已有文件）
+            oddsmod.build_odds_csv()
+        except Exception as e:  # noqa
+            print(f"[market] 重建 odds.csv 失败：{e}")
         try:
             r = clvmod.evaluate(df=DF)
         except Exception as e:  # noqa
             return jsonify({"n": 0, "error": f"市场对标计算失败：{e}"}), 500
         for x in r.get("rows", []):
             x["home"], x["away"] = teams_zh.disp(x["home"]), teams_zh.disp(x["away"])
+        r["odds_source"] = "ESPN · DraftKings 1X2"
+        r["odds_updated"] = _ODDS_JOB.get("updated")
+        r["odds_capturing"] = _ODDS_JOB["running"]
+        _MARKET_CACHE.clear()
         _MARKET_CACHE.update(r)
     return jsonify(_MARKET_CACHE)
 
@@ -382,6 +416,7 @@ def _refit_all():
     except Exception as e:  # noqa
         print(f"[verify] 重训后冻结预测失败（不影响主功能）：{e}")
     regen_champ_ci_async()     # 新赛果重训后，后台异步重算夺冠区间（bayes→champ_ci，不阻塞）
+    regen_odds_async()         # 同时后台快照 ESPN 赔率（积累开盘/闭盘线供 CLV，不阻塞）
 
 
 @app.route("/api/refresh", methods=["POST"])
