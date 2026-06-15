@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-15 — 真实赔率管道（ESPN/DraftKings）+ 自动拉完赛 + 修两个 bug
+
+### 💹 市场层接入真实赔率（合法免费）
+- **`espn_odds.py`**：从 ESPN 公开 API 的 `pickcenter` 拉 **DraftKings 1X2 美式赔率**（与比分同源、不抓博彩站、绕开地理封锁），美式→小数，按时间快照到 `data/odds_snapshots.jsonl`，拼装 `data/odds.csv`（开盘=首次、闭盘=开球前最后一次）。
+- `app.py`：`/api/refresh` 触发后台赔率快照；**app 内置每 30min 定时快照**（`ODDS_SNAP_MIN`，只读模式不启用）。`/api/market` 从快照重建 odds.csv，暴露 `odds_source/updated/capturing`。
+- `clv.evaluate` 接真实 odds.csv：模型 vs 闭盘线 RPS / CLV。**门槛不变**：无显著正 CLV 不显示价值/Kelly。
+
+### 🔓 市场价值/Kelly 手动开闸（opt-in，默认关）
+- `MARKET_UNLOCK=1`（env，默认关→公开仓库默认仍诚实锁定）强制显示价值/Kelly 面板（含未开赛场次的 EV/Kelly），前端大红标注"未验证·非准确率·非建议·不担责"。`clv.evaluate(include_upcoming=True)` 产出未开赛行但不污染 RPS/CLV 统计。
+
+### 🤖 看板自动拉完赛（比赛日零点击）
+- 看板可见时**每 3 分钟静默 `/api/live`**：有新完赛即自动重训 + 刷新看板 + 触发夺冠区间/盘口重算。补上了"60s 只读渲染不拉完赛"的缺口。
+
+### 🩹 修两个 bug
+- **整页前端挂掉**：`valuePanel` 模板串里嵌了反引号 `` `backtest.py` `` → 语法错杀掉整个 `<script>`，看板永久卡"加载…"。已去内层反引号。
+- **市场 tab 卡 68s**：odds 全是未开赛时 `clv.evaluate` 仍训练无泄漏 as_of 模型（~60s）才返回 n=0。已加预扫短路：无已完赛且不含未开赛 → 秒回。
+
+### 🎨 其它
+- 可复用 `.callout` 金句卡片组件（市场"永不解锁"金色 / 验证小样本蓝色）；README 加"准确率一览"表（RPS 0.16 / 命中 59.7% / ECE 1.06% / 净胜球 65%）；DC τ 截零护栏（标准做法，验证恒等）。
+
+---
+
 ## 2026-06-14（下午）— 6 角色评审驱动的大改：实时引擎 + 市场CLV层 + 看板打磨
 
 > 以 6 个角色（产品/算法/美术/文案/研发/博彩量化）并行评审收敛出方案，分 4 批落地。引擎一行未动逻辑，全部新增能力走只读旁路 + 回测/隔离验证。

@@ -2,7 +2,14 @@
 
 > 重启 Claude Code 后读这个文件即可快速接手继续优化。先读本文件，再按需读 `README.md`。
 
-## 📌 最新接手（2026-06-14 下午 · 6 角色大改）
+## 📌 最新接手（2026-06-15 · 真实赔率 + 自动化）
+- **市场层接真实赔率**：`espn_odds.py` 从 ESPN `pickcenter` 拉 DraftKings 1X2（不抓博彩站、绕地理封锁），快照到 `data/odds_snapshots.jsonl` → 拼 `data/odds.csv`（开盘/闭盘列）。app 内置每 30min 自动快照（`ODDS_SNAP_MIN`）。`clv.evaluate` 接它算 模型vs闭盘线 / CLV。**门槛不变**：无显著正 CLV 不显示价值/Kelly。
+- **`MARKET_UNLOCK=1`**（env，默认关）= 手动开闸价值/Kelly 面板（含未开赛 EV/Kelly，大红标注非建议）；公开仓库默认仍诚实锁定。
+- **看板每 3min 自动拉完赛**（前端 setInterval → /api/live）：有新完赛自动重训+刷新+重算区间。比赛日零点击。
+- **两个已修 bug 教训**：①模板串里别再塞反引号（会杀整个 `<script>`）；②`clv.evaluate` 已加"无已完赛则短路不训练"（否则市场接口卡 ~60s）。
+- 其余沿袭下节。
+
+## 📌 上一次接手（2026-06-14 下午 · 6 角色大改）
 - **新增三块能力 + 一处护栏，引擎逻辑零改**（详见 CHANGELOG「6 角色评审驱动」节）：
   - **In-play 实时引擎** `inplay.py`：赛前 λ 按剩余时间缩放 + 当前比分泊松卷积 → 实时胜平负，并入 dashboard live 卡。只读、不碰 GLM/账本。`bt_inplay.py` 自洽校验（无分钟级数据，非样本外）。
   - **市场/CLV 诚实层** `clv.py` + `/api/market` + 「💹 市场对标」tab：模型 vs 闭盘线 + CLV 可证伪检验。**铁律：无显著正 CLV 不显示价值/Kelly**（`show_value` gating）。数据填 `data/odds.csv`，需加 `odds_*_open` 列才能算 CLV。

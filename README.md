@@ -121,7 +121,7 @@ python3 app.py        # open http://127.0.0.1:8000
 #### 📋 Match dashboard (home / entry point)
 - **Three states**: 🔴 Live (ESPN live score + minute + **real-time W/D/L bar**) / 🟡 Upcoming (grouped by match day, with model scoreline + 3-way probabilities) / ✅ Finished (per-match hit checking).
 - One-tap "**See prediction**" on any match → pop-up full score-probability matrix.
-- "**🔄 Refresh facts**" pulls ESPN finals in seconds and auto-retrains on new results; the dashboard auto-refreshes live scores every 60s.
+- Leave it open and it runs itself: live scores refresh every 60s, finished results are auto-pulled every ~3 min (a new finish auto-retrains the model + recomputes the title interval), and bookmaker odds snapshot every 30 min — no clicking required. "**🔄 Refresh facts**" forces an immediate pull.
 
 #### ⚡ In-play W/D/L (the differentiating moat)
 While a match is live, the dashboard's LIVE card shows a real-time W/D/L stacked bar: the pre-match Dixon-Coles expected goals λ are **scaled by remaining time**, convolved with the **current score** into a Poisson "from now to full time" home/draw/away — shifting with every goal and minute. **Read-only engine, strictly isolated, never contaminating the falsifiability of the pre-match prediction.**

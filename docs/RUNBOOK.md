@@ -15,8 +15,10 @@ cd ~/worldcup-predictor && python3 app.py        # http://127.0.0.1:8000
 | Every | It does |
 |---|---|
 | 60 s | Dashboard refreshes live scores; the LIVE card's in-play win/draw/loss updates with the score |
-| 30 min | A background ESPN odds snapshot accrues opening/closing lines (feeds CLV) |
-| On a new finished match | Auto-retrain the model → background recompute of the title 90% interval |
+| 3 min | Silently pulls finished results from ESPN → **on a new finish, auto-retrains the model**, re-renders the dashboard, and triggers a background recompute of the title 90% interval (no manual "refresh facts" needed) |
+| 30 min | A background ESPN odds snapshot (DraftKings 1X2) accrues opening/closing lines → feeds the market/CLV layer |
+
+> Keep the **dashboard tab in the foreground** for the auto-pulls to fire. On a long-running match day you can just leave the page open — scores, finishes, the title interval, and odds all roll forward by themselves.
 
 ### 🖱️ Tabs / buttons cheat-sheet
 - **📋 Dashboard** (home): 🔴 live / 🟡 upcoming / ✅ finished. "See prediction" on any match pops the score matrix.
