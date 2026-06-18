@@ -138,7 +138,11 @@ def evaluate(odds_path: str = ODDS_PATH, df=None, include_upcoming: bool = False
             m_rps += _rps(mp[0], mp[1], mp[2], oc)
             l_rps += _rps(line[0], line[1], line[2], oc)
             margins.append(margin)
-            if has_open:    # 有开盘赔率 → 算 CLV（闭盘隐含 − 开盘隐含，价值档）
+            # 有开盘赔率才算 CLV（闭盘隐含 − 开盘隐含，价值档）。
+            # 逐行守卫：赛后回补的场次开盘列为空(NaN) → 无真实开盘，不计入 CLV（仅参与模型 vs 闭盘线对标）。
+            row_has_open = has_open and not any(
+                pd.isna(o[c]) for c in ("odds_1_open", "odds_x_open", "odds_2_open"))
+            if row_has_open:
                 opn, _ = implied(o["odds_1_open"], o["odds_x_open"], o["odds_2_open"])
                 clv = float(line[vside] - opn[vside])   # 市场朝我们这档移动多少
                 row["clv"] = round(clv, 4)
