@@ -32,6 +32,7 @@ import data as datamod
 import espn_odds as oddsmod
 import inplay as inplaymod
 import live as livemod
+import manager as managermod
 import market
 import schedule
 import teams_zh
@@ -143,6 +144,7 @@ def _regen_odds_worker():
         r = subprocess.run([sys.executable, os.path.join(_BASE_DIR, "espn_odds.py")],
                            capture_output=True, text=True, cwd=_BASE_DIR, timeout=600)
         _ODDS_JOB["updated"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        _MARKET_CACHE.clear()      # 新快照落盘后失效市场缓存，下次 /api/market 用新盘口重建
         print(f"[odds] 后台快照完成 {_ODDS_JOB['updated']}：{(r.stdout or '').strip().splitlines()[:1]}")
     except Exception as e:  # noqa
         print(f"[odds] 后台快照失败：{e}")
@@ -213,7 +215,9 @@ def api_market():
     ?demo=1 返回**合成演示数据**（CLV 已证明，解锁价值/Kelly 面板）——纯展示能力，非真实赔率。"""
     if request.args.get("demo"):
         return jsonify(clvmod.demo_result())
-    if request.args.get("fresh") or not _MARKET_CACHE:
+    if request.args.get("snap"):   # 手动触发一次后台 ESPN 盘口快照（积累开盘/闭盘线；完成后失效缓存）
+        regen_odds_async()
+    if request.args.get("fresh") or request.args.get("snap") or not _MARKET_CACHE:
         try:                       # 从最新 ESPN 快照重建 odds.csv（快、无网络；无快照则不动已有文件）
             oddsmod.build_odds_csv()
         except Exception as e:  # noqa
@@ -262,6 +266,32 @@ def api_predict():
         "matrix": M.tolist(), "side": side,
         "mv_home": market.value(r["home"]), "mv_away": market.value(r["away"]),
     })
+
+
+@app.route("/api/manager")
+def api_manager():
+    """足球经理人深度报告：过程数据(近期/交锋/攻防) + DC 算法模型 + 全盘口结论。
+    只读组装层，不训练、不碰 GLM。队名支持中文/国旗串。"""
+    home = request.args.get("home", "").strip()
+    away = request.args.get("away", "").strip()
+    neutral = request.args.get("neutral", "1") not in ("0", "false", "False")
+    try:
+        r = managermod.build_report(MODEL, DF, home, away, neutral=neutral, elo=_ELO)
+    except KeyError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:  # noqa  组装层任何意外都不应 500 整页
+        return jsonify({"error": f"报告生成失败：{e}"}), 500
+
+    L = teams_zh.disp
+    r["home_disp"], r["away_disp"] = L(r["home"]), L(r["away"])
+    for side in ("home", "away"):
+        for mt in r["form"][side]["matches"]:
+            mt["opp"] = L(mt["opp"])
+    for row in r["h2h"]["rows"]:
+        row["home"], row["away"] = L(row["home"]), L(row["away"])
+        if row.get("winner"):
+            row["winner"] = L(row["winner"])
+    return jsonify(r)
 
 
 _RATINGS = None

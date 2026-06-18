@@ -5,6 +5,56 @@
 
 ---
 
+## 2026-06-18 — 新增：「⚽ 足球经理人」赛前深度报告页
+
+按"资深分析师 4 大模块"维度新增一个预测页面：**过程数据 → 算法模型 → 结论**。
+全部用既有引擎 + 真实历史组装，**零改 GLM/回测**（与 insights/inplay/clv 同为只读旁路层）。
+
+- **`manager.py`（新）**：
+  - 过程数据：`recent_form`（近 5 场战绩/进失球/零封/哑火）、`head_to_head`（近 5 次交锋 + 胜平负计数）、
+    `team_stats`（近 20 场场均进/失球 + 零封率 + DC 攻防评级 + 净实力）——均来自 `results.csv` 真实国际赛。
+  - 算法模型：直接复用 `model.score_matrix`（Dixon-Coles 双泊松，λ 作 xG 代理）。
+  - 结论推导（`derived_markets` 从比分矩阵卷积）：1X2、大小球 1.5/2.5/3.5、BTTS、总进球期望+区间分布、
+    正确比分 Top、**亚盘让球**（按净胜球分布算 -0.5/-0.75/-1/-1.25/-1.5/-2 赢盘/走水/输盘 + 公平档）、
+    **竞彩让球**（强队让 1 球 → 让胜=赢2+/让平=赢1/让负=不胜 + 主判断）。
+  - `half_full_time`：半全场启发式（按 `FH_SHARE=0.45` 拆前/后半场独立泊松枚举 HT×FT 3×3，**未套 DC ρ**，标低置信）。
+  - `confidence`：胜负倾向 + 高/中/低（平局为 argmax 结构盲区时降级）。
+  - 上下文：`availability_for`（伤停 xG 乘子，复用 adjust）、`schedule_ctx`（场馆/北京&当地时间/东道主主场）、
+    `market_odds`（读 `data/odds.csv` 闭盘 1X2 去抽水隐含概率对照，无则标"纯模型推导非实盘"）、Elo 名气排名对照。
+- **`app.py`**：`GET /api/manager?home=&away=&neutral=`（中文/国旗队名；KeyError→400，其余异常→500 不崩整页）。
+- **`templates/index.html`**：新增「⚽ 足球经理人」tab + section（双队输入 + 中立场勾选 + 生成报告按钮）；
+  `loadManager`/`renderManager` 渲染 4 模块表格 + 胜负倾向框 + 最终结论汇总表；`.mg*` 样式；懒加载 + `#manager` 深链。
+- **诚实边界**：定性维度（具体阵型/预计首发/临场调整/天气草皮裁判）一律标注"引擎不提供，需结合最新战报"，不编造；
+  半全场标低置信；无赔率标非实盘；汇总表含"非投注建议、无必胜/稳赢"声明。
+- 验证：`test_core.py` 18 项全绿；`/api/manager` 五条路径（中立/主场/含 host 赛程/含赔率对阵/错误队名）实测 200/400；
+  headless 截图 4 模块 + 汇总表渲染正常。
+
+---
+
+## 2026-06-17 — 修：市场对标不能自动刷新获取数据
+
+数据抓取层一直正常（`espn_odds.fetch_current` 实测 51 场实时盘口、odds.csv 持续更新、30min 后台快照在跑），
+问题纯在 **UI/缓存层**——「💹 市场对标」tab 加载一次后就永久冻结，后台新抓的盘口到不了前端：
+- `/api/market` 的 `_MARKET_CACHE` 一旦建立只有 `?fresh` 才重建，但前端 `loadMarket()` 从不带 `?fresh`；
+- 前端 `marketLoaded` 标志使切回该 tab 也不重载，且**无刷新按钮、无自动轮询**（不像看板每 3min 拉一次）；
+- 后台快照完成后从不失效 `_MARKET_CACHE`，新 odds.csv 永远等不到展示。
+
+### 修法
+- **后端 `app.py`**：①`_regen_odds_worker` 快照落盘后 `_MARKET_CACHE.clear()`，新盘口自动失效缓存；
+  ②`/api/market?snap=1` 触发一次后台 ESPN 盘口快照（积累开盘/闭盘线）并强制重建对标。
+- **前端 `index.html`**：①`loadMarket(mode)` 支持 `'fresh'`(用现有快照重建)/`'snap'`(抓新盘口+重建)；
+  ②市场 tab 可见时**每 60s 静默 `loadMarket('fresh')`** 自动刷新（演示态不打断）；
+  ③切回 tab 时 `loadMarket('fresh')` 拿最新；④intro 卡右上加 **「🔄 刷新盘口」按钮**（抓取中禁用并显示 `⟳ 抓取中…`）。
+- 验证：18 项 pytest 全绿；`/api/market`(n=12 命中缓存) / `?snap=1`(capturing=True 触发后台快照) / headless 截图见按钮与数据正常。
+
+### 📥 回补早期比赛日闭盘线（6.11 起，赛前没快照过的场次）
+盘口快照 6.14 才开始，6.11-6.13 的比赛从没被快照过，市场对标表里缺这些场次。
+- **发现**：ESPN scoreboard 在开赛后撤掉盘口，**但 `summary.pickcenter` 仍保留最后一档 DraftKings 1X2**（≈闭盘线）。可据此回补已完赛的闭盘线。
+- **`espn_odds.py`**：①`_row_from_event`/`_event_teams`——队名改从 **event competitors** 取（已完赛的 pickcenter 会丢 team 对象、只剩 moneyline，原先从 pickcenter 取名导致全 None）；②`fetch_finished(skip=)`——只回补 `state=post` 且未抓过的场次，**summary 调用前先按 (home,away,date) 跳过已有**，成本随完赛数有界；③`backfill_finished()` 幂等回补，写 `retro:True` 标记；④`main()` 默认先 backfill 再 snapshot（`--no-backfill` 可关），故 app 每次后台刷盘口都会自动补齐漏抓的完赛场。
+- **`build_odds_csv`**：按 `retro` 标记区分——有实时(live)快照的场次首见=开盘/末见=闭盘（ESPN 开赛撤盘口，故末见≈闭盘，**不再用有时区 bug 的 `captured_at<=kickoff_utc` 比较**，那是本次一度误判 6.14 场为 retro 的根因）；仅 retro 的场次只写闭盘、开盘列留空。
+- **`clv.py`**：逐行守卫——开盘列为空(NaN)的回补场**不计入 CLV**（无真实开盘不能算线移动），仅参与「模型 vs 闭盘线」对标。**诚实门槛不破**。
+- 结果：odds.csv 72 场（64 开盘≠闭盘 + 8 仅闭盘回补）；`/api/market` 对标 n=20（6.11 墨西哥-南非起），CLV 样本仍 n=12（retro 正确排除）。
+
 ## 2026-06-15 — 真实赔率管道（ESPN/DraftKings）+ 自动拉完赛 + 修两个 bug
 
 ### 💹 市场层接入真实赔率（合法免费）
