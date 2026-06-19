@@ -2,7 +2,58 @@
 
 > 重启 Claude Code 后读这个文件即可快速接手继续优化。先读本文件，再按需读 `README.md`。
 
-## 📌 最新接手（2026-06-18 · 新增「⚽ 足球经理人」深度报告页）
+## 📌 最新接手（2026-06-19 · 5-agent 评审驱动的 5 阶段大优化）
+5 个角色 agent（产品/算法/美术/文案/研发）评审后落地，全程 test_core 绿（现 **19 项**，新增 bj_date 口径单测）、CDP 实测全 tab **0 JS 异常**。
+- **Phase 0 正确性&事实**：① `_refit_all` 加 `_REFIT_LOCK`（acquire 不到就跳过本次重训）+ `model.pkl` 原子写——根治 Flask 多线程并发重训写坏 pkl / 半构造 `_SIM`。② 文案 `half_life 240→730`、header「中立场建模」→「含东道主主场修正」（事实硬伤）。③ 「看预测」弹窗口径修复：`/api/predict` 新增 `host`/`city` 参数走 `verify.pair_predict`，看板「正在比赛/即将开赛」行带 host→弹窗与看板概率**同口径**（US v AUS 实测 0.334=0.334）。
+- **Phase 1 结构精简（6→5 tab）**：「单场预测」并入「⚽ 对阵分析」（原足球经理人）——`manager.build_report` 加 `matrix`，`renderManager` 模块四加比分矩阵热力图；删 `#match`/`predict()`/`swapTeams`/`mv`，`#match` 深链 remap→`#manager`。夺冠 tab 把「解读/伤停/环境」收进 `<details>` 折叠降密度。晋级树↔夺冠加交叉链接（点明 投影路径 vs 概率分布）。
+- **Phase 2 数据更新统一调度**：前端 `DataScheduler`（单心跳 15s，只在「该任务 tab 当前可见」时触发，切走自停）取代 4 个散 `setInterval`；`postLive()` 在途去重。后端：`/api/live` 加 15s 节流缓存；`regen_champ_ci_async(force)` 20min 节流、`regen_odds_async(force)` 15min 节流（定时器/手动 snap/手动 regen 传 force=True 无视节流）。**只读端点绝不触发重训**（铁律守住）。
+- **Phase 3 UI&文案**：`:root` 增设计 token（--mut2/--dim/--blue/--chip/--line2/--gold + 胜平负三色 --wdl-h/d/a）；`.tab.on` 从实心绿改描边+底部强调线（不抢 .go 主按钮权重）；live 卡胜平负三色统一到全站 token。文案：「全量同步数据库」→「更新历史数据」（去 martj42 黑话）、晋级树长说明拆 3 句、北京/当地+RPS+CLV+可信区间+蒙特卡洛加人话 tooltip、「运行蒙特卡洛」→「开始模拟」。
+- **Phase 4 工程卫生**：比分矩阵渲染去重为单一 `scoreMatrixHTML(m,hi,hj)`（单场/弹窗/对阵分析共用）；抽 `verify.bj_date(kickoff,fallback)` 统一北京日口径 + 单测（守反复修过的 off-by-one）；删单场预测遗留死代码（mv/.grid/.tops）。**前端 tab-对象级模块化按架构师建议判为"渐进、不大爆改"暂缓**（高风险低即时收益；散 setInterval/重复渲染等真痛点已在 P2/P4 解决）。
+- **5 套算法隔离红线（产品/UI 合并时务必守）**：DC 预测引擎(唯一进训练) / bayes 后验(补充视图只读) / in-play 实时(赛中条件,不进账本) / 市场CLV(外部审计) / 经理人(衍生展示) ——数据层单向不回灌，UI 可同屏但禁合并成一个数字。
+
+## 📌 上一次接手（2026-06-19 · 修实时比分 ESPN 拉取 503）
+- **症状**：点「⚡ 实时比分」弹错 `ESPN 实时源拉取失败：<urlopen error Tunnel connection failed: 503 Service Unavailable>`。
+- **根因**：macOS **系统代理节点偶发 503**（Tunnel failed）。`live._fetch_json` 原是单 URL、无重试、`urllib.urlopen` 默认走系统代理，代理一抖就整体失败。实测 ESPN **直连可达**（系统代理/直连当时都能成，是瞬时抖动）。
+- **已修（`live.py`）**：`_fetch_json` 改为 **先系统代理后直连各重试 2 次**——加 `_NOPROXY_OPENER = build_opener(ProxyHandler({}))`，循环 `(None, _NOPROXY_OPENER)` × retries，任一成功即返回，全败才抛。瞬时 503 自动重试/回退直连恢复。（与 app.py martj42 的 `_fetch` 多镜像+重试同思路；headless 截图历来用 `--no-proxy-server` 也是绕这个代理。）
+- 验证：`live._fetch_json` 直接调通；重启后 POST `/api/live` 返回 ok=True、live_total=28、error=None；test_core 18 项全绿。
+- 其余沿袭下节。
+
+## 📌 上一次接手（2026-06-19 · 晋级树说明文案移到按钮下方）
+- **需求**：晋级树 tab 顶部那段长说明（「本次世界杯实时预测…」）原本作为 `.row` 里最后一个 `flex:1` 项挤在按钮右侧，渲染成右侧一长条竖排、左边留大片空白。改为**放到按钮行下方**整宽一段。
+- **改动（`templates/index.html`）**：把说明 `<div class="muted">` 从按钮 `.row` 里移出，作为 `.card` 内按钮行的兄弟、`margin-top:12px;line-height:1.6` 整宽显示。`#livestat`(flex:1) + 北京/当地 toggle 仍留在按钮行。intro 卡片高度大幅缩短、括号上移。
+- 验证：headless 截图确认按钮成行、说明在下方整宽、卡片紧凑；test_core 18 项全绿。
+- 其余沿袭下节。
+
+## 📌 上一次接手（2026-06-19 · 修晋级树点实时比分后布局崩坏）
+- **症状**：晋级树 tab 点「⚡ 实时比分」后括号变全尺寸溢出（框超大、列铺满整宽、无缩放）。
+- **根因**：`layoutBracket` 算缩放 `scale=avail/natW` 时未防边界——当括号在**隐藏态**被重渲（5min 自动轮询 `liveFacts` 不判当前 tab，只看 visibility+bracketLoaded）→ `clientWidth=0`、`natW=0` → `0/0=NaN` → `scale(NaN)` 被浏览器判为非法 → **不缩放=全尺寸**；可见态下若在回流前测到 `natW=0` 则 `avail/0=Infinity→scale(1)` 同样全尺寸。两条都恰好复现用户截图。
+- **已修（`templates/index.html`）**：`layoutBracket` 加双护栏——①`if(!fit.clientWidth)return`（隐藏/未布局不乱算，留待切回 tab 的 layout 重拟合）②`if(!natW){setTimeout(layoutBracket,200);return}`（宽度没回流出来先不缩，稍后重试）；整段包 try/catch，异常也不停在 `transform:none`。`loadProjection` 重排时机从写死 `setTimeout 80/320` 升级为 `rAF×2 +（120/360 兜底）+ fonts.ready`，可见 tab 拿最准回流时机、后台 tab 兜底、字体回流后再拟合一次（重复调用安全）。
+- **注意**：跑中的 app 服务的是**正确**模板（含 `.wrap{max-width:1180px}` 与新布局）；用户截图里内容铺满整窗（未受 1180 限制）说明其浏览器是**旧缓存页**——让用户 Cmd+Shift+R 硬刷新。代码侧已加固，避免该类"重渲后没缩放"复发。
+- 验证：CDP 实测 点实时比分 前后 scale 一致(0.728/0.968)、隐藏态重渲不再产生 NaN/全尺寸、切回 tab 自动重拟合（svg 连线齐）；test_core 18 项全绿。
+- **关键后续（同日）：根因其实是浏览器缓存旧 HTML**——用户截图内容铺满整窗（未受 `.wrap{max-width:1180px}` 限制），而服务端模板早已正确；说明跑的是旧缓存页里的旧 `layoutBracket`。单页 HTML 内联全部 JS/CSS，浏览器缓存文档 → 改了前端也不生效。**已给 `app.py` 的 `/` 路由加 `Cache-Control: no-cache, no-store, must-revalidate` + Pragma + Expires**（`make_response`），从此每次加载都是新版。CDP 在用户同环境（retina 908px）实测：新代码 点实时比分 前后均 `scale(0.728)`、布局正常。
+- **再后续：用户精确指出是 `#livestat`「实时源已同步…」文案撑宽**。CDP 在 1817px 窗口对当前代码注入该文案，布局**完全稳定**（wrapClientW=1180、fitClientW=1098、scale 不变）——当前代码无此 bug；用户页面内容铺满整窗坐实仍跑**旧缓存 JS**（旧版无 max-width/行不 wrap，长文案横向溢出撑宽 body→`bfit.clientWidth` 虚高→`avail≥natW`→`scale(1)` 全尺寸）。已加三重防御彻底免疫：① `layoutBracket` 的 `avail=Math.min(fit.clientWidth, documentElement.clientWidth)`（视口宽钳住缩放分母，兄弟元素溢出再撑不大括号）② `body{overflow-x:hidden}` ③ `#livestat{flex:1 1 180px;min-width:0}`。**终极办法：开 `http://localhost:8000/?v=3`（新 URL 不命中缓存必加载新代码）或关掉久开的旧标签重开**——光按刷新可能被 bfcache 挡。
+- 其余沿袭下节。
+
+## 📌 上一次接手（2026-06-19 · 实力榜并入「夺冠概率」tab）
+- **判断**：实力榜 与 夺冠概率 **不是严格重复**，而是**同一套贝叶斯后验的上下游两视图**——`bayes.py` 同时产出 `bayes_ratings.json`（实力榜：每队净实力 atk+dfc + 94% CI）和 `bayes_draws.npz`（夺冠 90% CI：把同一后验整套灌进模拟器跑 MC）。即夺冠 CI = 实力榜后验**经括号传播**的结果。故合并，不丢算法。
+- **算法没有"淘汰"**：DC 仍是回测最优的**点预测**引擎（夺冠%漏斗 `/api/champions` 用 DC MC）；bayes 是**唯一带 CI** 的评级/不确定性层，且是夺冠 CI 的来源。两者各司其层，删任一都丢信息。
+- **改动（纯前端，后端 `/api/ratings` 原样保留）**：删掉「实力榜」顶级 tab；把 `#ratingsres` 移进 `#champ` section（顺序：夺冠CI whisker → 夺冠漏斗 → 实力榜评级 → insights/avail/env）；champ tab 打开时懒加载 `loadRatings()`；`#ratings` 旧深链 remap 到 `#champ`；实力榜卡片文案点明"是上方夺冠 CI 的上游"。
+- 验证：`/api/ratings` 48 队正常、headless 截图夺冠 tab 内两段（夺冠CI + 实力榜）齐显、tab 栏已无实力榜、test_core 18 项全绿。
+- 其余沿袭下节。
+
+## 📌 上一次接手（2026-06-19 · 修看板时区错位 off-by-one）
+- **症状**：看板「即将开赛」按日分组的日期表头与每行展示的【北京】开球时间对不上——凌晨开球的场次（北京日 > 场馆当地日）被归到前一天；「已结束」同样错位。
+- **根因**：日期口径混用。`schedule.py` 全是北京时间，但分组/显示日期用了**场馆当地日**：①`app.py` 看板 upcoming 行的 `date` 取自账本 `fixture_date`（当地日）；②账本 `date` 本身不一致——`verify.freeze` 小组赛存当地日(`fixture_date`)、淘汰赛存北京日(`kickoff[:10]`)；③`api_project` 的 `today` 用服务器本地 `dt.date.today()`（非北京）。
+- **已修（全部统一到北京口径，纯展示层，不回填重算预测）**：
+  - `app.py` 看板 upcoming：`date` 改用 `kickoff[:10]`（北京日），无 kickoff 才回落账本 date。
+  - `verify.evaluate`（已结束行）：`date` 改从存的北京 `kickoff[:10]` 推导（立即修正全部已冻结旧条目），retro 无 kickoff 才回落。
+  - `verify.freeze`：小组赛 `date` 也存 `kickoff[:10]`（与淘汰赛一致，账本不再混用当地/北京）。
+  - `app.py api_project`：`today=verifymod._now_bj()[:10]`（北京今天，服务器换时区也不错判 进行中/已结束）。
+  - **未动**：晋级树 tab 本就正确（每场带 `date`+`time`(北京) 与 `date_local`+`time_local`(当地) 两套配对，北京/当地切换各自自洽）；足球经理人 `schedule_ctx` 北京/当地都明确标注；单场/夺冠/实力榜/市场对标不展示单场开球时间，无此问题。
+- 验证：看板 44 场 upcoming 全部 `date==kickoff[:10]`、已结束行北京日修正（墨西哥vs韩国 6/18→6/19）、`/api/project` 正常、test_core 18 项全绿。
+- 其余沿袭下节。
+
+## 📌 上一次接手（2026-06-18 · 新增「⚽ 足球经理人」深度报告页）
 - **需求**：在比分预测器里加一个新页面「足球经理人预测」，按资深分析师 4 大模块维度出报告：获取过程数据 → 算法模型 → 得出结论。
 - **实现（纯只读组装层，零改引擎，遵循"上下文/补充层"铁律）**：
   - `manager.py`：与 insights/inplay/clv 同级的旁路层。三段式——①**过程数据**：`recent_form`(近5场战绩/进失/零封)、`head_to_head`(近5次交锋)、`team_stats`(近20场场均进失球+零封率+DC攻防评级)，全来自 results.csv 真实历史；②**算法模型**：直接调 `model.score_matrix`（DC 双泊松，λ 作 xG）；③**结论**：`derived_markets` 从比分矩阵卷积出 1X2 / 大小球(1.5/2.5/3.5) / BTTS / 总进球分布 / 正确比分Top / **亚盘让球**(净胜球分布推导公平盘) / **竞彩让球**(让1球→让胜/让平/让负) ；`half_full_time`(半全场，按 FH_SHARE=0.45 拆前后半场独立泊松的**启发式**，未套 DC ρ，标低置信)；`confidence`(胜负倾向+高/中/低，平局判 argmax 时降级)。叠加 `availability_for`(伤停)、`schedule_ctx`(场馆/北京&当地时间/东道主主场)、`market_odds`(读 odds.csv 闭盘 1X2 去抽水隐含概率，无则标"纯模型推导非实盘")、Elo 名气对照。

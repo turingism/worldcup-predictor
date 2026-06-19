@@ -20,11 +20,11 @@ cd ~/worldcup-predictor && python3 app.py        # http://127.0.0.1:8000
 
 > Keep the **dashboard tab in the foreground** for the auto-pulls to fire. On a long-running match day you can just leave the page open — scores, finishes, the title interval, and odds all roll forward by themselves.
 
-### 🖱️ Tabs / buttons cheat-sheet
-- **📋 Dashboard** (home): 🔴 live / 🟡 upcoming / ✅ finished. "See prediction" on any match pops the score matrix.
-- **🔄 Refresh facts**: manually pull ESPN finished results in seconds (retrains on new ones).
-- **🏆 Title odds**: Monte-Carlo point estimate + Bayesian 90% interval (whisker chart; "↻ recompute" to refresh).
-- **🎯 Verification**: pre-match predictions frozen before kickoff vs actuals, scored per match (early on, watch RPS/calibration, not hit-rate).
+### 🖱️ Tabs / buttons cheat-sheet (5 tabs)
+- **📋 Dashboard** (home): 🔴 live / 🟡 upcoming / ✅ finished. "See prediction" on any match pops the score matrix. The **verification** ledger (pre-match predictions frozen before kickoff vs actuals, per-match scored) lives in the *Finished* section — early on, watch RPS/calibration, not hit-rate.
+- **⚽ Match analysis** (Football Manager): pick two teams → analyst-style report (process data → Dixon-Coles matrix + heatmap → 1X2 / over-under / Asian handicap / correct score / confidence). Absorbs the old single-match view.
+- **🌳 Bracket**: official 2026 projection; edit any score / knockout result as a what-if → bracket + title odds recompute live. **🔄 Refresh facts** here manually pulls ESPN finished results (retrains on new ones).
+- **🏆 Title odds + power ratings**: Monte-Carlo point estimate + Bayesian 90% interval (whisker chart; "↻ recompute" to refresh) + the Bayesian net-strength power ranking.
 - **💹 Market**: model vs closing line + CLV; the value/Kelly panel is **honestly locked by default**.
 
 ### 🔧 Two switches (environment variables)
@@ -41,6 +41,6 @@ MARKET_UNLOCK=1 python3 app.py   # force the value/Kelly panel open (demo only, 
 
 ### 🧪 Tests / accuracy
 ```bash
-python3 -m pytest test_core.py -q     # 18 regression tests
+python3 -m pytest test_core.py -q     # 19 regression tests
 python3 backtest.py                   # out-of-sample accuracy (RPS 0.16 / hit 59.7% / ECE 1.06%)
 ```

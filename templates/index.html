@@ -9,19 +9,35 @@
     --bg:#0d1117; --panel:#161b22; --panel2:#1c2230; --line:#2a3240;
     --txt:#e6edf3; --mut:#8b949e; --grn:#2ea043; --grn2:#3fb950;
     --acc:#58a6ff; --warn:#d29922; --red:#f85149;
+    /* 收编散落裸色值的设计 token：状态色语义集中，避免漂移 */
+    --mut2:#c9d1d9; --dim:#6e7681; --blue:#1f6feb; --blue-lt:#79c0ff;
+    --chip:#21262d; --line2:#30363d; --gold:#e3b341;
+    /* 胜平负三态统一配色（全站看板/括号/弹窗/对阵分析共用） */
+    --wdl-h:var(--grn2); --wdl-d:var(--mut); --wdl-a:var(--acc);
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--txt);
+  body{margin:0;background:var(--bg);color:var(--txt);overflow-x:hidden;  /* 防某个宽元素(如 #livestat 长文案)横向撑开整页 */
     font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif}
+  #livestat{flex:1 1 180px;min-width:0}   /* 实时源文案：可伸缩、不靠 min-content 把行撑宽 */
   header{padding:22px 20px;border-bottom:1px solid var(--line);
     background:linear-gradient(180deg,#11331f,#0d1117)}
   header h1{margin:0;font-size:22px;letter-spacing:.5px}
   header p{margin:6px 0 0;color:var(--mut);font-size:13px}
   .wrap{max-width:1180px;margin:0 auto;padding:20px}
+  .xlink a{color:var(--acc);cursor:pointer;text-decoration:none}
+  .xlink a:hover{text-decoration:underline}
+  details.champ-extra{margin-top:4px}
+  details.champ-extra>summary{cursor:pointer;color:var(--mut);font-size:13px;padding:10px 14px;
+    border:1px dashed var(--line);border-radius:8px;list-style:none;user-select:none}
+  details.champ-extra>summary:hover{border-color:var(--acc);color:var(--txt)}
+  details.champ-extra[open]>summary{margin-bottom:8px}
   .tabs{display:flex;gap:8px;margin-bottom:18px}
   .tab{padding:9px 18px;border:1px solid var(--line);background:var(--panel);
-    color:var(--mut);border-radius:8px;cursor:pointer;font-size:14px}
-  .tab.on{background:var(--grn);color:#fff;border-color:var(--grn)}
+    color:var(--mut);border-radius:8px;cursor:pointer;font-size:14px;transition:.15s}
+  .tab:hover{color:var(--txt);border-color:var(--line2)}
+  /* 选中态用描边+底部强调线，不抢主操作按钮(.go 实心绿)的视觉权重 */
+  .tab.on{background:var(--panel2);color:var(--txt);border-color:var(--grn);
+    box-shadow:inset 0 -2px 0 var(--grn);font-weight:600}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
     padding:20px;margin-bottom:18px}
   .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
@@ -47,18 +63,13 @@
   .wdl .nm{font-size:13px;color:var(--mut);text-align:right;white-space:nowrap;overflow:hidden}
   .barwrap{background:var(--panel2);border-radius:6px;overflow:hidden;height:22px}
   .bar{height:100%;border-radius:6px;transition:width .4s}
-  .bar.h{background:var(--grn)} .bar.d{background:var(--mut)} .bar.a{background:var(--acc)}
+  .bar.h{background:var(--wdl-h)} .bar.d{background:var(--wdl-d)} .bar.a{background:var(--wdl-a)}
   .wdl .pct{font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
   h3{font-size:14px;color:var(--mut);margin:22px 0 10px;font-weight:600}
-  .grid{display:grid;gap:14px}
-  @media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
   table.mtx{border-collapse:collapse;margin:0 auto}
   table.mtx td,table.mtx th{width:34px;height:30px;text-align:center;font-size:11px;
     border:1px solid var(--bg)}
   table.mtx th{color:var(--mut);font-weight:500}
-  table.mtx caption{caption-side:top;color:var(--mut);font-size:12px;margin-bottom:8px}
-  .tops .t{display:grid;grid-template-columns:48px 1fr 50px;gap:8px;align-items:center;margin:5px 0}
-  .tops .sc{font-weight:700;font-variant-numeric:tabular-nums}
   .err{color:var(--red);font-size:14px;padding:8px 0}
   .champ .r{border-bottom:1px solid var(--line);padding:7px 0;cursor:pointer;font-size:13px}
   .champ .r:hover{background:#12161d}
@@ -210,10 +221,10 @@
   .lc-pred{font-size:11.5px}
   .lc-wdl{margin:9px 0 2px}
   .lc-wdlh{display:flex;justify-content:space-between;font-size:11px;color:#8b949e;margin-bottom:4px}
-  .lc-wdlbar{display:flex;height:9px;border-radius:5px;overflow:hidden;background:#21262d}
-  .lc-wdlbar i{display:block;background:#2f81f7}
-  .lc-wdlbar i.d{background:#6e7681}
-  .lc-wdlbar i.a{background:#db8a3b}
+  .lc-wdlbar{display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--chip)}
+  .lc-wdlbar i{display:block;background:var(--wdl-h)}    /* 胜平负三色与全站统一 */
+  .lc-wdlbar i.d{background:var(--wdl-d)}
+  .lc-wdlbar i.a{background:var(--wdl-a)}
   .lc-wdlnum{display:flex;justify-content:space-between;font-size:11.5px;margin-top:4px;font-variant-numeric:tabular-nums}
   .lc-wdlnum b{color:#e6edf3;font-weight:700}
   .uprow{display:grid;grid-template-columns:90px 1fr 96px 96px;gap:10px;align-items:center;
@@ -323,44 +334,20 @@
 <body>
 <header>
   <h1>⚽ 世界杯比分预测器</h1>
-  <p>双泊松 + Dixon-Coles · 1872–2026 真实国际赛数据 · 中立场建模</p>
+  <p>双泊松 + Dixon-Coles · 1872–2026 真实国际赛数据 · 含东道主主场修正</p>
 </header>
 
 <div class="wrap">
   <div class="tabs">
     <div class="tab on" data-t="verify">📋 赛事看板</div>
-    <div class="tab" data-t="match">单场预测</div>
-    <div class="tab" data-t="manager">⚽ 足球经理人</div>
+    <div class="tab" data-t="manager">⚽ 对阵分析</div>
     <div class="tab" data-t="bracket">晋级树状图</div>
     <div class="tab" data-t="champ">夺冠概率</div>
-    <div class="tab" data-t="ratings">实力榜</div>
     <div class="tab" data-t="market">💹 市场对标</div>
   </div>
 
-  <!-- 单场预测 -->
-  <section id="match" style="display:none">
-    <div class="card">
-      <div class="row">
-        <div class="fld">
-          <label>主队 / 第一支</label>
-          <input id="home" list="teams" placeholder="点此选择/搜索国家" value="🇦🇷 阿根廷"
-            onfocus="teamFocus(this)" onblur="teamBlur(this)">
-        </div>
-        <button class="swap" type="button" onclick="swapTeams()" title="交换主客 / 第一支与第二支位置">⇄</button>
-        <div class="fld">
-          <label>客队 / 第二支</label>
-          <input id="away" list="teams" placeholder="点此选择/搜索国家" value="🇫🇷 法国"
-            onfocus="teamFocus(this)" onblur="teamBlur(this)">
-        </div>
-        <button class="go" onclick="predict()">预测</button>
-      </div>
-      <label class="chk"><input type="checkbox" id="neutral" checked> 中立场（世界杯默认勾选；取消则第一支为主队）</label>
-      <datalist id="teams"></datalist>
-    </div>
-    <div id="result"></div>
-  </section>
-
-  <!-- 足球经理人深度报告 -->
+  <!-- 对阵分析（原「足球经理人」深度报告，已并入「单场预测」的比分矩阵热力图）-->
+  <datalist id="teams"></datalist>
   <section id="manager" style="display:none">
     <div class="card">
       <div class="row">
@@ -379,9 +366,9 @@
       </div>
       <label class="chk"><input type="checkbox" id="mg_neutral" checked> 中立场（世界杯默认勾选；取消则第一支为主队）</label>
       <div class="muted" style="margin-top:6px">
-        资深分析师视角的赛前深度报告：<b>过程数据</b>（近 5 场状态 / 历史交锋 / 攻防均值，源自真实历史）
-        → <b>算法模型</b>（Dixon-Coles 双泊松比分矩阵，λ 作 xG）→ <b>结论</b>（1X2 / 大小球 / BTTS /
-        亚盘 / 竞彩让球 / 半全场 / 比分 / 胜负倾向 + 置信度）。定性维度（阵型/首发/天气）引擎不提供，已如实标注。
+        任选两队的赛前深度报告（已整合原「单场预测」）：<b>过程数据</b>（近 5 场状态 / 历史交锋 / 攻防均值，源自真实历史）
+        → <b>算法模型</b>（Dixon-Coles 双泊松，含完整比分概率矩阵热力图，模型期望进球即 xG）→ <b>结论</b>（1X2 /
+        大小球 / BTTS / 亚盘 / 竞彩让球 / 半全场 / 比分 / 胜负倾向 + 置信度）。定性维度（阵型/首发/天气）引擎不提供，已如实标注。
       </div>
     </div>
     <div id="mgres"></div>
@@ -392,22 +379,22 @@
     <div class="card">
       <div class="row" style="align-items:center">
         {% if not readonly %}
-        <button class="go writebtn" onclick="refreshFacts(this)">🔄 全量同步数据库</button>
-        <button class="go writebtn" style="background:#1f6feb" onclick="liveFacts(this)">⚡ 实时比分</button>
-        <button class="go writebtn" style="background:#30363d" onclick="resetOverrides()">↺ 清除试算</button>
+        <button class="go writebtn" onclick="refreshFacts(this)" title="从公开数据源拉取全部历史国际赛战绩并重训模型">🔄 更新历史数据</button>
+        <button class="go writebtn" style="background:var(--blue)" onclick="liveFacts(this)" title="秒级查询 ESPN 最新完场赛果（有新赛果自动重训）">⚡ 实时比分</button>
+        <button class="go writebtn" style="background:var(--line2)" onclick="resetOverrides()" title="清空所有手动录入/假设，恢复纯模型预测">↺ 清除试算</button>
         {% endif %}
         <span class="muted" id="livestat" style="font-size:12px"></span>
         <div class="tzswitch">🕐
-          <button class="tzbtn on" data-tz="bj" onclick="setTZ('bj')">北京</button>
-          <button class="tzbtn" data-tz="local" onclick="setTZ('local')">当地</button>
-        </div>
-        <div class="muted" style="flex:1">
-          <b>本次世界杯实时预测</b>（2026 官方赛制）。已踢的真实比赛=事实（蓝色锁定），其余按模型预测，
-          投影出最可能的官方括号与冠军。「⚡实时比分」秒级拉 ESPN 完场赛果（开页后每 5 分钟自动同步），
-          「🔄全量同步数据库」拉取 martj42 全量历史国际赛数据；有新赛果模型自动重训。
-          也可在下方改小组赛比分、或<b>点击括号里任意淘汰赛</b>录入结果/做假设（黄色边框），「清除试算」恢复纯预测。
+          <button class="tzbtn on" data-tz="bj" onclick="setTZ('bj')" title="中国标准时间 UTC+8">北京</button>
+          <button class="tzbtn" data-tz="local" onclick="setTZ('local')" title="比赛场馆所在城市的当地时间">当地</button>
         </div>
       </div>
+      <div class="muted" style="margin-top:12px;line-height:1.7">
+        <div><b>本次世界杯实时预测</b>（2026 官方赛制）：已踢的真实比赛=事实（蓝色锁定），其余按模型预测，投影出最可能的官方晋级树与冠军。</div>
+        <div style="margin-top:4px">「⚡实时比分」秒级拉取 ESPN 最新完场赛果（开页后每 5 分钟自动同步）；「🔄更新历史数据」拉取全部历史国际赛战绩。有新赛果时模型自动重新训练。</div>
+        <div style="margin-top:4px">你也可以在下方改小组赛比分，或<b>点击括号里任意淘汰赛</b>录入结果/做假设（黄色边框为试算）；「清除试算」恢复纯预测。</div>
+      </div>
+      <div class="muted xlink" style="margin-top:8px"><a onclick="document.querySelector('.tab[data-t=&quot;champ&quot;]').click()">→ 看完整夺冠概率分布（蒙特卡洛 + 可信区间）</a>　·　此处是<b>单一最可能走势</b>，非概率分布</div>
     </div>
     <div id="bracketres"></div>
     <div id="groupsedit"></div>
@@ -447,17 +434,21 @@
             <option>2000</option><option selected>5000</option><option>10000</option>
           </select>
         </div>
-        <button class="go" onclick="champions()">运行蒙特卡洛</button>
+        <button class="go" onclick="champions()" title="蒙特卡洛模拟：把整届赛事随机抽样跑很多次，统计每队夺冠频率">开始模拟</button>
         <div class="muted" style="flex:1">
-          抽样模拟整届赛事：小组赛抽比分 → 算积分排名 → 出线 32 队 → 淘汰赛点球模拟。
+          蒙特卡洛抽样模拟整届赛事：小组赛抽比分 → 算积分排名 → 出线 32 队 → 淘汰赛点球模拟。
         </div>
       </div>
     </div>
+    <div class="muted xlink" style="margin:0 4px 10px"><a onclick="document.querySelector('.tab[data-t=&quot;bracket&quot;]').click()">→ 看最可能晋级树（确定性单一走势）</a>　·　夺冠概率是<b>蒙特卡洛概率分布</b>，与晋级树的"一条最可能路径"互补</div>
     <div id="champcires"></div>
     <div id="champres"></div>
-    <div id="insightres"></div>
-    <div id="availres"></div>
-    <div id="envres"></div>
+    <div id="ratingsres"></div>
+    <details class="champ-extra"><summary>🔎 模型解读 · 🩹 伤停 · 🏔️ 环境（情境因素，点击展开）</summary>
+      <div id="insightres"></div>
+      <div id="availres"></div>
+      <div id="envres"></div>
+    </details>
   </section>
 
   <!-- 赛事看板：正在比赛 / 即将开赛 / 已结束（含预测验证） -->
@@ -477,11 +468,6 @@
     <div id="dashres"><div class="card spin">加载赛事看板…</div></div>
   </section>
 
-  <!-- 实力榜（贝叶斯可信区间）-->
-  <section id="ratings" style="display:none">
-    <div id="ratingsres"></div>
-  </section>
-
   <!-- 市场对标 / CLV 诚实检验（做检验，不做下注诱导）-->
   <section id="market" style="display:none">
     <div id="marketres"></div>
@@ -499,21 +485,18 @@
 <script>
 const $ = s => document.querySelector(s);
 const pct = x => (x*100).toFixed(1)+'%';
-const mv = v => v==null ? '—' : (v>=1000 ? '€'+(v/1000).toFixed(2)+'bn' : '€'+Math.round(v)+'m');
 
 // 球队输入：点进去清空以弹出完整候选列表（datalist 会按当前文字过滤，预填值会挡住其它国家），
 // 没选则离开时恢复原值
 function teamFocus(el){ el.dataset.prev=el.value; el.value=''; }
 function teamBlur(el){ if(!el.value.trim()) el.value=el.dataset.prev||''; }
-function swapTeams(){ const h=$('#home'),a=$('#away'); const t=h.value; h.value=a.value; a.value=t;
-  if(h.value&&a.value) predict(); }   // 交换主客位置后自动重算（非中立场时主场优势随之易手）
 
 // tab 切换
 let bracketLoaded=false, ratingsLoaded=false, verifyLoaded=false, marketLoaded=false, champCILoaded=false, managerLoaded=false;
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');
-  ['match','manager','bracket','champ','verify','ratings','market'].forEach(s=>{
+  ['manager','bracket','champ','verify','market'].forEach(s=>{
     $('#'+s).style.display = t.dataset.t===s?'block':'none';
   });
   if(t.dataset.t==='manager' && !managerLoaded){ managerLoaded=true; loadManager(); }
@@ -521,9 +504,8 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
     if(!bracketLoaded){ bracketLoaded=true; loadSavedOV().then(loadProjection); }
     else setTimeout(layoutBracket,60);   // 已加载则重新自适应（可能窗口变过）
   }
-  if(t.dataset.t==='ratings' && !ratingsLoaded){ ratingsLoaded=true; loadRatings(); }
   if(t.dataset.t==='market'){
-    if(!marketLoaded){ marketLoaded=true; loadMarket(); startMarketPoll(); }
+    if(!marketLoaded){ marketLoaded=true; loadMarket(); }
     else loadMarket('fresh');   // 重回该 tab 时用现有快照重新对标，拿到最新盘口
   }
   if(t.dataset.t==='verify'){ loadDashboard(); }
@@ -532,6 +514,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
     insightsPanel(); availabilityPanel(); environmentPanel();
   }
   if(t.dataset.t==='champ' && !champCILoaded){ champCILoaded=true; loadChampCI(); }
+  if(t.dataset.t==='champ' && !ratingsLoaded){ ratingsLoaded=true; loadRatings(); }  // 实力榜已并入本 tab
 });
 
 // 载入球队列表
@@ -545,51 +528,17 @@ function heat(p, max){
   return `background:rgba(46,160,67,${(0.10+a*0.9).toFixed(3)})`;
 }
 
-async function predict(){
-  const home=$('#home').value, away=$('#away').value, neutral=$('#neutral').checked?1:0;
-  $('#result').innerHTML = '<div class="card spin">计算中…</div>';
-  const r = await fetch(`/api/predict?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&neutral=${neutral}`);
-  const d = await r.json();
-  if(d.error){ $('#result').innerHTML=`<div class="card err">✗ ${d.error}</div>`; return; }
-
-  const top = d.top_scores[0];
-  // 比分矩阵热力图（0..6）
-  const NG=7, mx = Math.max(...d.matrix.flat());
+// 比分概率矩阵热力图（0..6）：m=二维概率矩阵, hi/hj=高亮格(最可能比分)。原「单场预测」的核心视图，
+// 现复用在「对阵分析」的算法模型模块与看板「看预测」弹窗。
+function scoreMatrixHTML(m, hi, hj){
+  const NG=7, mx=Math.max(...m.flat());
   let th='<tr><th></th>'; for(let j=0;j<NG;j++) th+=`<th>${j}</th>`; th+='</tr>';
   let body='';
-  for(let i=0;i<NG;i++){
-    body+=`<tr><th>${i}</th>`;
-    for(let j=0;j<NG;j++){
-      const p=d.matrix[i][j];
-      const bold=(i===top.h&&j===top.a)?'font-weight:800;outline:2px solid #3fb950':'';
-      body+=`<td style="${heat(p,mx)};${bold}">${(p*100).toFixed(0)}</td>`;
-    }
-    body+='</tr>';
-  }
-  const venue = d.neutral?'中立场':`${d.home} 主场`;
-
-  $('#result').innerHTML = `
-  <div class="card">
-    <div class="scoreline">${d.home} ${top.h}–${top.a} ${d.away}
-      <small>（最可能比分 ${pct(top.p)} · ${venue}）</small></div>
-    <div class="xg">期望进球 xG：${d.home} ${d.xg_home} － ${d.xg_away} ${d.away}</div>
-    ${(d.mv_home||d.mv_away)?`<div class="xg" style="margin-top:-12px">阵容身价：${d.home} ${mv(d.mv_home)} － ${mv(d.mv_away)} ${d.away}</div>`:''}
-    <div class="wdl"><div class="nm">${d.home} 胜</div><div class="barwrap"><div class="bar h" style="width:${d.p_home*100}%"></div></div><div class="pct">${pct(d.p_home)}</div></div>
-    <div class="wdl"><div class="nm">平局</div><div class="barwrap"><div class="bar d" style="width:${d.p_draw*100}%"></div></div><div class="pct">${pct(d.p_draw)}</div></div>
-    <div class="wdl"><div class="nm">${d.away} 胜</div><div class="barwrap"><div class="bar a" style="width:${d.p_away*100}%"></div></div><div class="pct">${pct(d.p_away)}</div></div>
-    <div class="grid">
-      <div>
-        <h3>比分概率矩阵（%，行=${d.home} 进球，列=${d.away} 进球）</h3>
-        <table class="mtx">${th}${body}</table>
-      </div>
-      <div class="tops">
-        <h3>最可能比分 Top 7</h3>
-        ${d.top_scores.map(s=>`<div class="t"><div class="sc">${s.h}–${s.a}</div>
-          <div class="barwrap"><div class="bar h" style="width:${s.p/top.p*100}%"></div></div>
-          <div class="pct">${pct(s.p)}</div></div>`).join('')}
-      </div>
-    </div>
-  </div>`;
+  for(let i=0;i<NG;i++){ body+=`<tr><th>${i}</th>`;
+    for(let j=0;j<NG;j++){ const p=m[i][j];
+      const bold=(i===hi&&j===hj)?'font-weight:800;outline:2px solid #3fb950':'';
+      body+=`<td style="${heat(p,mx)};${bold}">${(p*100).toFixed(0)}</td>`; } body+='</tr>'; }
+  return `<table class="mtx">${th}${body}</table>`;
 }
 
 async function champions(){
@@ -618,7 +567,7 @@ async function champions(){
         ${stg('出线',x.ko)}${stg('八强',x.qf)}${stg('四强',x.sf)}${stg('进决赛',x.final)}${stg('夺冠',x.champ)}
       </div>
     </div>`).join('')}
-    <div class="muted" style="margin-top:14px">淘汰赛采用 <b>2026 官方括号</b>（含最佳第三名分配）。模型经回测调优（half_life=240）。</div>
+    <div class="muted" style="margin-top:14px">淘汰赛采用 <b>2026 官方括号</b>（含最佳第三名分配）。模型半衰期经无泄漏样本外回测定为 730 天。</div>
   </div>`;
   insightsPanel();
   availabilityPanel();
@@ -817,17 +766,31 @@ function positionTies(){
 function layoutBracket(){
   const fit=document.querySelector('#bracketres .bfit');
   const br=fit&&fit.querySelector('.bracket'); if(!br) return;
-  br.style.transform='none';                         // 还原 1:1 再测量
-  let maxH=0;                                          // 量最高的框（含页脚/点球/换行）
-  document.querySelectorAll('#bracketres .tie').forEach(t=>{maxH=Math.max(maxH,t.offsetHeight);});
-  SLOT_H=Math.max(72, Math.ceil(maxH)+10);            // 槽高 = 最高框 + 10px 间距
-  positionTies();                                     // 据新槽高重排，消除重叠
-  drawConnectors();
-  const natW=br.scrollWidth, natH=br.scrollHeight, avail=fit.clientWidth;
-  const scale=Math.max(0.5, Math.min(1, avail/natW));   // 下限 0.5，过窄则保留横向滚
-  br.style.transform=`scale(${scale})`;
-  fit.style.height=Math.ceil(natH*scale)+'px';          // 收掉缩放后的下方空白
-  fit.style.overflowX=(natW*scale>avail+1)?'auto':'hidden';
+  // 容器不可见/未布局时 clientWidth=0（如 5min 自动轮询在后台 tab 重渲、或切到别的 tab）：
+  // 此时测量全是 0，会算出错误缩放（avail/natW→0.5）把树缩坏。直接跳过，待切回本 tab 的
+  // layoutBracket（tab 切换 handler 里）重新拟合即可。不在这里乱设 transform。
+  if(!fit.clientWidth) return;
+  try{
+    br.style.transform='none';                       // 还原 1:1 再测量
+    let maxH=0;                                        // 量最高的框（含页脚/点球/换行）
+    document.querySelectorAll('#bracketres .tie').forEach(t=>{maxH=Math.max(maxH,t.offsetHeight);});
+    SLOT_H=Math.max(72, Math.ceil(maxH)+10);          // 槽高 = 最高框 + 10px 间距
+    positionTies();                                   // 据新槽高重排，消除重叠
+    drawConnectors();
+    const natW=br.scrollWidth, natH=br.scrollHeight;
+    // avail 取「容器宽」与「视口宽」的较小值：若某个兄弟元素（如 #livestat「实时源已同步…」长文案）
+    // 撑出横向溢出把 body/容器拉宽，fit.clientWidth 会虚高 → avail≥natW → scale(1) 全尺寸不缩。
+    // 用 documentElement.clientWidth（视口，不受子元素溢出影响）兜底，钳住缩放分母。
+    const avail=Math.min(fit.clientWidth, document.documentElement.clientWidth);
+    if(!natW){ setTimeout(layoutBracket,200); return; }  // 内容还没回流出宽度：avail/0=Infinity→scale(1) 会全尺寸溢出，稍后重拟合
+    const scale=Math.max(0.5, Math.min(1, avail/natW)); // 下限 0.5，过窄则保留横向滚
+    br.style.transform=`scale(${scale})`;
+    fit.style.height=Math.ceil(natH*scale)+'px';        // 收掉缩放后的下方空白
+    fit.style.overflowX=(natW*scale>avail+1)?'auto':'hidden';
+  }catch(e){                                           // 任何异常都别让树停在 transform:none（=全尺寸溢出）
+    console.warn('layoutBracket failed, retrying', e);
+    setTimeout(layoutBracket, 200);
+  }
 }
 let _connTimer;
 window.addEventListener('resize',()=>{clearTimeout(_connTimer);_connTimer=setTimeout(layoutBracket,150);});
@@ -874,8 +837,12 @@ async function loadProjection(){
   $('#bracketres').innerHTML=`<div class="muted" style="margin:2px 4px 10px">本次世界杯实时预测 · ${note} · 时间为<b>${tzlab}</b>　|　${legend}</div>`
     + bracketHTML(d,'最可能夺冠');
   $('#groupsedit').innerHTML=groupsEditHTML(d);
-  // 布局稳定后测量+画连线+缩放；两段延时兼顾字体回流（不用 rAF：后台 tab 会被挂起）
-  setTimeout(layoutBracket,80); setTimeout(layoutBracket,320);
+  // 布局稳定后测量+画连线+缩放。可见 tab 用 rAF 拿到最准的回流后时机；后台 tab rAF 被挂起，
+  // 故再加两段 setTimeout 兜底；字体加载完再拟合一次（中文/emoji 回流会改框高）。
+  // layoutBracket 自带 clientWidth=0 跳过 + try 兜底，重复调用安全。
+  requestAnimationFrame(()=>requestAnimationFrame(layoutBracket));
+  setTimeout(layoutBracket,120); setTimeout(layoutBracket,360);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(layoutBracket);
 }
 
 async function refreshFacts(btn){
@@ -888,21 +855,27 @@ async function refreshFacts(btn){
   loadProjection();
 }
 
-// —— ESPN 实时比分：手动按钮 + 比赛日自动轮询（5 分钟，页面可见时）——
+// /api/live 去重：同一时刻只允许一个在途请求，避免「手点 + 调度器轮询」并发触发后端重训。
+// 后端 _refit_all 已加锁串行，这里再加前端去重，二者配合彻底消除重复重训。
+let _liveInflight=null;
+function postLive(){
+  if(_liveInflight) return _liveInflight;
+  _liveInflight=fetch('/api/live',{method:'POST'}).then(r=>r.json())
+    .catch(e=>({ok:false,error:String(e)})).finally(()=>{ _liveInflight=null; });
+  return _liveInflight;
+}
+// —— ESPN 实时比分：手动按钮（晋级树 tab）+ 调度器自动轮询 ——
 async function liveFacts(btn, silent){
   if(btn){ btn.dataset.old=btn.textContent; btn.textContent='⚡ 查询完场…'; btn.disabled=true; }
   let changed=false;
-  try{
-    const r=await (await fetch('/api/live',{method:'POST'})).json();
-    if(r.ok){
-      changed=r.changed;
-      $('#livestat').textContent=`实时源已同步 ${r.updated}（正赛已完场 ${r.live_total} 场）`+(r.changed?' · 有新赛果，已重训':'');
-    }else if(!silent) alert('实时刷新失败：'+(r.error||''));
-  }catch(e){ if(!silent) alert('实时刷新失败：'+e); }
+  const r=await postLive();
+  if(r.ok){
+    changed=r.changed;
+    $('#livestat').textContent=`实时源已同步 ${r.updated}（正赛已完场 ${r.live_total} 场）`+(r.changed?' · 有新赛果，已重训':'');
+  }else if(!silent) alert('实时刷新失败：'+(r.error||''));
   if(btn){ btn.textContent=btn.dataset.old; btn.disabled=false; }
   if(changed||btn) loadProjection();
 }
-setInterval(()=>{ if(document.visibilityState==='visible' && bracketLoaded) liveFacts(null,true); }, 5*60*1000);
 
 function setScore(el){
   const row=el.closest('.gm'); const ins=row.querySelectorAll('.gs');
@@ -976,7 +949,7 @@ function renderDashboard(d){
 }
 
 // 看预测按钮（队名走 data 属性，避免队名含特殊字符破坏 onclick）
-const seeBtn=r=>`<button class="seebtn" data-h="${r.home_en||''}" data-a="${r.away_en||''}" data-t="${r.home} vs ${r.away}" onclick="seePrediction(this)" title="看完整比分概率矩阵">看预测</button>`;
+const seeBtn=r=>`<button class="seebtn" data-h="${r.home_en||''}" data-a="${r.away_en||''}" data-host="${r.host||''}" data-city="${r.city||''}" data-t="${r.home} vs ${r.away}" onclick="seePrediction(this)" title="看完整比分概率矩阵">看预测</button>`;
 
 function liveCard(r){
   const pred = r.pred_gh!=null?`赛前 ${r.pred_gh}–${r.pred_ga}`:'';
@@ -1045,28 +1018,26 @@ async function seePrediction(btn){
   const h=btn.dataset.h, a=btn.dataset.a;
   if(!h||!a){ return; }
   openModal(btn.dataset.t, '<div class="card spin" style="border:none">计算预测…</div>');
+  // 带上 host/city → 与看板这一场展示的概率同口径（含东道主主场修正）；无 host 则中立场
+  const host=btn.dataset.host||'', city=btn.dataset.city||'';
+  const extra=host?`&host=${encodeURIComponent(host)}&city=${encodeURIComponent(city)}`:'&neutral=1';
   try{
-    const d=await (await fetch(`/api/predict?home=${encodeURIComponent(h)}&away=${encodeURIComponent(a)}&neutral=1`)).json();
+    const d=await (await fetch(`/api/predict?home=${encodeURIComponent(h)}&away=${encodeURIComponent(a)}${extra}`)).json();
     setModal(d.error?`<div class="err">✗ ${d.error}</div>`:matrixHTML(d));
   }catch(e){ setModal(`<div class="err">✗ ${e}</div>`); }
 }
 function matrixHTML(d){
-  const top=d.top_scores[0], NG=7, mx=Math.max(...d.matrix.flat());
-  let th='<tr><th></th>'; for(let j=0;j<NG;j++) th+=`<th>${j}</th>`; th+='</tr>';
-  let body='';
-  for(let i=0;i<NG;i++){ body+=`<tr><th>${i}</th>`;
-    for(let j=0;j<NG;j++){ const p=d.matrix[i][j];
-      const bold=(i===top.h&&j===top.a)?'font-weight:800;outline:2px solid #3fb950':'';
-      body+=`<td style="${heat(p,mx)};${bold}">${(p*100).toFixed(0)}</td>`; } body+='</tr>'; }
+  const top=d.top_scores[0];
+  const venueLab = d.host ? `含 ${d.host} 东道主主场` : '中立场';
   return `<div class="scoreline">${d.home} ${top.h}–${top.a} ${d.away}
-      <small>（最可能比分 ${pct(top.p)} · 中立场快算）</small></div>
+      <small>（最可能比分 ${pct(top.p)} · ${venueLab}）</small></div>
     <div class="xg">期望进球 xG：${d.home} ${d.xg_home} － ${d.xg_away} ${d.away}</div>
     <div class="wdl"><div class="nm">${d.home} 胜</div><div class="barwrap"><div class="bar h" style="width:${d.p_home*100}%"></div></div><div class="pct">${pct(d.p_home)}</div></div>
     <div class="wdl"><div class="nm">平局</div><div class="barwrap"><div class="bar d" style="width:${d.p_draw*100}%"></div></div><div class="pct">${pct(d.p_draw)}</div></div>
     <div class="wdl"><div class="nm">${d.away} 胜</div><div class="barwrap"><div class="bar a" style="width:${d.p_away*100}%"></div></div><div class="pct">${pct(d.p_away)}</div></div>
     <h3 style="margin:14px 0 6px;font-size:13px">比分概率矩阵（%，行=${d.home} 进球，列=${d.away} 进球）</h3>
-    <table class="mtx">${th}${body}</table>
-    <div class="muted" style="font-size:11px;margin-top:8px">中立场快算；看板「即将开赛」的概率含东道主主场修正，二者在美/墨/加主场场次可能略有差异。</div>`;
+    ${scoreMatrixHTML(d.matrix, top.h, top.a)}
+    <div class="muted" style="font-size:11px;margin-top:8px">${d.host?'已计入东道主主场修正，与看板该场概率同口径。':'中立场快算（双方均非本届东道主或非本国出战）。'}</div>`;
 }
 
 // 已结束：预测 vs 实际 + 分桶/冷门统计（原预测验证内容）
@@ -1085,7 +1056,7 @@ function renderDone(ev){
     +stat(s.evaluated?`${s.outcome_hits}/${s.evaluated}`:'—','赛果命中（胜平负）'+pctTag(s.outcome_pct))
     +stat(s.evaluated?`${s.score_hits}/${s.evaluated}`:'—','精确比分命中'+pctTag(s.score_pct))
     +stat(s.avg_p_actual_outcome!=null?(s.avg_p_actual_outcome*100).toFixed(1)+'%':'—','赋予实际赛果的<br>平均概率')
-    +stat(s.avg_rps!=null?s.avg_rps:'—','平均 RPS<br>（越小越好）')
+    +stat(s.avg_rps!=null?s.avg_rps:'—','平均 <span title="Ranked Probability Score 概率预测评分：综合衡量预测概率与真实赛果的接近度，越小越准" style="border-bottom:1px dotted var(--dim);cursor:help">RPS</span><br>（越小越好）')
     +stat(s.pending_frozen,'即将开赛<br>已锁定预测')
     +'</div>'+smallN;
   const b=s.bins||{}, pill=(x,lab)=> x&&x.n?
@@ -1150,11 +1121,12 @@ async function loadRatings(){
       <div class="rval">${r.net>=0?'+':''}${r.net.toFixed(2)}<small>[${r.lo.toFixed(2)}, ${r.hi.toFixed(2)}]</small></div>
     </div>`).join('');
   $('#ratingsres').innerHTML=`<div class="card">
-    <h3 style="margin-top:0">📊 贝叶斯分层评级 · 净实力 94% 可信区间</h3>
+    <h3 style="margin-top:0">📊 实力榜 · 贝叶斯净实力 94% 可信区间</h3>
     <div class="muted" style="margin-bottom:10px">
       PyMC 分层双泊松模型（${m.draws||'?'}×${m.chains||'?'} 采样，有效权重和 ${m.weight_sum||'?'}）。
       圆点=后验均值，横条=94% 可信区间。区间普遍重叠 → 顶尖队在近 8 个月时间加权数据下统计上难分高下。
-      <b>这是 DC 预测引擎的不确定性补充视图，预测/模拟仍由经回测验证的 DC 模型驱动。</b>
+      <b>这是上方「夺冠概率·90% 可信区间」的上游</b>：同一套后验，这里看球队<b>净实力</b>，上方看它<b>经括号传播</b>后的夺冠%。
+      <b>预测/模拟仍由经回测验证的 DC 模型驱动，本视图为不确定性补充。</b>
     </div>
     ${rows}
   </div>`;
@@ -1170,15 +1142,6 @@ async function loadMarket(mode){
     const d=await (await fetch('/api/market'+q)).json();
     host.innerHTML = d.error?`<div class="card err">✗ ${d.error}</div>`:renderMarket(d);
   }catch(e){ if(!mode) host.innerHTML=`<div class="card err">✗ 加载失败：${e}</div>`; }
-}
-// 市场 tab 可见时每 60s 静默刷新（用现有快照重建对标，反映后台 30min 抓到的新盘口）
-let _marketPoll=null;
-function startMarketPoll(){
-  if(_marketPoll) return;
-  _marketPoll=setInterval(()=>{
-    const vis = $('#market').style.display!=='none' && !document.hidden;
-    if(vis && !$('#marketres').querySelector('.val-demo')) loadMarket('fresh');  // 演示态不打断
-  }, 60000);
 }
 function renderMarket(d){
   const c=d.clv||{};
@@ -1198,7 +1161,7 @@ function renderMarket(d){
   const cards='<div class="vstats">'
     +stat(d.n,'对标场次')
     +stat(d.avg_margin!=null?(d.avg_margin*100).toFixed(1)+'%':'—','闭盘平均抽水<br>(margin/vig)')
-    +stat(d.model_rps??'—','模型 RPS')
+    +stat(d.model_rps??'—','模型 <span title="概率预测评分，越小越准" style="border-bottom:1px dotted var(--dim);cursor:help">RPS</span>')
     +stat(d.line_rps??'—','闭盘线 RPS<br>(金标准)')
     +stat(d.rps_diff!=null?(d.rps_diff>0?'+':'')+d.rps_diff:'—','RPS 差<br>(负=模型更准)')
     +'</div>';
@@ -1227,7 +1190,7 @@ function renderMarket(d){
   const refreshBtn = d.demo ? '' : `<button class="seebtn" ${d.odds_capturing?'disabled':''} onclick="loadMarket('snap')" title="立即抓一次 ESPN 最新盘口并重新对标（后台约数分钟，完成后自动反映）">${d.odds_capturing?'⟳ 抓取中…':'🔄 刷新盘口'}</button>`;
   const intro=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
     <div class="muted" style="font-size:12.5px"><b>这是什么</b>：把模型概率与<b>博彩闭盘线</b>（市场吸收全部信息后的金标准）在同一批比赛上对标。
-    博彩的真相不是"预测准不准"，而是 <b>CLV（闭盘线价值）</b>——你下注时的隐含概率能否持续跑赢闭盘线。
+    博彩里真正能证明"有信息优势"的指标是 <b>CLV（闭盘线价值）</b>：你下注那一刻的赔率，是否长期好于临场前最后一刻（闭盘）的赔率。CLV 长期为正，才说明判断领先市场。
     <br>赔率源：${src}${upd}${cap}（复用 ESPN 公开 API 的 DraftKings 盘口，<b>非抓取博彩站</b>）。<b>开盘/闭盘线随赛事多次快照逐步积累</b>，已完赛且有跨时段快照的场次才进入 CLV 统计——所以开赛初期多为"样本不足"，这是诚实的。页面打开时每 60s 自动用最新快照重新对标。</div>
     <div style="white-space:nowrap">${refreshBtn}</div></div></div>`;
   const demoBanner = d.demo ? `<div class="card val-demo">🧪 <b>合成演示数据</b>（非真实赔率、非投注建议）：展示「CLV 证明信息优势后」价值/Kelly 面板的样子。真实数据仍受诚实门槛约束、保持锁定。
@@ -1295,7 +1258,7 @@ function renderChampCI(d){
   const computing=d.computing?`<span class="ci-badge">⟳ 区间更新中…（约 1–2 分钟）</span>`:'';
   const err=d.ci_error&&!d.computing?`<span class="ci-badge ci-err">✗ ${d.ci_error.slice(0,40)}</span>`:'';
   const btn=d.computing?'':`<button class="seebtn" onclick="regenChampCI(this)">↻ 重新计算</button>`;
-  const head=`<div class="ci-head"><b>夺冠概率 · 90% 可信区间</b><span class="muted" style="font-size:11px">${upd}</span>${computing}${err}${btn}</div>`;
+  const head=`<div class="ci-head"><b title="有 90% 把握，真实夺冠概率落在这个区间内（贝叶斯后验）" style="cursor:help">夺冠概率 · 90% 可信区间</b><span class="muted" style="font-size:11px">${upd}</span>${computing}${err}${btn}</div>`;
   if(!d.available){
     return `<div class="card">${head}<div class="muted" style="font-size:12.5px;margin-top:8px">${d.computing?'首次计算中…完成后自动显示（新赛果或点重算后会自动触发）。':'尚无区间数据。点「重新计算」生成（贝叶斯分层后验→模拟，约 1–2 分钟），刷新真实赛果后也会自动重算。'}</div></div>`;
   }
@@ -1435,6 +1398,8 @@ function renderManager(d){
     <table class="mgt"><tr><th>类型</th><th>比分</th><th>概率</th></tr>
       ${mk.top_scores.slice(0,3).map((s,i)=>`<tr><td>${['首选','备选1','备选2'][i]}</td><td>${H} ${s.h}–${s.a} ${A}</td><td>${mgP1(s.p)}</td></tr>`).join('')}
     </table>
+    ${d.matrix?`<div class="mgsub">比分概率矩阵（%，行=${H} 进球，列=${A} 进球）</div>
+    ${scoreMatrixHTML(d.matrix, mk.top_scores[0].h, mk.top_scores[0].a)}`:''}
 
     <div class="mgsub">半全场（启发式，低置信度）</div>
     <table class="mgt"><tr><th>半全场</th><th>概率</th></tr>${hftRows}</table>
@@ -1478,22 +1443,44 @@ function renderAvail(d,H,A){
   return parts.length?parts.join(''):'<div class="muted" style="margin-top:6px">🩹 伤停：当前可用性数据无双方关键缺阵记录（或数据未录入）。</div>';
 }
 
-predict();
-// 深链：#bracket / #champ / #ratings 直达对应 tab（便于分享与截图）；无 hash 时默认进赛事看板
-(function(){const h=location.hash.slice(1);
+// 深链：#bracket / #champ / #manager 直达对应 tab（便于分享与截图）；无 hash 时默认进赛事看板
+(function(){let h=location.hash.slice(1);
   if(h==='market-demo'){ marketLoaded=true; document.querySelector('.tab[data-t="market"]').click(); setTimeout(loadMarketDemo,60); return; }
+  if(h==='ratings') h='champ';     // 实力榜已并入「夺冠概率」tab，旧深链回退到夺冠概率
+  if(h==='match') h='manager';     // 单场预测已并入「对阵分析」，旧深链回退到对阵分析
   const t=h&&document.querySelector(`.tab[data-t="${h}"]`);
   if(t)t.click(); else loadDashboard();})();
-// 赛事看板可见时每 60s 静默刷新实时比分（不重训，仅拉 ESPN 状态）
-setInterval(()=>{ if(document.visibilityState==='visible' && $('#verify').style.display!=='none'
-  && $('#dashres').dataset.loaded) loadDashboard(); }, 60*1000);
-// 看板可见时每 3 分钟静默拉一次 ESPN 完赛（有新赛果 → 模型自动重训 + 看板刷新；连带触发夺冠区间/盘口重算）
-setInterval(async ()=>{
-  if(document.visibilityState!=='visible' || $('#verify').style.display==='none') return;
-  try{ const r=await (await fetch('/api/live',{method:'POST'})).json();
-    if(r && r.ok && r.changed) loadDashboard();   // 有新完赛才重渲染
-  }catch(e){}
-}, 180*1000);
+// —— 统一数据调度器 —— 取代之前分散的 4 个 setInterval。原先各自判 visibility + 当前 tab，
+// 易漏（曾导致后台轮询误渲晋级树）、且多 tab 来回切会叠多个 live 请求。现集中管理：
+//   · 单一心跳(15s) 扫描所有注册任务；只在「该任务的 tab 当前可见」时触发，切走自动停。
+//   · 区分「只读刷新」(read) 与「可能写/重训」(live)；live 走 postLive() 去重 + 后端锁。
+const DataScheduler=(function(){
+  const tasks=[];   // {tab, every, fn, last}
+  const activeTab=()=>{ const o=document.querySelector('.tab.on'); return o?o.dataset.t:null; };
+  function tick(){
+    if(document.visibilityState!=='visible') return;
+    const at=activeTab(), now=Date.now();
+    for(const t of tasks){
+      if(t.tab!==at || now-t.last<t.every) continue;
+      t.last=now;
+      try{ t.fn(); }catch(e){ console.warn('[scheduler] task failed',e); }
+    }
+  }
+  return {
+    register(tab,every,fn){ tasks.push({tab,every,fn,last:0}); },
+    start(){ setInterval(tick, 15*1000);
+      document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') tick(); }); }
+  };
+})();
+// 晋级树：每 5min 拉完赛（只在该 tab 可见时；有新赛果才 loadProjection）
+DataScheduler.register('bracket', 5*60*1000, ()=>{ if(bracketLoaded) liveFacts(null,true); });
+// 市场对标：每 60s 用现有快照重建对标（演示态不打断）
+DataScheduler.register('market', 60*1000, ()=>{ if(marketLoaded && !$('#marketres').querySelector('.val-demo')) loadMarket('fresh'); });
+// 看板：每 60s 只读刷新 ESPN 实时状态（不重训）
+DataScheduler.register('verify', 60*1000, ()=>{ if($('#dashres').dataset.loaded) loadDashboard(); });
+// 看板：每 3min 拉完赛（可能重训）；有新赛果才重渲看板
+DataScheduler.register('verify', 3*60*1000, async ()=>{ const r=await postLive(); if(r&&r.ok&&r.changed) loadDashboard(); });
+DataScheduler.start();
 </script>
 </body>
 </html>

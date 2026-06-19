@@ -12,8 +12,8 @@
 > **Not another "AI vibes-picking" toy.** This is an **interactive, real-time probability machine** driven by a Dixon-Coles double-Poisson engine fit on every international match from 1872–2026, calibrated by out-of-sample backtesting — every number is falsifiable, and every refresh follows the real results.
 
 <p align="center">
-  <img src="./docs/hero-dashboard.png" alt="Match dashboard with live in-play win/draw/loss" width="760">
-  <br><sub><em>The match dashboard — live in-play win/draw/loss bars + day-grouped upcoming predictions. (In-play scores shown here are illustrative.)</em></sub>
+  <img src="./docs/screenshot-dashboard.png" alt="Match dashboard: live / upcoming / finished, day-grouped predictions" width="820">
+  <br><sub><em>The match dashboard (home) — live / upcoming / finished in one view, day-grouped upcoming predictions with one-tap score forecasts.</em></sub>
 </p>
 
 <p align="center">
@@ -39,9 +39,10 @@ Where others say "I think Argentina wins," this gives you **a probability distri
 |---|---|
 | 📋 **Match dashboard** (home) | Live / upcoming / finished, all in one view; tap any match for its score prediction |
 | ⚡ **In-play W/D/L** | While a match is live: pre-match λ scaled by remaining time, convolved with the current score → "from now to full time" win/draw/loss — **a one-shot pre-match call becomes a real-time probability engine** |
-| 🎯 **Prediction verification** | Pre-match predictions **frozen before kickoff**; scored per match for result/scoreline hits, bucketed by confidence and tagged for upsets — numbers force honesty |
+| ⚽ **Match analysis report** (Football Manager) | An analyst-style deep report for any fixture: process data (recent form / head-to-head / attack-defence) → algorithm model (Dixon-Coles score matrix + heatmap) → conclusions (1X2 / over-under / BTTS / Asian handicap / correct score / confidence). The old single-match view is folded in here |
+| 🎯 **Prediction verification** | Pre-match predictions **frozen before kickoff**; scored per match for result/scoreline hits, bucketed by confidence and tagged for upsets — numbers force honesty (lives in the dashboard's *Finished* section) |
 | 💹 **Market / CLV** | Model vs bookmaker closing line + closing-line-value **falsifiability test**; **no "value/stake" is shown without a proven positive CLV** — an honest check, not a betting nudge |
-| 📈 **Title 90% credible interval** | Hierarchical-Bayes posterior gives title odds a credible interval (parameter uncertainty); **auto-recomputed in the background** after new results |
+| 📈 **Title 90% credible interval + power ratings** | Hierarchical-Bayes posterior gives title odds a credible interval (parameter uncertainty) **and** the underlying net-strength power ranking — two views of one posterior; **auto-recomputed in the background** after new results |
 
 ---
 
@@ -116,31 +117,34 @@ python3 simulate.py --sims 5000      # simulate the tournament: title / final / 
 python3 app.py        # open http://127.0.0.1:8000
 ```
 
-**Six tabs turn the whole "prediction window" into a playable, real-time product:**
+**Five tabs turn the whole "prediction window" into a playable, real-time product:**
 
 #### 📋 Match dashboard (home / entry point)
-- **Three states**: 🔴 Live (ESPN live score + minute + **real-time W/D/L bar**) / 🟡 Upcoming (grouped by match day, with model scoreline + 3-way probabilities) / ✅ Finished (per-match hit checking).
-- One-tap "**See prediction**" on any match → pop-up full score-probability matrix.
-- Leave it open and it runs itself: live scores refresh every 60s, finished results are auto-pulled every ~3 min (a new finish auto-retrains the model + recomputes the title interval), and bookmaker odds snapshot every 30 min — no clicking required. "**🔄 Refresh facts**" forces an immediate pull.
+- **Three states**: 🔴 Live (ESPN live score + minute + **real-time W/D/L bar**) / 🟡 Upcoming (grouped by match day, with model scoreline + 3-way probabilities) / ✅ Finished (per-match prediction-vs-result checking, bucketed by confidence, upsets tagged — the **verification ledger** lives here).
+- One-tap "**See prediction**" on any match → pop-up full score-probability matrix, **same venue (host-advantage) basis** as the row's probabilities.
+- Leave it open and it runs itself: a single scheduler pulls live scores and finished results only while the tab is visible (a new finish auto-retrains the model + recomputes the title interval), and bookmaker odds snapshot every 30 min — no clicking required. "**🔄 Refresh facts**" forces an immediate pull.
 
 #### ⚡ In-play W/D/L (the differentiating moat)
 While a match is live, the dashboard's LIVE card shows a real-time W/D/L stacked bar: the pre-match Dixon-Coles expected goals λ are **scaled by remaining time**, convolved with the **current score** into a Poisson "from now to full time" home/draw/away — shifting with every goal and minute. **Read-only engine, strictly isolated, never contaminating the falsifiability of the pre-match prediction.**
 
-#### 🔮 Single-match prediction
-Two dropdowns + neutral toggle → **score heatmap / W/D/L / xG / top-7 scorelines** in one screen.
+#### ⚽ Match analysis (Football Manager deep report)
+Two dropdowns + neutral toggle → an **analyst-style report** for the fixture, in three parts: **process data** (recent form / head-to-head / attack-defence averages, from real history) → **algorithm model** (Dixon-Coles double-Poisson, with the **full score-probability matrix heatmap** — the old single-match view, now folded in) → **conclusions** (1X2 / over-under 1.5·2.5·3.5 / BTTS / total-goals / correct score / Asian handicap / China-Sports-Lottery handicap / half-full-time + a verdict & confidence). Qualitative dimensions (formation / lineup / weather) are honestly flagged as *not engine-provided*; the half-full-time line is flagged low-confidence.
+<p align="center"><img src="./docs/screenshot-manager.png" alt="Match analysis deep report" width="760"></p>
 
 #### 🌳 Live tournament bracket
 - **Official 2026 format**: 12 groups + official bracket + best-third allocation, projecting the most likely official bracket and champion.
 - Real results locked in blue, the rest by model; **fully editable**: change any score / enter or hypothesize knockout results (set the shootout winner on a draw) → bracket + title odds recompute live; entries auto-saved, survive refresh.
-- Each match labeled with date + Beijing/local time toggle + status.
+- Each match labeled with date + Beijing/local time toggle + status. Cross-links to the title-odds tab (a single most-likely *path* vs the full probability *distribution*).
+<p align="center"><img src="./docs/screenshot-bracket.png" alt="Official 2026 bracket projection" width="820"></p>
 
-#### 🏆 Title odds (point estimate + 90% credible interval)
+#### 🏆 Title odds + power ratings
 - One-click Monte-Carlo point estimate + advancement funnel (qualify → quarter → semi → final → title), conditioned on your entered/hypothetical results.
 - **Hierarchical-Bayes-driven 90% credible interval** (whisker chart): wide, overlapping intervals = the title ordering is genuinely uncertain. **Auto-recomputed in the background** after new results.
+- The **power ranking** (Bayesian net-strength + 94% credible interval) is co-located here as the *upstream* of that title interval — same posterior, one view shows team strength, the other shows it propagated through the bracket. Supplementary context (model-vs-reputation reading, key-player availability, altitude/heat) collapses below.
+<p align="center"><img src="./docs/screenshot-champ.png" alt="Title odds credible interval and Bayesian power ranking" width="760"></p>
 
-#### 🎯 Verification & 💹 Market
-- **Verification**: pre-match predictions frozen before kickoff, scored per match for result/scoreline hits, bucketed by confidence, upsets tagged — the ledger can't be edited after the fact.
-- **Market**: model vs bookmaker closing line + CLV falsifiability test; **responsible-gambling guardrails + a strict gate** — no value/Kelly stake is shown without a significant positive CLV.
+#### 💹 Market / CLV
+- Model vs bookmaker closing line + CLV falsifiability test; **responsible-gambling guardrails + a strict gate** — no value/Kelly stake is shown without a significant positive CLV.
   - *Where the odds come from*: ESPN's public API exposes **DraftKings 1X2 moneyline** (the same API we already use for scores) — we do **not** scrape bookmaker/odds-portal sites (their ToS forbids it). The app snapshots odds every ~30 min while running (and on each refresh), so every match accrues an **opening** (first capture) and a **closing** (latest pre-kickoff) line — exactly what CLV needs.
   - *How CLV accumulates*: a match only enters CLV once it's **finished** and we captured its line across time. So early in the tournament it honestly reads "insufficient sample"; as matches play out it fills in. The value/Kelly panel unlocks **only** if the model shows a statistically significant positive CLV (≥30 matches, t > 1.65) — otherwise it stays locked. A "see demo" button shows what the unlocked panel would look like, on clearly-labeled synthetic data.
   - *It may never unlock — and that's the point: it won't lie to you.* Beating a sharp closing line is genuinely hard; if the model has no real edge, it stays honestly locked rather than handing you a scary-looking number that's really just noise.
@@ -240,6 +244,7 @@ worldcup-predictor/
 ├── schedule.py    All 104 kickoff times + venue / local-time conversion
 ├── live.py        ESPN live layer: finals fetch + in-progress status (minute-level, with shootouts)
 ├── inplay.py      ⚡ In-play W/D/L (pre-match λ scaling + current-score convolution)
+├── manager.py     ⚽ Match-analysis report (read-only assembly: process data + DC matrix + derived markets)
 ├── verify.py      🎯 Prediction verification: frozen pre-match ledger + per-match scoring + bins/upsets
 ├── clv.py         💹 Market / CLV honesty check + EV / fractional Kelly (gated)
 ├── bayes.py       PyMC hierarchical-Bayes ratings (supplementary view) + posterior-sample export
