@@ -171,3 +171,16 @@ def test_inplay_isolation_no_ledger_write():
         inplay.win_draw_loss(m, "Brazil", "Morocco", 1, 1, 70, neutral=True)
     after = os.path.getmtime(led) if os.path.exists(led) else None
     assert before == after                                  # 账本文件未被 in-play 改动
+
+
+def test_bj_date_beijing_kickoff_groups_by_beijing_day():
+    """时区口径回归：展示日期必须按【北京】开球日，不按场馆当地日。
+    反复修过的 off-by-one——凌晨开球场次（北京日 > 当地日）不能落到前一天。"""
+    import verify
+    # 北京 2026-06-19 00:00 开球（场馆当地是 6/18 晚）→ 必须归 6/19
+    assert verify.bj_date("2026-06-19 00:00", "2026-06-18") == "2026-06-19"
+    # 北京 2026-06-20 06:00（当地 6/19 下午）→ 6/20
+    assert verify.bj_date("2026-06-20 06:00", "2026-06-19") == "2026-06-20"
+    # 无 kickoff（retro 回补场）→ 回落到 fallback
+    assert verify.bj_date("", "2026-06-11") == "2026-06-11"
+    assert verify.bj_date(None, "2026-06-11") == "2026-06-11"

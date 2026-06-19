@@ -406,6 +406,8 @@ def build_report(model, df, home, away, neutral=True, elo=None):
         "home": h_en, "away": a_en, "neutral": neutral,
         "xg_home": round(float(lam_h), 3), "xg_away": round(float(lam_a), 3),
         "p_home": p_home, "p_draw": p_draw, "p_away": p_away,
+        # 完整比分概率矩阵（原「单场预测」tab 的热力图，已并入本报告算法模型模块）
+        "matrix": [[round(float(x), 5) for x in row] for row in M],
         "stats": {"home": sh, "away": sa},
         "form": {"home": fh, "away": fa},
         "h2h": h2h,

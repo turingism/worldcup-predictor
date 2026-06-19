@@ -64,6 +64,13 @@ def _now_bj() -> str:
             + dt.timedelta(hours=8)).strftime("%Y-%m-%d %H:%M")
 
 
+def bj_date(kickoff: str | None, fallback: str | None = "") -> str:
+    """展示用比赛日（**北京日**）：kickoff 存的是北京时间 'YYYY-MM-DD HH:MM'，取其日期部分。
+    全站日期分组/显示统一走它，避免凌晨开球的场次（北京日 > 场馆当地日）按当地日落到前一天
+    ——这个 off-by-one 反复修过多次，集中到此函数 + 单测守住口径。无 kickoff 时回落 fallback。"""
+    return kickoff[:10] if kickoff else (fallback or "")
+
+
 # ---------- 单场预测（a 视角，含东道主主场 + 环境乘子；与 simulate._pmf 同口径） ----------
 def pair_predict(model, a: str, b: str, host=None, city=None, use_env=True) -> dict:
     em = None
@@ -130,7 +137,7 @@ def freeze(sim, now_bj: str | None = None, verbose=False) -> int:
                 continue
             kickoff = schedule.GROUP.get((h, a), "")
             upsert(_gkey(h, a), "group", h, a, kickoff,
-                   sim.fixture_date.get((h, a), kickoff[:10]),
+                   kickoff[:10] or sim.fixture_date.get((h, a), ""),  # 北京开球日（与 KO 一致，不用场馆当地日）
                    sim.group_host.get((h, a)), sim.group_city.get((h, a)))
 
     # 淘汰赛：仅对阵已真实确定（drawn=True 且非投影假设）的场次
@@ -278,7 +285,9 @@ def evaluate(sim, df) -> dict:
         miss_type = _miss_type(pick, act)
         upset = (not hit) and conf >= CONF_HIGH  # 头号热门没踢出 → 冷门
         rows.append({
-            "date": e.get("date") or c["date"], "stage": e["stage"],
+            # 显示日期统一走 bj_date（北京开球日），与看板/赛程口径一致；retro 无 kickoff 才回落账本/数据集日。
+            "date": bj_date(e.get("kickoff"), e.get("date") or c["date"]),
+            "stage": e["stage"],
             "home": e["home"], "away": e["away"],
             "pred_gh": e["gh"], "pred_ga": e["ga"], "act_gh": gh, "act_ga": ga,
             "p_home": e["p_home"], "p_draw": e["p_draw"], "p_away": e["p_away"],

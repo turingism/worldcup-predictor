@@ -45,10 +45,26 @@ def _canon_name(espn_name: str) -> str | None:
     return n if n in _TEAMS48 else None
 
 
-def _fetch_json(url: str, timeout: int = 60) -> dict:
+# 显式绕过系统代理的 opener。macOS 系统代理节点偶发 503「Tunnel connection failed」，
+# 实测 ESPN 直连可达，故失败后回退直连。
+_NOPROXY_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def _fetch_json(url: str, timeout: int = 60, retries: int = 2) -> dict:
+    """拉 ESPN JSON：先按默认（系统代理）再绕过代理，每种各重试 retries 次。
+    系统代理偶发 503 时自动重试 + 回退直连，避免一次抖动就整体失败。"""
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8"))
+    last = None
+    for opener in (None, _NOPROXY_OPENER):              # None=默认(系统代理)；再试直连
+        for _ in range(retries):
+            try:
+                r = opener.open(req, timeout=timeout) if opener else \
+                    urllib.request.urlopen(req, timeout=timeout)
+                with r:
+                    return json.loads(r.read().decode("utf-8"))
+            except Exception as e:  # noqa  代理 503/超时/瞬断 → 重试或换直连
+                last = e
+    raise RuntimeError(f"系统代理+直连各重试 {retries} 次仍失败：{last}")
 
 
 def _parse_events(payload: dict) -> list[dict]:
