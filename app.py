@@ -38,6 +38,8 @@ import schedule
 import teams_zh
 import verify as verifymod
 import wc2026
+import xuanxue as xuanxuemod
+import xuanxue_board as xuanxueboardmod
 from model import DixonColesModel
 from predict import CACHE_PATH, get_model
 from simulate import TournamentSimulator
@@ -330,6 +332,38 @@ def api_manager():
         row["home"], row["away"] = L(row["home"]), L(row["away"])
         if row.get("winner"):
             row["winner"] = L(row["winner"])
+    return jsonify(r)
+
+
+@app.route("/api/xuanxue")
+def api_xuanxue():
+    """玄学占卜对照（趣味/文化彩蛋）：7 套传统术数各出一个比分 + 玄学共识。
+    确定性、可复现，与 DC 模型比分并列对照。⚠️ 无科学依据，禁用于赌博/决策。
+    队名支持中文/国旗串/英文；dt 为可选比赛时间（YYYY-MM-DD HH:MM，缺省用揭幕日）。"""
+    home = request.args.get("home", "").strip()
+    away = request.args.get("away", "").strip()
+    dt = request.args.get("dt", "").strip() or None
+    if not home or not away:
+        return jsonify({"error": "需要 home 与 away 两支球队"}), 400
+    try:
+        r = xuanxuemod.divine(home, away, dt)
+    except Exception as e:  # noqa  彩蛋层任何意外都不应 500 整页
+        return jsonify({"error": f"占卜失败：{e}"}), 500
+    # 本地化展示名（引擎内部仍用原始串做稳定种子，不影响结果）
+    r["home_disp"], r["away_disp"] = teams_zh.disp(home), teams_zh.disp(away)
+    return jsonify(r)
+
+
+@app.route("/api/xuanxue/board")
+def api_xuanxue_board():
+    """玄学占卜擂台：自动抓近三天即将开赛场次冻结 7 法占卜，已完赛自动结算，
+    逐体系累计命中率排行。账本 data/xuanxue_ledger.json 赛前冻结、赛后只读。
+    ⚠️ 趣味/文化实验，术数无科学预测力。"""
+    s = _sim()
+    try:
+        r = xuanxueboardmod.build_board(s, DF)
+    except Exception as e:  # noqa  擂台层任何意外都不应 500 整页
+        return jsonify({"error": f"擂台生成失败：{e}"}), 500
     return jsonify(r)
 
 

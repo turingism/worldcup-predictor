@@ -92,6 +92,8 @@
   .mgt th{text-align:left;color:var(--mut);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);background:var(--panel2)}
   .mgt td{padding:6px 8px;border-bottom:1px solid var(--line)}
   .mgt tr:last-child td{border-bottom:none}
+  .xxmt{table-layout:fixed}
+  .xxmt th,.xxmt td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .mgnote{font-size:11.5px;color:var(--mut);background:#1c2230;border-left:3px solid #d29922;
     border-radius:4px;padding:6px 10px;margin-top:10px;line-height:1.6}
   .mgconc{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:8px;
@@ -344,6 +346,7 @@
     <div class="tab" data-t="bracket">晋级树状图</div>
     <div class="tab" data-t="champ">夺冠概率</div>
     <div class="tab" data-t="market">💹 市场对标</div>
+    <div class="tab" data-t="xuanxue">🔮 玄学占卜</div>
   </div>
 
   <!-- 对阵分析（原「足球经理人」深度报告，已并入「单场预测」的比分矩阵热力图）-->
@@ -372,6 +375,23 @@
       </div>
     </div>
     <div id="mgres"></div>
+  </section>
+
+  <!-- 玄学占卜擂台（自动赛程 + 命中率排行，趣味/文化实验，独立 tab）-->
+  <section id="xuanxue" style="display:none">
+    <div class="card">
+      <div class="row" style="align-items:center">
+        <div style="flex:1"><b style="color:#bc8cff">🔮 七法占卜擂台</b>
+          <span class="muted">自动抓取近三天即将开赛的本届场次，为每场起 <b>7 套传统术数</b>占卜，完赛后逐体系累计命中率，看谁猜得最准。</span></div>
+        <button class="go" style="background:#8957e5" onclick="loadXuanxue(true)">🔄 刷新</button>
+      </div>
+      <div class="muted" style="margin-top:8px">
+        7 套术数：梅花易数 / 射覆 / 周易六十四卦 / 六爻纳甲 / 奇门遁甲 / 大六壬 / 紫微斗数。占卜结果由队名+赛期<b>确定性生成且完全不读取赛果</b>，
+        故本届<b>已完赛</b>场次也一并补入擂台（补算=赛前本就会给的结果，不算偷看）。
+        <b style="color:#f0883e">纯文化/趣味实验，术数无任何科学预测力，切勿用于投注或任何决策。</b>
+      </div>
+    </div>
+    <div id="xxres"></div>
   </section>
 
   <!-- 晋级树状图 -->
@@ -492,14 +512,15 @@ function teamFocus(el){ el.dataset.prev=el.value; el.value=''; }
 function teamBlur(el){ if(!el.value.trim()) el.value=el.dataset.prev||''; }
 
 // tab 切换
-let bracketLoaded=false, ratingsLoaded=false, verifyLoaded=false, marketLoaded=false, champCILoaded=false, managerLoaded=false;
+let bracketLoaded=false, ratingsLoaded=false, verifyLoaded=false, marketLoaded=false, champCILoaded=false, managerLoaded=false, xuanxueLoaded=false;
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');
-  ['manager','bracket','champ','verify','market'].forEach(s=>{
+  ['manager','bracket','champ','verify','market','xuanxue'].forEach(s=>{
     $('#'+s).style.display = t.dataset.t===s?'block':'none';
   });
   if(t.dataset.t==='manager' && !managerLoaded){ managerLoaded=true; loadManager(); }
+  if(t.dataset.t==='xuanxue' && !xuanxueLoaded){ xuanxueLoaded=true; loadXuanxue(); }
   if(t.dataset.t==='bracket'){
     if(!bracketLoaded){ bracketLoaded=true; loadSavedOV().then(loadProjection); }
     else setTimeout(layoutBracket,60);   // 已加载则重新自适应（可能窗口变过）
@@ -1299,6 +1320,127 @@ async function loadManager(){
   $('#mgres').innerHTML=renderManager(d);
 }
 
+// 玄学占卜擂台（独立 tab）：自动赛程 + 7 法占卜 + 逐体系命中率排行。趣味/文化实验，无科学依据。
+async function loadXuanxue(force){
+  if(force) $('#xxres').innerHTML='<div class="card spin">🔮 起卦排盘、结算赛果中…</div>';
+  else if(!$('#xxres').innerHTML) $('#xxres').innerHTML='<div class="card spin">🔮 起卦排盘、结算赛果中…</div>';
+  let b;
+  try{ b=await (await fetch('/api/xuanxue/board')).json(); }
+  catch(e){ $('#xxres').innerHTML=`<div class="card err">✗ 擂台加载失败：${e}</div>`; return; }
+  if(b.error){ $('#xxres').innerHTML=`<div class="card err">✗ ${b.error}</div>`; return; }
+  $('#xxres').innerHTML=renderXuanxue(b);
+}
+
+// 命中率 + 置信区间 单元格
+function xxPctCI(p, lo, hi){
+  return (p==null) ? '—' : `${p}% <span class="muted" style="font-size:11px">[${lo}–${hi}]</span>`;
+}
+
+// 命中率排行表（七法 + 无脑基线行）；th 与 td 对齐统一
+function xxLbTable(lb, bl){
+  const medal=i=>['🥇','🥈','🥉'][i]||`${i+1}`;
+  let rows = lb.length ? lb.map((r,i)=>`<tr style="${i===0?'color:var(--gold);font-weight:700':''}">
+      <td style="text-align:center">${medal(i)}</td>
+      <td style="white-space:nowrap">${r.icon} ${r.name}</td>
+      <td style="text-align:center">${r.n}</td>
+      <td style="text-align:center">${xxPctCI(r.outcome_pct,r.outcome_lo,r.outcome_hi)}</td>
+      <td style="text-align:center">${xxPctCI(r.exact_pct,r.exact_lo,r.exact_hi)}</td>
+    </tr>`).join('') : `<tr><td colspan="5" class="muted">暂无已完赛样本</td></tr>`;
+  if(bl && bl.n){
+    const bg='background:#0d1117';
+    rows+=`<tr style="${bg};color:#f0883e"><td style="text-align:center">🎲</td><td>基线·${bl.const_label}</td>
+      <td style="text-align:center">${bl.n}</td><td style="text-align:center">${xxPctCI(bl.const_pct,bl.const_lo,bl.const_hi)}</td><td style="text-align:center">—</td></tr>`;
+    rows+=`<tr style="${bg};color:#f0883e"><td style="text-align:center">🎯</td><td>基线·全押 ${bl.modal_score}</td>
+      <td style="text-align:center">${bl.n}</td><td style="text-align:center">—</td><td style="text-align:center">${xxPctCI(bl.modal_exact_pct,bl.modal_lo,bl.modal_hi)}</td></tr>`;
+    rows+=`<tr style="${bg};color:var(--mut2)"><td style="text-align:center">🎲</td><td>基线·随机(1/3)</td>
+      <td style="text-align:center">—</td><td style="text-align:center">${bl.random_pct}%</td><td style="text-align:center">—</td></tr>`;
+  }
+  return `<table class="mgt">
+    <tr><th style="text-align:center">名次</th><th>术数体系</th><th style="text-align:center">占卜场次</th>
+      <th style="text-align:center">胜负命中率 [95%CI]</th><th style="text-align:center">精确比分率 [95%CI]</th></tr>
+    ${rows}</table>`;
+}
+
+// 「玄学 vs 基线」结论句
+function xxVerdict(lb, bl){
+  if(!lb.length||!bl||!bl.n) return '';
+  const best=lb[0];
+  const beat = best.outcome_pct > bl.const_pct;
+  return beat
+    ? `当前样本下「${best.name}」(${best.outcome_pct}%)暂时高于无脑基线(${bl.const_pct}%)——但看区间多半重叠，多为小样本噪声。`
+    : `<b style="color:#f0883e">没有一套术数能超过无脑基线「${bl.const_label}」(${bl.const_pct}%)</b>——这正是"零预测力"的直接证据。`;
+}
+
+// 一场比赛的 7 法占卜小表（settled=带命中标记）
+function xxMatchCard(mt, settled){
+  const wname=w=> w==='home'?mt.home_disp : w==='away'?mt.away_disp : '平局';
+  const wcolor=w=> w==='home'?'var(--grn2)' : w==='away'?'#58a6ff' : 'var(--mut2)';
+  const hitCol = settled?'<th style="text-align:center">命中</th>':'';
+  const rows=mt.methods.map(m=>{
+    let hit='';
+    if(settled){
+      hit = m.exact_hit ? '<td style="text-align:center;color:var(--gold)">🎯比分</td>'
+          : m.outcome_hit ? '<td style="text-align:center;color:var(--grn2)">✓胜负</td>'
+          : '<td style="text-align:center;color:#f85149">✗</td>';
+    }
+    return `<tr>
+      <td style="white-space:nowrap">${m.icon} ${m.name}</td>
+      <td style="text-align:center;font-weight:700">${m.score[0]}–${m.score[1]}</td>
+      <td style="text-align:center;color:${wcolor(m.winner)};font-weight:700">${wname(m.winner)}</td>
+      ${hit}
+    </tr>`;}).join('');
+  const title = settled
+    ? `${mt.home_disp} <b style="color:var(--gold)">${mt.result.gh}–${mt.result.ga}</b> ${mt.away_disp} <small class="muted">实际比分</small>`
+    : `${mt.home_disp} vs ${mt.away_disp} ${mt.started?'<small style="color:#f0883e">· 待结算</small>':''}`;
+  let castNote='';
+  if(mt.true_solar) castNote=`🧭 起卦用<b>${mt.cast_city||'球场'}真太阳时</b> ${mt.true_solar.slice(5)}`;
+  else if(mt.cast_local) castNote=`🧭 起卦用<b>球场当地</b> ${mt.cast_local.slice(5)}`;
+  const cols = settled
+    ? '<colgroup><col style="width:40%"><col style="width:20%"><col style="width:22%"><col style="width:18%"></colgroup>'
+    : '<colgroup><col style="width:50%"><col style="width:25%"><col style="width:25%"></colgroup>';
+  return `<div class="card" style="border-color:#8957e544">
+    <div style="margin-bottom:6px"><b>${title}</b> <span class="muted" style="font-size:12px">${mt.date}${mt.kickoff?' 北京'+mt.kickoff.slice(11):''} · ${castNote}</span></div>
+    <table class="mgt xxmt">${cols}
+      <tr><th>术数</th><th style="text-align:center">占卜比分</th><th style="text-align:center">占卜胜负</th>${hitCol}</tr>
+      ${rows}
+    </table>
+  </div>`;
+}
+
+function renderXuanxue(b){
+  const lb=b.leaderboard||[], st=b.settled||[], up=b.upcoming||[], h=b.historical;
+  // —— 本届实盘擂台（赛前冻结、小样本）——
+  let html=`<div class="card" style="border-color:#8957e5aa;background:linear-gradient(160deg,#1a1330,var(--panel))">
+    <h3 class="mgh" style="color:#bc8cff">🏆 本届实盘擂台 <small class="muted">· 累计 ${b.totals.settled} 场已完赛（赛前冻结）</small></h3>
+    ${xxLbTable(lb, b.baselines)}
+    <div class="mgnote" style="border-color:#8957e5">${xxVerdict(lb, b.baselines)}<br>
+      命中率后的 [区间] 是 95% 置信区间；样本越小区间越宽。「基线」是无脑策略(永远押同一结果/随机)，
+      术数若有预测力就该<b>稳定超过基线</b>。本擂台为趣味/文化实验，术数<b>无科学预测力</b>，勿用于投注。</div>
+  </div>`;
+
+  // —— 历史回测（大样本，看真实收敛）——
+  if(h){
+    html+=`<div class="card"><h3 class="mgh" style="color:#bc8cff">📊 历史回测 <small class="muted">· ${h.n.toLocaleString()} 场国际赛（1872–今）</small></h3>
+      ${xxLbTable(h.leaderboard, h.baselines)}
+      <div class="mgnote">${xxVerdict(h.leaderboard, h.baselines)}<br>
+        大样本下置信区间收窄到 ±0.5% 左右：七法全部<b>挤在随机(1/3)附近、远低于基线</b>，本届那点领先在此回落到均值——
+        印证小样本排名纯属噪声。（历史场仅用比赛日起卦、无开球时辰/场馆经度，精度低于本届但样本量大。）</div>
+    </div>`;
+  }
+
+  // —— 近三天待测 ——
+  html+=`<div class="card"><h3 class="mgh" style="color:#bc8cff">🔮 近 ${b.window_days} 天待测（${up.length} 场）</h3>
+    <div class="muted" style="margin-bottom:8px">已为每场冻结 7 法占卜，开球前锁定、完赛后自动并入上方擂台。</div>
+    ${up.length? up.map(m=>xxMatchCard(m,false)).join('') : '<div class="muted">近三天暂无即将开赛的本届场次。</div>'}
+  </div>`;
+
+  // —— 已完赛回顾 ——
+  html+=`<div class="card"><h3 class="mgh" style="color:#bc8cff">✅ 已完赛回顾（近 ${st.length} 场）</h3>
+    ${st.length? st.map(m=>xxMatchCard(m,true)).join('') : '<div class="muted">暂无已完赛场次。</div>'}
+  </div>`;
+  return html;
+}
+
 function renderManager(d){
   const H=d.home_disp, A=d.away_disp, mk=d.markets, cf=d.confidence, venue=d.neutral?'中立场':`${H} 主场`;
   const sh=d.stats.home, sa=d.stats.away, fh=d.form.home, fa=d.form.away;
@@ -1480,6 +1622,7 @@ DataScheduler.register('market', 60*1000, ()=>{ if(marketLoaded && !$('#marketre
 DataScheduler.register('verify', 60*1000, ()=>{ if($('#dashres').dataset.loaded) loadDashboard(); });
 // 看板：每 3min 拉完赛（可能重训）；有新赛果才重渲看板
 DataScheduler.register('verify', 3*60*1000, async ()=>{ const r=await postLive(); if(r&&r.ok&&r.changed) loadDashboard(); });
+DataScheduler.register('xuanxue', 2*60*1000, ()=>{ if(xuanxueLoaded) loadXuanxue(); });  // 完赛后自动结算并入排行
 DataScheduler.start();
 </script>
 </body>

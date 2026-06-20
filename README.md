@@ -43,6 +43,7 @@ Where others say "I think Argentina wins," this gives you **a probability distri
 | 🎯 **Prediction verification** | Pre-match predictions **frozen before kickoff**; scored per match for result/scoreline hits, bucketed by confidence and tagged for upsets — numbers force honesty (lives in the dashboard's *Finished* section) |
 | 💹 **Market / CLV** | Model vs bookmaker closing line + closing-line-value **falsifiability test**; **no "value/stake" is shown without a proven positive CLV** — an honest check, not a betting nudge |
 | 📈 **Title 90% credible interval + power ratings** | Hierarchical-Bayes posterior gives title odds a credible interval (parameter uncertainty) **and** the underlying net-strength power ranking — two views of one posterior; **auto-recomputed in the background** after new results |
+| 🔮 **Mystical divination** (cultural easter egg) | Seven traditional Chinese metaphysics systems each cast a fixture by **faithful, deterministic Gan-Zhi chart-casting** — with an honest leaderboard proving **no system beats a naive baseline**. A culture/algorithm curiosity with **no scientific or predictive basis; not betting advice** |
 
 ---
 
@@ -117,7 +118,7 @@ python3 simulate.py --sims 5000      # simulate the tournament: title / final / 
 python3 app.py        # open http://127.0.0.1:8000
 ```
 
-**Five tabs turn the whole "prediction window" into a playable, real-time product:**
+**Six tabs turn the whole "prediction window" into a playable, real-time product:**
 
 #### 📋 Match dashboard (home / entry point)
 - **Three states**: 🔴 Live (ESPN live score + minute + **real-time W/D/L bar**) / 🟡 Upcoming (grouped by match day, with model scoreline + 3-way probabilities) / ✅ Finished (per-match prediction-vs-result checking, bucketed by confidence, upsets tagged — the **verification ledger** lives here).
@@ -148,6 +149,13 @@ Two dropdowns + neutral toggle → an **analyst-style report** for the fixture, 
   - *Where the odds come from*: ESPN's public API exposes **DraftKings 1X2 moneyline** (the same API we already use for scores) — we do **not** scrape bookmaker/odds-portal sites (their ToS forbids it). The app snapshots odds every ~30 min while running (and on each refresh), so every match accrues an **opening** (first capture) and a **closing** (latest pre-kickoff) line — exactly what CLV needs.
   - *How CLV accumulates*: a match only enters CLV once it's **finished** and we captured its line across time. So early in the tournament it honestly reads "insufficient sample"; as matches play out it fills in. The value/Kelly panel unlocks **only** if the model shows a statistically significant positive CLV (≥30 matches, t > 1.65) — otherwise it stays locked. A "see demo" button shows what the unlocked panel would look like, on clearly-labeled synthetic data.
   - *It may never unlock — and that's the point: it won't lie to you.* Beating a sharp closing line is genuinely hard; if the model has no real edge, it stays honestly locked rather than handing you a scary-looking number that's really just noise.
+
+#### 🔮 Mystical divination (a cultural easter egg — explicitly *not* prediction)
+A playful, **deterministic** layer that casts each fixture through **seven traditional Chinese metaphysics systems**: Plum Blossom (梅花易数), Shooting Covered (射覆), I-Ching 64-hexagram (周易), Liu Yao Na-Jia (六爻纳甲), Qi Men Dun Jia (奇门遁甲), Da Liu Ren (大六壬), and Zi Wei Dou Shu (紫微斗数). Each one performs a **faithful chart-casting** driven purely by the kickoff moment's **Gan-Zhi pillars** (year/day/hour exact, solar-term month by true solar longitude, and venue-local *true solar time* when geolocated): real Yin/Yang escaping + palace rounds for Qi Men, real eight-palace world/response + Na-Jia six-relatives for Liu Yao, real month-general-over-hour plate + four lessons + three transmissions for Da Liu Ren, real star placement + brightness + birth-year four-transformations for Zi Wei, and so on. Team names enter only a thin **role-assignment layer** (who is home/away, and telling apart different fixtures at the same instant) — they **never inject real team strength**.
+
+> **This is a culture/algorithm curiosity with no scientific or predictive basis — never use it for betting or any real decision.** And the tab is honest about exactly that: a built-in **leaderboard pits all seven systems against naive baselines** (always-pick-home / always-pick-the-most-common-score / random), over both this tournament's frozen casts **and a 49,000+ match historical backtest** — and shows **no system beats the baseline** (all seven hover near random ~1/3, far below the ~49% "always home" line). Authentic casting, honestly powerless — which is the whole point.
+
+<p align="center"><img src="./docs/screenshot-xuanxue.png" alt="Mystical divination: seven systems vs honest baselines, over this tournament and a 49k-match backtest" width="760"></p>
 
 ---
 
@@ -243,6 +251,9 @@ worldcup-predictor/
 ├── wc2026.py      Official 2026 format: groups + official bracket + best-third allocation
 ├── schedule.py    All 104 kickoff times + venue / local-time conversion
 ├── live.py        ESPN live layer: finals fetch + in-progress status (minute-level, with shootouts)
+├── ganzhi.py      Gan-Zhi / solar-term time pillars from a datetime (year/day/hour exact + true solar time)
+├── xuanxue.py     🔮 Mystical-divination engine: 7 traditional systems, deterministic faithful chart-casting
+├── xuanxue_board.py  🔮 Divination leaderboard: frozen-cast ledger + honest baselines + historical backtest
 ├── inplay.py      ⚡ In-play W/D/L (pre-match λ scaling + current-score convolution)
 ├── manager.py     ⚽ Match-analysis report (read-only assembly: process data + DC matrix + derived markets)
 ├── verify.py      🎯 Prediction verification: frozen pre-match ledger + per-match scoring + bins/upsets

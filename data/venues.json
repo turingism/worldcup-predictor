@@ -128,67 +128,83 @@
 "geo": {
 "Mexico City": {
 "alt": 2240,
-"heat": null
+"heat": null,
+"lng": -99.15
 },
 "Guadalajara": {
 "alt": 1566,
-"heat": "high"
+"heat": "high",
+"lng": -103.46
 },
 "Monterrey": {
 "alt": 540,
-"heat": "extreme"
+"heat": "extreme",
+"lng": -100.24
 },
 "Kansas City": {
 "alt": 270,
-"heat": "extreme"
+"heat": "extreme",
+"lng": -94.48
 },
 "Atlanta": {
 "alt": 320,
-"heat": "high"
+"heat": "high",
+"lng": -84.4
 },
 "Dallas": {
 "alt": 130,
-"heat": "extreme"
+"heat": "extreme",
+"lng": -97.09
 },
 "Houston": {
 "alt": 15,
-"heat": "extreme"
+"heat": "extreme",
+"lng": -95.41
 },
 "Miami": {
 "alt": 2,
-"heat": "extreme"
+"heat": "extreme",
+"lng": -80.24
 },
 "New York/New Jersey": {
 "alt": 10,
-"heat": "high"
+"heat": "high",
+"lng": -74.07
 },
 "Philadelphia": {
 "alt": 12,
-"heat": "high"
+"heat": "high",
+"lng": -75.17
 },
 "Los Angeles": {
 "alt": 90,
-"heat": null
+"heat": null,
+"lng": -118.34
 },
 "San Francisco Bay Area": {
 "alt": 16,
-"heat": null
+"heat": null,
+"lng": -121.97
 },
 "Boston": {
 "alt": 43,
-"heat": null
+"heat": null,
+"lng": -71.26
 },
 "Seattle": {
 "alt": 56,
-"heat": null
+"heat": null,
+"lng": -122.33
 },
 "Vancouver": {
 "alt": 5,
-"heat": null
+"heat": null,
+"lng": -123.11
 },
 "Toronto": {
 "alt": 76,
-"heat": null
+"heat": null,
+"lng": -79.42
 }
 },
 "alt_adapted": [
@@ -216,5 +232,5 @@
 "Poland",
 "Scotland"
 ],
-"_geo_meta": "alt=海拔米；heat=6-7月高温档(extreme≈WBGT32C+/high≈30C/null=温和)。供 env.py 环境上下文层用，非引擎核心。来源 Kimi 报告 6.3/8.3.3。"
+"_geo_meta": "alt=海拔米；heat=6-7月高温档(extreme≈WBGT32C+/high≈30C/null=温和)。供 env.py 环境上下文层用，非引擎核心。来源 Kimi 报告 6.3/8.3.3。 lng=球场经度(西经负)，供 ganzhi 真太阳时校正用。"
 }

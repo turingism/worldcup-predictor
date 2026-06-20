@@ -184,3 +184,100 @@ def test_bj_date_beijing_kickoff_groups_by_beijing_day():
     # 无 kickoff（retro 回补场）→ 回落到 fallback
     assert verify.bj_date("", "2026-06-11") == "2026-06-11"
     assert verify.bj_date(None, "2026-06-11") == "2026-06-11"
+
+
+# ---------- 玄学占卜（趣味彩蛋层，确定性引擎）----------
+METHOD_KEYS = {"meihua", "shefu", "yijing", "liuyao", "qimen", "daliuren", "ziwei"}
+
+
+def test_xuanxue_seven_methods_and_valid_scores():
+    """7 套术数齐全；每个比分合法（0..6 整数）、胜负与比分自洽、信心在区间内。"""
+    import xuanxue
+    r = xuanxue.divine("Argentina", "France")
+    assert {m["key"] for m in r["methods"]} == METHOD_KEYS
+    assert len(r["methods"]) == 7
+    for m in r["methods"]:
+        h, a = m["score"]
+        assert isinstance(h, int) and isinstance(a, int)
+        assert 0 <= h <= 6 and 0 <= a <= 6
+        assert m["winner"] in ("home", "away", "draw")
+        # 单法胜负与其比分自洽
+        assert (m["winner"] == "home") == (h > a)
+        assert (m["winner"] == "away") == (a > h)
+        assert (m["winner"] == "draw") == (h == a)
+        assert 0 <= m["confidence"] <= 100
+
+
+def test_xuanxue_consensus_self_consistent():
+    """共识胜负与共识比分必须自洽（防『主胜配平局比分』复发）；多对阵抽查。"""
+    import itertools
+    import xuanxue
+    teams = ["Argentina", "France", "Brazil", "Spain", "England", "Japan", "Morocco"]
+    for a, b in itertools.combinations(teams, 2):
+        c = xuanxue.divine(a, b)["consensus"]
+        h, aa = c["score"]
+        w = c["winner"]
+        assert (w == "home") == (h > aa)
+        assert (w == "away") == (aa > h)
+        assert (w == "draw") == (h == aa)
+
+
+def test_ganzhi_pillars_known():
+    """干支推算：日/时/年柱精确（锚点 2000-01-07甲子，已与 1949-10-01甲子交叉验证）。"""
+    import datetime as _dt
+
+    import ganzhi
+    p = ganzhi.pillars(_dt.datetime(2026, 6, 11, 20, 0))
+    assert p["day_gz"] == "丙辰"        # 2026-06-11 = 丙辰日
+    assert p["hour_zhi"] == "戌"        # 20:00 = 戌时
+    assert p["year_gz"] == "丙午"       # 2026 立春后 = 丙午年
+    # 子时含 23 点（跨日边界）
+    assert ganzhi.pillars(_dt.datetime(2026, 6, 11, 23, 30))["hour_zhi"] == "子"
+    # 月将/月建为近似节气，至少应是合法地支
+    assert p["month_jian"] in ganzhi.ZHI and p["month_jiang"] in ganzhi.ZHI
+
+
+def test_xuanxue_deterministic():
+    """同一对阵 + 同赛期 → 结果逐位可复现（种子来自队名+日期，不用随机）。"""
+    import xuanxue
+    a = xuanxue.divine("Brazil", "Spain", "2026-07-19 19:00")
+    b = xuanxue.divine("Brazil", "Spain", "2026-07-19 19:00")
+    assert a == b
+    # 不同赛期应可能不同（至少不报错）
+    xuanxue.divine("Brazil", "Spain", "2026-06-11 20:00")
+
+
+def test_api_xuanxue_ok(client):
+    d = client.get("/api/xuanxue?home=Argentina&away=France").get_json()
+    assert len(d["methods"]) == 7 and "consensus" in d
+    # 缺参数 → 400
+    assert client.get("/api/xuanxue?home=Argentina").status_code == 400
+
+
+def test_xuanxue_board_leaderboard_counts():
+    """擂台统计逻辑：胜负命中/精确命中计数正确（合成账本，不依赖实时数据）。"""
+    import xuanxue_board as xb
+    preds = {
+        "m1": {"home": "A", "away": "B", "result": {"gh": 2, "ga": 1}, "methods": [
+            {"key": "k1", "name": "甲", "icon": "i", "score": [2, 1], "winner": "home"},  # 比分+胜负全中
+            {"key": "k2", "name": "乙", "icon": "i", "score": [0, 0], "winner": "draw"},  # 全错
+            {"key": "k3", "name": "丙", "icon": "i", "score": [3, 0], "winner": "home"}]},  # 仅胜负中
+        "m2": {"home": "C", "away": "D", "result": None, "methods": [                       # 未结算→不计
+            {"key": "k1", "name": "甲", "icon": "i", "score": [1, 1], "winner": "draw"}]},
+    }
+    board, settled_n = xb.leaderboard(preds)
+    assert settled_n == 1                       # 只有 m1 已结算
+    by = {r["key"]: r for r in board}
+    assert by["k1"]["n"] == 1 and by["k1"]["outcome_hits"] == 1 and by["k1"]["exact_hits"] == 1
+    assert by["k2"]["outcome_hits"] == 0 and by["k2"]["exact_hits"] == 0
+    assert by["k3"]["outcome_hits"] == 1 and by["k3"]["exact_hits"] == 0
+    # 排行按胜负命中率降序
+    assert [r["key"] for r in board][0] in ("k1", "k3")
+
+
+def test_api_xuanxue_board_ok(client):
+    d = client.get("/api/xuanxue/board").get_json()
+    assert "leaderboard" in d and "upcoming" in d and "settled" in d
+    for r in d["leaderboard"]:                  # 命中数不可超过场次
+        assert 0 <= r["outcome_hits"] <= r["n"]
+        assert 0 <= r["exact_hits"] <= r["n"]

@@ -11,6 +11,7 @@ model.pkl
 data/predictions.json
 data/live_results.json
 data/overrides.json
+data/xuanxue_ledger.json
 *.tmp
 
 # 实验性 / 临时
