@@ -980,6 +980,14 @@ function renderDashboard(d){
 
 // 看预测按钮（队名走 data 属性，避免队名含特殊字符破坏 onclick）
 const seeBtn=r=>`<button class="seebtn" data-h="${r.home_en||''}" data-a="${r.away_en||''}" data-host="${r.host||''}" data-city="${r.city||''}" data-t="${r.home} vs ${r.away}" onclick="seePrediction(this)" title="看完整比分概率矩阵">看预测</button>`;
+// 快捷入口：跳到「对阵分析」并按主/客填表 + 拉真实首发重算（首发约赛前 1 小时公布）
+const lineupBtn=r=>`<button class="seebtn" style="border-color:#1f6feb55;color:#58a6ff;margin-left:4px" data-h="${r.home||''}" data-a="${r.away||''}" onclick="gotoLineup(this)" title="到对阵分析、拉取真实首发并重算（约赛前 1 小时公布；未公布则降级为赛前估计）">⚡首发分析</button>`;
+function gotoLineup(el){
+  const h=el.getAttribute('data-h'), a=el.getAttribute('data-a');
+  const tab=document.querySelector('.tab[data-t="manager"]'); if(tab) tab.click();
+  setTimeout(()=>{ if($('#mg_home'))$('#mg_home').value=h; if($('#mg_away'))$('#mg_away').value=a;
+    if($('#mg_neutral'))$('#mg_neutral').checked=true; loadManager(1); }, 180);
+}
 
 function liveCard(r){
   const pred = r.pred_gh!=null?`赛前 ${r.pred_gh}–${r.pred_ga}`:'';
@@ -1012,7 +1020,7 @@ function upRow(u){
     <div class="up-vs"><span>${u.home}</span><span class="up-x">vs</span><span>${u.away}</span></div>
     <div class="up-pred"><span class="scpill" title="模型最可能比分">${u.pred_gh}–${u.pred_ga}</span></div>
     <div class="up-p" title="主胜/平/客胜概率%（加粗=模型判定的最可能结果）">${P3(u)}</div>
-    <div class="up-act">${seeBtn(u)}</div>
+    <div class="up-act">${seeBtn(u)}${lineupBtn(u)}</div>
   </div>`;
 }
 // 按比赛日分组渲染（list 已按开球时间升序）
