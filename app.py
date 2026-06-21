@@ -344,6 +344,19 @@ def api_manager():
     return jsonify(r)
 
 
+@app.route("/api/lineup_ledger")
+def api_lineup_ledger():
+    """首发增益记分卡：完赛场「纯 DC 基线 vs 首发确认版」的 RPS / 命中对比。
+    独立旁路账本，绝不回写 verify 主验证账本、不碰 GLM。早期样本极小，前端须标注。"""
+    try:
+        import lineup_ledger
+        days = int(request.args.get("days", "12"))
+        sc = lineup_ledger.build_scorecard(MODEL, days_back=days)
+        return jsonify(sc)
+    except Exception as e:  # noqa
+        return jsonify({"error": f"记分卡生成失败：{e}"}), 500
+
+
 @app.route("/api/xuanxue")
 def api_xuanxue():
     """玄学占卜对照（趣味/文化彩蛋）：7 套传统术数各出一个比分 + 玄学共识。
