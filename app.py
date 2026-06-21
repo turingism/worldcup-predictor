@@ -33,6 +33,7 @@ import espn_odds as oddsmod
 import inplay as inplaymod
 import live as livemod
 import manager as managermod
+import lineups as lineupsmod
 import market
 import schedule
 import teams_zh
@@ -316,8 +317,16 @@ def api_manager():
     home = request.args.get("home", "").strip()
     away = request.args.get("away", "").strip()
     neutral = request.args.get("neutral", "1") not in ("0", "false", "False")
+    # ?lineup=1：赛前 1h（或完赛后）拉真实首发做缺阵探测；拉不到则降级（available=False）。
+    lineup = None
+    if request.args.get("lineup") in ("1", "true", "True"):
+        try:
+            h_en = MODEL.resolve(home); a_en = MODEL.resolve(away)
+            lineup = lineupsmod.match_availability(h_en, a_en)
+        except Exception as e:  # noqa  拉取失败不让报告 500，降级到无首发
+            lineup = {"available": False, "reason": f"fetch_failed:{e}"}
     try:
-        r = managermod.build_report(MODEL, DF, home, away, neutral=neutral, elo=_ELO)
+        r = managermod.build_report(MODEL, DF, home, away, neutral=neutral, elo=_ELO, lineup=lineup)
     except KeyError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:  # noqa  组装层任何意外都不应 500 整页
@@ -333,6 +342,42 @@ def api_manager():
         if row.get("winner"):
             row["winner"] = L(row["winner"])
     return jsonify(r)
+
+
+@app.route("/api/lineup_ledger")
+def api_lineup_ledger():
+    """首发增益记分卡：完赛场「纯 DC 基线 vs 首发确认版」的 RPS / 命中对比。
+    独立旁路账本，绝不回写 verify 主验证账本、不碰 GLM。早期样本极小，前端须标注。"""
+    try:
+        import lineup_ledger
+        days = int(request.args.get("days", "12"))
+        sc = lineup_ledger.build_scorecard(MODEL, days_back=days)
+        return jsonify(sc)
+    except Exception as e:  # noqa
+        return jsonify({"error": f"记分卡生成失败：{e}"}), 500
+
+
+@app.route("/api/fixtures")
+def api_fixtures():
+    """近期未开赛对阵（对阵分析「明日对战看板」点击填表用）。纯赛程、不拉 live，秒回。"""
+    now = verifymod._now_bj()
+    played = datamod.played(DF)
+    played_pairs = {frozenset((str(r["home_team"]), str(r["away_team"])))
+                    for _, r in played.iterrows()}
+    fx = []
+    for (h, a), ko in schedule.GROUP.items():
+        if not ko or ko <= now or frozenset((h, a)) in played_pairs:
+            continue
+        gv = schedule.group_venue(h, a)
+        host = schedule.group_match_host(h, a)
+        fx.append({"home_en": h, "away_en": a,
+                   "home": teams_zh.disp(h), "away": teams_zh.disp(a),
+                   "kickoff": ko, "date": ko[:10],
+                   "city": gv.get("city") if gv else None,
+                   "local": gv.get("local") if gv else None,
+                   "host": teams_zh.disp(host) if host else None})
+    fx.sort(key=lambda x: x["kickoff"])
+    return jsonify({"fixtures": fx, "now": now})
 
 
 @app.route("/api/xuanxue")

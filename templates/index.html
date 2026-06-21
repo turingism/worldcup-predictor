@@ -92,6 +92,12 @@
   .mgt th{text-align:left;color:var(--mut);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);background:var(--panel2)}
   .mgt td{padding:6px 8px;border-bottom:1px solid var(--line)}
   .mgt tr:last-child td{border-bottom:none}
+  /* 对阵分析报告：统一表格列宽，标签列固定对齐，消除跨卡锯齿感 */
+  #mgres .mgt{table-layout:fixed}
+  #mgres .mgt th:first-child,#mgres .mgt td:first-child{width:36%}
+  #mgres .mgt th,#mgres .mgt td{overflow:hidden;text-overflow:ellipsis}
+  #mgledger .mgt{table-layout:fixed}
+  #mgledger .mgt th:first-child,#mgledger .mgt td:first-child{width:42%}
   .xxmt{table-layout:fixed}
   .xxmt th,.xxmt td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .mgnote{font-size:11.5px;color:var(--mut);background:#1c2230;border-left:3px solid #d29922;
@@ -352,6 +358,8 @@
   <!-- 对阵分析（原「足球经理人」深度报告，已并入「单场预测」的比分矩阵热力图）-->
   <datalist id="teams"></datalist>
   <section id="manager" style="display:none">
+    <div id="mgfixtures"></div>
+    <div id="mgledger"></div>
     <div class="card">
       <div class="row">
         <div class="fld">
@@ -366,6 +374,7 @@
             onfocus="teamFocus(this)" onblur="teamBlur(this)">
         </div>
         <button class="go" onclick="loadManager()">生成报告</button>
+        <button type="button" onclick="loadManager(1)" title="拉取真实首发（约赛前 1 小时公布）并按确认阵容重算，对比球员数据加入前后变化" style="padding:9px 14px;border:1px solid #1f6feb66;background:#0d1b2e;color:#58a6ff;border-radius:8px;cursor:pointer;font-weight:600">⚡ 拉首发重算</button>
       </div>
       <label class="chk"><input type="checkbox" id="mg_neutral" checked> 中立场（世界杯默认勾选；取消则第一支为主队）</label>
       <div class="muted" style="margin-top:6px">
@@ -519,7 +528,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   ['manager','bracket','champ','verify','market','xuanxue'].forEach(s=>{
     $('#'+s).style.display = t.dataset.t===s?'block':'none';
   });
-  if(t.dataset.t==='manager' && !managerLoaded){ managerLoaded=true; loadManager(); }
+  if(t.dataset.t==='manager' && !managerLoaded){ managerLoaded=true; loadFixtures(); }
   if(t.dataset.t==='xuanxue' && !xuanxueLoaded){ xuanxueLoaded=true; loadXuanxue(); }
   if(t.dataset.t==='bracket'){
     if(!bracketLoaded){ bracketLoaded=true; loadSavedOV().then(loadProjection); }
@@ -1310,14 +1319,77 @@ function resChip(r){ const c={W:'#2ea043',D:'#8b949e',L:'#f85149'}[r]||'#8b949e'
   return `<span style="display:inline-block;width:18px;height:18px;line-height:18px;text-align:center;border-radius:4px;background:${c};color:#fff;font-size:11px;font-weight:700;margin-right:2px">${r}</span>`; }
 function confColor(l){ return {'高':'#2ea043','中':'#d29922','低':'#8b949e'}[l]||'#8b949e'; }
 
-async function loadManager(){
+async function loadManager(lineup){
   const home=$('#mg_home').value, away=$('#mg_away').value, neutral=$('#mg_neutral').checked?1:0;
-  $('#mgres').innerHTML='<div class="card spin">正在获取过程数据、运行算法模型并生成报告…</div>';
+  $('#mgres').innerHTML='<div class="card spin">'+(lineup?'⚡ 拉取真实首发名单、按确认阵容重算…':'正在获取过程数据、运行算法模型并生成报告…')+'</div>';
   let d;
-  try{ d=await (await fetch(`/api/manager?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&neutral=${neutral}`)).json(); }
+  try{ d=await (await fetch(`/api/manager?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&neutral=${neutral}${lineup?'&lineup=1':''}`)).json(); }
   catch(e){ $('#mgres').innerHTML=`<div class="card err">✗ 请求失败：${e}</div>`; return; }
   if(d.error){ $('#mgres').innerHTML=`<div class="card err">✗ ${d.error}</div>`; return; }
   $('#mgres').innerHTML=renderManager(d);
+}
+
+// 明日对战看板：列近期未开赛对阵，点任意场次自动按主/客填表并生成报告。
+async function loadFixtures(){
+  const box=$('#mgfixtures'); if(!box) return;
+  box.innerHTML='<div class="card spin">加载近期对战…</div>';
+  $('#mgres').innerHTML='<div class="card muted">👆 点击上方任意对战，或在表单输入两队后点「生成报告」。</div>';
+  let d; try{ d=await (await fetch('/api/fixtures')).json(); }catch(e){ box.innerHTML=''; return; }
+  box.innerHTML=renderFixtures(d);
+}
+function renderFixtures(d){
+  const fx=(d&&d.fixtures)||[];
+  if(!fx.length) return '<div class="card muted">📅 近期暂无未开赛的小组赛对阵（可能都已开打）。直接在下方输入两队分析。</div>';
+  const today=(d.now||'').slice(0,10), byDay={};
+  fx.forEach(f=>{(byDay[f.date]=byDay[f.date]||[]).push(f);});
+  const lab=dt=>{const diff=Math.round((new Date(dt)-new Date(today))/864e5);return diff<=0?'今天':(diff===1?'明天':(diff===2?'后天':dt));};
+  let html='<div class="card"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="mgsub" style="margin:0">📅 近期对战 · 点任意场次自动填表并生成报告</div><button onclick="loadLineupLedger()" title="对已完赛、登记关键人确认缺阵的场次，补算 纯模型 vs 首发确认版 的预测，用真实赛果检验首发数据有没有让预测更准" style="margin-left:auto;padding:6px 12px;border:1px solid #2ea04366;background:#0d1f14;color:#3fb950;border-radius:7px;cursor:pointer;font-size:12px">📊 首发增益记分卡</button></div>';
+  Object.keys(byDay).sort().slice(0,3).forEach(day=>{
+    html+=`<div class="muted" style="margin:10px 0 5px;font-weight:600">${lab(day)} <span style="font-weight:400">${day}</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px">`;
+    byDay[day].forEach(f=>{
+      const t=(f.kickoff||'').slice(11);
+      html+=`<div onclick="mgPick(this)" data-h="${f.home}" data-a="${f.away}" style="border:1px solid #30363d;border-radius:8px;padding:9px 12px;cursor:pointer;background:#161b22;transition:border-color .15s" onmouseover="this.style.borderColor='#1f6feb'" onmouseout="this.style.borderColor='#30363d'">
+        <div style="font-weight:600;margin-bottom:3px">${f.home} <span style="color:#8b949e;font-weight:400">vs</span> ${f.away}</div>
+        <div class="muted" style="font-size:11px">🕐 ${t} 北京${f.city?' · '+f.city:''}${f.host?' · '+f.host+'主场':''}</div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  return html+'</div>';
+}
+function mgPick(el){
+  $('#mg_home').value=el.getAttribute('data-h');
+  $('#mg_away').value=el.getAttribute('data-a');
+  if($('#mg_neutral')) $('#mg_neutral').checked=true;
+  loadManager();
+  setTimeout(()=>{const r=$('#mgres'); if(r&&r.scrollIntoView) r.scrollIntoView({behavior:'smooth',block:'start'});},80);
+}
+
+// 首发增益记分卡（opt-in，按钮触发——拉多场 ESPN 首发较慢，不自动加载）。
+async function loadLineupLedger(){
+  const box=$('#mgledger'); if(!box) return;
+  box.innerHTML='<div class="card spin">📊 拉取近期完赛首发、补算「纯模型 vs 首发版」对比中…（约 10 秒）</div>';
+  let d; try{ d=await (await fetch('/api/lineup_ledger')).json(); }
+  catch(e){ box.innerHTML='<div class="card err">✗ 记分卡加载失败</div>'; return; }
+  if(d.error){ box.innerHTML=`<div class="card err">✗ ${d.error}</div>`; return; }
+  box.innerHTML=renderLineupLedger(d);
+}
+function renderLineupLedger(d){
+  if(!d.n){ return `<div class="card muted">📊 首发增益记分卡：近 ${d.days_back||12} 天扫描 ${d.scanned||0} 场完赛，暂无「登记关键人确认缺阵」的场次（${d.skipped_no_mods||0} 场无登记缺阵）。在 availability.json 登记更多关键人可增加样本。</div>`; }
+  const imp=d.rps_improve, better=imp>0;
+  const rows=d.rows.map(r=>`<tr><td>${r.home} ${r.actual} ${r.away}</td><td>${(r.pre_home*100).toFixed(0)}%→${(r.post_home*100).toFixed(0)}%</td><td style="color:${r.rps_delta<0?'#3fb950':'#f85149'}">${r.rps_delta>=0?'+':''}${r.rps_delta.toFixed(4)}</td><td class="muted" style="font-size:11px">${r.absentees.join('、')||'—'}</td></tr>`).join('');
+  return `<div class="card">
+    <div class="mgsub">📊 首发增益记分卡 <span class="muted">· 完赛场「纯模型 vs 首发确认版」对真实赛果</span></div>
+    <table class="mgt mgledgert">
+      <tr><th>口径</th><th>平均 RPS（越低越好）</th><th>赛果命中</th></tr>
+      <tr><td>纯模型基线</td><td>${d.pre.rps}</td><td>${(d.pre.hit*100).toFixed(0)}%</td></tr>
+      <tr style="font-weight:700;color:#58a6ff"><td>首发确认版</td><td>${d.post.rps}</td><td>${(d.post.hit*100).toFixed(0)}%</td></tr>
+    </table>
+    <div class="mgnote" style="border-color:${better?'#2ea043':'#d29922'}">RPS ${better?'改善':'变化'} ${imp>=0?'+':''}${imp.toFixed(4)}（&gt;0 = 首发版更准）。<b>n=${d.n} 场，样本极小，仅供观察、不能下结论</b>——只有登记关键人确认缺阵的场次才计入对比。诚实口径：用赛前 1h 公布的首发事实、不偷看赛果。</div>
+    <div class="mgsub" style="margin-top:12px">逐场</div>
+    <table class="mgt mgledgert"><tr><th>对阵 · 实际</th><th>主胜 前→后</th><th>RPSΔ</th><th>缺阵</th></tr>${rows}</table>
+  </div>`;
 }
 
 // 玄学占卜擂台（独立 tab）：自动赛程 + 7 法占卜 + 逐体系命中率排行。趣味/文化实验，无科学依据。
@@ -1455,7 +1527,7 @@ function renderManager(d){
       <div><b>${mgP1(d.p_draw)}</b><div class="muted">平局</div></div>
       <div><b style="color:#58a6ff">${mgP1(d.p_away)}</b><div class="muted">${A} 胜</div></div>
     </div>
-  </div>`;
+  </div>`+renderLineupBar(d,H,A);
 
   // —— 模块一：球队整体画像 ——
   html+=`<div class="card"><h3 class="mgh">一、球队整体画像</h3>
@@ -1477,7 +1549,8 @@ function renderManager(d){
     </table>
     ${renderAvail(d,H,A)}
     ${d.schedule?`<div class="muted" style="margin-top:8px">📅 赛程：${d.schedule.city||'—'} · 北京 ${d.schedule.kickoff_bj||'—'}${d.schedule.kickoff_local?' / 当地 '+d.schedule.kickoff_local:''}${d.schedule.host?` · <b>${d.schedule.host} 享东道主主场</b>`:''}</div>`:''}
-    <div class="mgnote">⚠️ 定性维度（具体阵型、预计首发、临场轮换、体能细节）引擎不提供，需结合最新战报；以上为可量化的过程数据。</div>
+    <div class="mgnote">⚠️ 临场细节（具体战术 / 轮换 / 体能）引擎不提供；<b>首发名单可经上方「⚡ 拉首发重算」接入</b>（约赛前 1 小时公布）。以上为可量化的过程数据。</div>
+    ${renderLineupCard(d,H,A)}
   </div>`;
 
   // —— 模块二：关键对位与弱点 ——
@@ -1505,7 +1578,7 @@ function renderManager(d){
   // —— 模块四：盘口、比分与结论 ——
   const a=mk.asian, jc=mk.jc_handicap, favName=mk.fav_is_home?H:A;
   const hftRows=d.half_full.ranked.map(([k,p])=>`<tr><td>${k}</td><td>${mgP1(p)}</td></tr>`).join('');
-  html+=`<div class="card"><h3 class="mgh">四、盘口走势、比分预测与结论</h3>
+  html+=`<div class="card"><h3 class="mgh">四、盘口推导（大小球 / 亚盘 / 竞彩）</h3>
 
     <div class="mgsub">大小球 / 进球数</div>
     <table class="mgt">
@@ -1535,7 +1608,10 @@ function renderManager(d){
       <tr><td>概率</td><td>${mgP1(jc.win)}</td><td>${mgP1(jc.draw)}</td><td>${mgP1(jc.lose)}</td></tr>
     </table>
     <div class="muted" style="margin:6px 0">竞彩让球主判断：<b>${jc.verdict}</b>（最高概率项）。低比分剧本下「让负/让平」需重点防范强队穿盘不足。</div>
+  </div>`;
 
+  // —— 模块五：比分预测与最终倾向（从臃肿的模块四拆出，降密度）——
+  html+=`<div class="card"><h3 class="mgh">五、比分预测与最终倾向</h3>
     <div class="mgsub">最可能比分 Top 3</div>
     <table class="mgt"><tr><th>类型</th><th>比分</th><th>概率</th></tr>
       ${mk.top_scores.slice(0,3).map((s,i)=>`<tr><td>${['首选','备选1','备选2'][i]}</td><td>${H} ${s.h}–${s.a} ${A}</td><td>${mgP1(s.p)}</td></tr>`).join('')}
@@ -1583,6 +1659,47 @@ function renderAvail(d,H,A){
     }
   }
   return parts.length?parts.join(''):'<div class="muted" style="margin-top:6px">🩹 伤停：当前可用性数据无双方关键缺阵记录（或数据未录入）。</div>';
+}
+
+// 首发名单：头部「赛前(纯模型) vs 首发确认」对比条
+function renderLineupBar(d,H,A){
+  const L=d.lineup; if(!L) return '';
+  if(!L.available){
+    return `<div class="card" style="border-color:#d2992255;background:#1c1708"><div class="muted">⚡ <b>首发尚未公布</b>（通常赛前约 1 小时出），当前为赛前估计口径；完赛后亦可补算对比。</div></div>`;
+  }
+  const c=L.compare, dp=(c.post.p_home-c.pre.p_home)*100;
+  return `<div class="card" style="border-color:#1f6feb66;background:#0d1b2e">
+    <div class="mgsub" style="color:#58a6ff">⚡ 球员数据加入前后对比 <span class="muted">· 首发已确认（来源 ESPN）</span></div>
+    <table class="mgt">
+      <tr><th>口径</th><th>${H} 胜</th><th>平</th><th>${A} 胜</th></tr>
+      <tr><td>赛前（纯模型基线）</td><td>${mgP1(c.pre.p_home)}</td><td>${mgP1(c.pre.p_draw)}</td><td>${mgP1(c.pre.p_away)}</td></tr>
+      <tr style="color:#58a6ff;font-weight:700"><td>首发确认后</td><td>${mgP1(c.post.p_home)}</td><td>${mgP1(c.post.p_draw)}</td><td>${mgP1(c.post.p_away)}</td></tr>
+    </table>
+    <div class="muted" style="margin-top:6px">本报告下方所有数字已采用<b>首发确认版</b>。${H} 胜 ${dp>=0?'+':''}${dp.toFixed(1)}pp（球员数据净影响）。</div>
+  </div>`;
+}
+
+// 阵容与可用性：登记关键人逐人首发状态 + 覆盖度诚实标注
+function renderLineupCard(d,H,A){
+  const L=d.lineup;
+  if(!L) return renderAvail(d,H,A);                       // 未拉首发 → 沿用赛前伤停展示
+  if(!L.available){
+    return `<div class="muted" style="margin-top:6px">🩹 首发未公布，以下为赛前伤停估计：</div>${renderAvail(d,H,A)}`;
+  }
+  const sFix={started:['首发出场','#2ea043'],bench:['替补席','#d29922'],absent:['缺阵','#f85149'],unknown:['未知','#8b949e']};
+  const teamRow=(side,name)=>{
+    const t=L.teams[side]; if(!t) return '';
+    const players=t.players||[];
+    const pl=players.length? players.map(p=>{const f=sFix[p.lineup_status]||sFix.unknown;
+      return `<span style="display:inline-block;margin:2px 10px 2px 0"><b style="color:${f[1]}">●</b> ${p.player} <span class="muted">${p.tier}/${p.role}</span> <b style="color:${f[1]}">${f[0]}</b></span>`;}).join('')
+      : '<span class="muted">该队未登记关键人，无缺阵探测</span>';
+    return `<tr><td>${name} <span class="muted">${t.formation||'—'}</span></td><td>${pl}</td></tr>`;
+  };
+  return `<div class="muted" style="margin-top:10px">🧩 <b>阵容与可用性</b>（首发已确认 · 来源 ESPN）：仅核对<b>已登记关键人</b>是否首发触发档位惩罚，不做球员级精算；未登记球员的缺阵不在覆盖范围内（诚实边界）。</div>
+    <table class="mgt" style="margin-top:6px">
+      <tr><th>球队（阵型）</th><th>登记关键人首发状态</th></tr>
+      ${teamRow('home',H)}${teamRow('away',A)}
+    </table>`;
 }
 
 // 深链：#bracket / #champ / #manager 直达对应 tab（便于分享与截图）；无 hash 时默认进赛事看板

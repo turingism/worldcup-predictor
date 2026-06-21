@@ -270,7 +270,8 @@ class DixonColesModel:
         raise KeyError(f"未找到球队 '{name}'（不在训练集中，可能样本过少或拼写不同）。")
 
     # ---------- 预测 ----------
-    def expected_goals(self, home: str, away: str, neutral: bool = True, env_mult=None):
+    def expected_goals(self, home: str, away: str, neutral: bool = True, env_mult=None,
+                       avail_override=None):
         # log λ_主 = 截距 + 主场优势 + 进攻[主] + 失球[客]
         # defence 系数为负 = 防守好（对手进球少）
         h = self.resolve(home); a = self.resolve(away)
@@ -282,7 +283,14 @@ class DixonColesModel:
         lam_h = np.exp(self.intercept + ha + self.attack[h] + self.defence[a] + self.elo_coef * ed)
         lam_a = np.exp(self.intercept + self.attack[a] + self.defence[h] + self.elo_coef * (-ed))
         # 可用性上下文层：自家进攻乘子 × 对手失球(def_pen)乘子。空 dict 时全 1.0 零影响。
-        if self.avail_att or self.avail_def:
+        # avail_override（per-match，如实时首发）优先：非 None 时**只用它**、不叠加全局静态种子；
+        #   传 {} 即强制纯 DC 基线（零可用性）。None 时沿用全局 set_availability（现有行为）。
+        if avail_override is not None:
+            aa = {t: v[0] for t, v in avail_override.items()}
+            ad = {t: v[1] for t, v in avail_override.items()}
+            lam_h *= aa.get(h, 1.0) * ad.get(a, 1.0)
+            lam_a *= aa.get(a, 1.0) * ad.get(h, 1.0)
+        elif self.avail_att or self.avail_def:
             lam_h *= self.avail_att.get(h, 1.0) * self.avail_def.get(a, 1.0)
             lam_a *= self.avail_att.get(a, 1.0) * self.avail_def.get(h, 1.0)
         # 环境上下文层：env_mult=(mult_主, mult_客)，海拔/高温对各自进攻 λ 的乘子（None=无）。
@@ -300,8 +308,9 @@ class DixonColesModel:
             return nbinom.pmf(ks, n, n / (n + lam))
         return poisson.pmf(ks, lam)
 
-    def score_matrix(self, home: str, away: str, neutral: bool = True, env_mult=None):
-        h, a, lam_h, lam_a = self.expected_goals(home, away, neutral, env_mult)
+    def score_matrix(self, home: str, away: str, neutral: bool = True, env_mult=None,
+                     avail_override=None):
+        h, a, lam_h, lam_a = self.expected_goals(home, away, neutral, env_mult, avail_override)
         ph = self._goal_pmf(lam_h)
         pa = self._goal_pmf(lam_a)
         M = np.outer(ph, pa)
@@ -314,8 +323,9 @@ class DixonColesModel:
         M /= M.sum()  # 截断 + 修正后重新归一化
         return h, a, lam_h, lam_a, M
 
-    def predict(self, home: str, away: str, neutral: bool = True, env_mult=None):
-        h, a, lam_h, lam_a, M = self.score_matrix(home, away, neutral, env_mult)
+    def predict(self, home: str, away: str, neutral: bool = True, env_mult=None,
+                avail_override=None):
+        h, a, lam_h, lam_a, M = self.score_matrix(home, away, neutral, env_mult, avail_override)
         p_home = np.tril(M, -1).sum()   # 主队进球 > 客队
         p_draw = np.trace(M)
         p_away = np.triu(M, 1).sum()
