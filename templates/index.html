@@ -92,6 +92,10 @@
   .mgt th{text-align:left;color:var(--mut);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);background:var(--panel2)}
   .mgt td{padding:6px 8px;border-bottom:1px solid var(--line)}
   .mgt tr:last-child td{border-bottom:none}
+  /* 对阵分析报告：统一表格列宽，标签列固定对齐，消除跨卡锯齿感 */
+  #mgres .mgt{table-layout:fixed}
+  #mgres .mgt th:first-child,#mgres .mgt td:first-child{width:36%}
+  #mgres .mgt th,#mgres .mgt td{overflow:hidden;text-overflow:ellipsis}
   .xxmt{table-layout:fixed}
   .xxmt th,.xxmt td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .mgnote{font-size:11.5px;color:var(--mut);background:#1c2230;border-left:3px solid #d29922;
@@ -1545,7 +1549,7 @@ function renderManager(d){
   // —— 模块四：盘口、比分与结论 ——
   const a=mk.asian, jc=mk.jc_handicap, favName=mk.fav_is_home?H:A;
   const hftRows=d.half_full.ranked.map(([k,p])=>`<tr><td>${k}</td><td>${mgP1(p)}</td></tr>`).join('');
-  html+=`<div class="card"><h3 class="mgh">四、盘口走势、比分预测与结论</h3>
+  html+=`<div class="card"><h3 class="mgh">四、盘口推导（大小球 / 亚盘 / 竞彩）</h3>
 
     <div class="mgsub">大小球 / 进球数</div>
     <table class="mgt">
@@ -1575,7 +1579,10 @@ function renderManager(d){
       <tr><td>概率</td><td>${mgP1(jc.win)}</td><td>${mgP1(jc.draw)}</td><td>${mgP1(jc.lose)}</td></tr>
     </table>
     <div class="muted" style="margin:6px 0">竞彩让球主判断：<b>${jc.verdict}</b>（最高概率项）。低比分剧本下「让负/让平」需重点防范强队穿盘不足。</div>
+  </div>`;
 
+  // —— 模块五：比分预测与最终倾向（从臃肿的模块四拆出，降密度）——
+  html+=`<div class="card"><h3 class="mgh">五、比分预测与最终倾向</h3>
     <div class="mgsub">最可能比分 Top 3</div>
     <table class="mgt"><tr><th>类型</th><th>比分</th><th>概率</th></tr>
       ${mk.top_scores.slice(0,3).map((s,i)=>`<tr><td>${['首选','备选1','备选2'][i]}</td><td>${H} ${s.h}–${s.a} ${A}</td><td>${mgP1(s.p)}</td></tr>`).join('')}
