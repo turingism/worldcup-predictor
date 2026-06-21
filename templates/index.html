@@ -96,6 +96,8 @@
   #mgres .mgt{table-layout:fixed}
   #mgres .mgt th:first-child,#mgres .mgt td:first-child{width:36%}
   #mgres .mgt th,#mgres .mgt td{overflow:hidden;text-overflow:ellipsis}
+  #mgledger .mgt{table-layout:fixed}
+  #mgledger .mgt th:first-child,#mgledger .mgt td:first-child{width:42%}
   .xxmt{table-layout:fixed}
   .xxmt th,.xxmt td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .mgnote{font-size:11.5px;color:var(--mut);background:#1c2230;border-left:3px solid #d29922;
@@ -357,6 +359,7 @@
   <datalist id="teams"></datalist>
   <section id="manager" style="display:none">
     <div id="mgfixtures"></div>
+    <div id="mgledger"></div>
     <div class="card">
       <div class="row">
         <div class="fld">
@@ -1340,7 +1343,7 @@ function renderFixtures(d){
   const today=(d.now||'').slice(0,10), byDay={};
   fx.forEach(f=>{(byDay[f.date]=byDay[f.date]||[]).push(f);});
   const lab=dt=>{const diff=Math.round((new Date(dt)-new Date(today))/864e5);return diff<=0?'今天':(diff===1?'明天':(diff===2?'后天':dt));};
-  let html='<div class="card"><div class="mgsub">📅 近期对战 · 点任意场次自动填表并生成报告</div>';
+  let html='<div class="card"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="mgsub" style="margin:0">📅 近期对战 · 点任意场次自动填表并生成报告</div><button onclick="loadLineupLedger()" title="对已完赛、登记关键人确认缺阵的场次，补算 纯模型 vs 首发确认版 的预测，用真实赛果检验首发数据有没有让预测更准" style="margin-left:auto;padding:6px 12px;border:1px solid #2ea04366;background:#0d1f14;color:#3fb950;border-radius:7px;cursor:pointer;font-size:12px">📊 首发增益记分卡</button></div>';
   Object.keys(byDay).sort().slice(0,3).forEach(day=>{
     html+=`<div class="muted" style="margin:10px 0 5px;font-weight:600">${lab(day)} <span style="font-weight:400">${day}</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px">`;
@@ -1361,6 +1364,32 @@ function mgPick(el){
   if($('#mg_neutral')) $('#mg_neutral').checked=true;
   loadManager();
   setTimeout(()=>{const r=$('#mgres'); if(r&&r.scrollIntoView) r.scrollIntoView({behavior:'smooth',block:'start'});},80);
+}
+
+// 首发增益记分卡（opt-in，按钮触发——拉多场 ESPN 首发较慢，不自动加载）。
+async function loadLineupLedger(){
+  const box=$('#mgledger'); if(!box) return;
+  box.innerHTML='<div class="card spin">📊 拉取近期完赛首发、补算「纯模型 vs 首发版」对比中…（约 10 秒）</div>';
+  let d; try{ d=await (await fetch('/api/lineup_ledger')).json(); }
+  catch(e){ box.innerHTML='<div class="card err">✗ 记分卡加载失败</div>'; return; }
+  if(d.error){ box.innerHTML=`<div class="card err">✗ ${d.error}</div>`; return; }
+  box.innerHTML=renderLineupLedger(d);
+}
+function renderLineupLedger(d){
+  if(!d.n){ return `<div class="card muted">📊 首发增益记分卡：近 ${d.days_back||12} 天扫描 ${d.scanned||0} 场完赛，暂无「登记关键人确认缺阵」的场次（${d.skipped_no_mods||0} 场无登记缺阵）。在 availability.json 登记更多关键人可增加样本。</div>`; }
+  const imp=d.rps_improve, better=imp>0;
+  const rows=d.rows.map(r=>`<tr><td>${r.home} ${r.actual} ${r.away}</td><td>${(r.pre_home*100).toFixed(0)}%→${(r.post_home*100).toFixed(0)}%</td><td style="color:${r.rps_delta<0?'#3fb950':'#f85149'}">${r.rps_delta>=0?'+':''}${r.rps_delta.toFixed(4)}</td><td class="muted" style="font-size:11px">${r.absentees.join('、')||'—'}</td></tr>`).join('');
+  return `<div class="card">
+    <div class="mgsub">📊 首发增益记分卡 <span class="muted">· 完赛场「纯模型 vs 首发确认版」对真实赛果</span></div>
+    <table class="mgt mgledgert">
+      <tr><th>口径</th><th>平均 RPS（越低越好）</th><th>赛果命中</th></tr>
+      <tr><td>纯模型基线</td><td>${d.pre.rps}</td><td>${(d.pre.hit*100).toFixed(0)}%</td></tr>
+      <tr style="font-weight:700;color:#58a6ff"><td>首发确认版</td><td>${d.post.rps}</td><td>${(d.post.hit*100).toFixed(0)}%</td></tr>
+    </table>
+    <div class="mgnote" style="border-color:${better?'#2ea043':'#d29922'}">RPS ${better?'改善':'变化'} ${imp>=0?'+':''}${imp.toFixed(4)}（&gt;0 = 首发版更准）。<b>n=${d.n} 场，样本极小，仅供观察、不能下结论</b>——只有登记关键人确认缺阵的场次才计入对比。诚实口径：用赛前 1h 公布的首发事实、不偷看赛果。</div>
+    <div class="mgsub" style="margin-top:12px">逐场</div>
+    <table class="mgt mgledgert"><tr><th>对阵 · 实际</th><th>主胜 前→后</th><th>RPSΔ</th><th>缺阵</th></tr>${rows}</table>
+  </div>`;
 }
 
 // 玄学占卜擂台（独立 tab）：自动赛程 + 7 法占卜 + 逐体系命中率排行。趣味/文化实验，无科学依据。

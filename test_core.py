@@ -281,3 +281,49 @@ def test_api_xuanxue_board_ok(client):
     for r in d["leaderboard"]:                  # 命中数不可超过场次
         assert 0 <= r["outcome_hits"] <= r["n"]
         assert 0 <= r["exact_hits"] <= r["n"]
+
+
+# ---------- 首发名单层（lineups / 增益记分卡 / avail_override） ----------
+def test_avail_override_identity_and_effect(model):
+    """avail_override=None 与不传逐位恒等（零影响现有路径）；缺阵乘子降低强队主胜。"""
+    r0 = model.predict("Brazil", "Haiti", neutral=True)
+    rn = model.predict("Brazil", "Haiti", neutral=True, avail_override=None)
+    assert abs(r0["p_home"] - rn["p_home"]) < 1e-12
+    re = model.predict("Brazil", "Haiti", neutral=True, avail_override={})  # 强制纯 DC
+    assert abs(re["p_home"] + re["p_draw"] + re["p_away"] - 1.0) < 1e-9
+    rm = model.predict("Brazil", "Haiti", neutral=True, avail_override={"Brazil": (0.85, 1.15)})
+    assert rm["p_home"] < re["p_home"]          # 削巴西进攻 → 主胜下降
+
+
+def test_lineups_norm_and_classify():
+    import lineups
+    assert lineups._norm("Frenkie de Jong") == "frenkiedejong"
+    assert lineups._norm("Müller") == "muller"            # 去重音
+    lt = {"confirmed": True, "starters": [lineups._norm("Jamal Musiala")],
+          "bench": [lineups._norm("Florian Wirtz")]}
+    assert lineups._classify("Musiala", lt)[0] == "started"   # 姓匹配首发
+    assert lineups._classify("Wirtz", lt)[0] == "bench"
+    assert lineups._classify("Rodrygo", lt)[0] == "absent"    # 不在名单 → 确认缺阵
+    assert lineups._classify("X", {"confirmed": False})[0] == "unknown"  # 未公布 → 降级
+
+
+def test_lineups_detect_team_overrides_prob():
+    import lineups
+    items = [{"player": "Rodrygo", "tier": "key", "role": "attack",
+              "status": "doubtful", "prob": 0.3}]
+    new, status = lineups.detect_team("Brazil", items, {"confirmed": True, "starters": [], "bench": []})
+    assert new[0]["prob"] == 1.0 and new[0]["status"] == "out"   # 首发确认缺阵覆盖赛前 doubtful
+    assert status[0]["lineup_status"] == "absent"
+
+
+def test_lineup_ledger_rps_matches_backtest():
+    import lineup_ledger, backtest
+    assert lineup_ledger._rps(1.0, 0.0, 0.0, 0) == 0.0          # 完美预测主胜
+    assert abs(lineup_ledger._rps(0.5, 0.3, 0.2, 1) - backtest._rps(0.5, 0.3, 0.2, 1)) < 1e-12
+
+
+def test_api_fixtures_ok(client):
+    d = client.get("/api/fixtures").get_json()
+    assert "fixtures" in d and isinstance(d["fixtures"], list)
+    for f in d["fixtures"]:
+        assert {"home_en", "away_en", "home", "away", "kickoff"} <= set(f)
