@@ -357,6 +357,29 @@ def api_lineup_ledger():
         return jsonify({"error": f"记分卡生成失败：{e}"}), 500
 
 
+@app.route("/api/fixtures")
+def api_fixtures():
+    """近期未开赛对阵（对阵分析「明日对战看板」点击填表用）。纯赛程、不拉 live，秒回。"""
+    now = verifymod._now_bj()
+    played = datamod.played(DF)
+    played_pairs = {frozenset((str(r["home_team"]), str(r["away_team"])))
+                    for _, r in played.iterrows()}
+    fx = []
+    for (h, a), ko in schedule.GROUP.items():
+        if not ko or ko <= now or frozenset((h, a)) in played_pairs:
+            continue
+        gv = schedule.group_venue(h, a)
+        host = schedule.group_match_host(h, a)
+        fx.append({"home_en": h, "away_en": a,
+                   "home": teams_zh.disp(h), "away": teams_zh.disp(a),
+                   "kickoff": ko, "date": ko[:10],
+                   "city": gv.get("city") if gv else None,
+                   "local": gv.get("local") if gv else None,
+                   "host": teams_zh.disp(host) if host else None})
+    fx.sort(key=lambda x: x["kickoff"])
+    return jsonify({"fixtures": fx, "now": now})
+
+
 @app.route("/api/xuanxue")
 def api_xuanxue():
     """玄学占卜对照（趣味/文化彩蛋）：7 套传统术数各出一个比分 + 玄学共识。

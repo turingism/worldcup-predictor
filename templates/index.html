@@ -352,6 +352,7 @@
   <!-- 对阵分析（原「足球经理人」深度报告，已并入「单场预测」的比分矩阵热力图）-->
   <datalist id="teams"></datalist>
   <section id="manager" style="display:none">
+    <div id="mgfixtures"></div>
     <div class="card">
       <div class="row">
         <div class="fld">
@@ -520,7 +521,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   ['manager','bracket','champ','verify','market','xuanxue'].forEach(s=>{
     $('#'+s).style.display = t.dataset.t===s?'block':'none';
   });
-  if(t.dataset.t==='manager' && !managerLoaded){ managerLoaded=true; loadManager(); }
+  if(t.dataset.t==='manager' && !managerLoaded){ managerLoaded=true; loadFixtures(); }
   if(t.dataset.t==='xuanxue' && !xuanxueLoaded){ xuanxueLoaded=true; loadXuanxue(); }
   if(t.dataset.t==='bracket'){
     if(!bracketLoaded){ bracketLoaded=true; loadSavedOV().then(loadProjection); }
@@ -1319,6 +1320,43 @@ async function loadManager(lineup){
   catch(e){ $('#mgres').innerHTML=`<div class="card err">✗ 请求失败：${e}</div>`; return; }
   if(d.error){ $('#mgres').innerHTML=`<div class="card err">✗ ${d.error}</div>`; return; }
   $('#mgres').innerHTML=renderManager(d);
+}
+
+// 明日对战看板：列近期未开赛对阵，点任意场次自动按主/客填表并生成报告。
+async function loadFixtures(){
+  const box=$('#mgfixtures'); if(!box) return;
+  box.innerHTML='<div class="card spin">加载近期对战…</div>';
+  $('#mgres').innerHTML='<div class="card muted">👆 点击上方任意对战，或在表单输入两队后点「生成报告」。</div>';
+  let d; try{ d=await (await fetch('/api/fixtures')).json(); }catch(e){ box.innerHTML=''; return; }
+  box.innerHTML=renderFixtures(d);
+}
+function renderFixtures(d){
+  const fx=(d&&d.fixtures)||[];
+  if(!fx.length) return '<div class="card muted">📅 近期暂无未开赛的小组赛对阵（可能都已开打）。直接在下方输入两队分析。</div>';
+  const today=(d.now||'').slice(0,10), byDay={};
+  fx.forEach(f=>{(byDay[f.date]=byDay[f.date]||[]).push(f);});
+  const lab=dt=>{const diff=Math.round((new Date(dt)-new Date(today))/864e5);return diff<=0?'今天':(diff===1?'明天':(diff===2?'后天':dt));};
+  let html='<div class="card"><div class="mgsub">📅 近期对战 · 点任意场次自动填表并生成报告</div>';
+  Object.keys(byDay).sort().slice(0,3).forEach(day=>{
+    html+=`<div class="muted" style="margin:10px 0 5px;font-weight:600">${lab(day)} <span style="font-weight:400">${day}</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px">`;
+    byDay[day].forEach(f=>{
+      const t=(f.kickoff||'').slice(11);
+      html+=`<div onclick="mgPick(this)" data-h="${f.home}" data-a="${f.away}" style="border:1px solid #30363d;border-radius:8px;padding:9px 12px;cursor:pointer;background:#161b22;transition:border-color .15s" onmouseover="this.style.borderColor='#1f6feb'" onmouseout="this.style.borderColor='#30363d'">
+        <div style="font-weight:600;margin-bottom:3px">${f.home} <span style="color:#8b949e;font-weight:400">vs</span> ${f.away}</div>
+        <div class="muted" style="font-size:11px">🕐 ${t} 北京${f.city?' · '+f.city:''}${f.host?' · '+f.host+'主场':''}</div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  return html+'</div>';
+}
+function mgPick(el){
+  $('#mg_home').value=el.getAttribute('data-h');
+  $('#mg_away').value=el.getAttribute('data-a');
+  if($('#mg_neutral')) $('#mg_neutral').checked=true;
+  loadManager();
+  setTimeout(()=>{const r=$('#mgres'); if(r&&r.scrollIntoView) r.scrollIntoView({behavior:'smooth',block:'start'});},80);
 }
 
 // 玄学占卜擂台（独立 tab）：自动赛程 + 7 法占卜 + 逐体系命中率排行。趣味/文化实验，无科学依据。
