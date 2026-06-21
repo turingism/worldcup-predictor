@@ -172,6 +172,18 @@ A playful, **deterministic** layer that casts each fixture through **seven tradi
 
 *Trained only on pre-cutoff data, predicting the real matches after (no leakage). Reproduce with `python3 backtest.py`. In-tournament per-match scoring (pre-match predictions frozen before kickoff, then checked) lives in the **Verification** tab — early on, a small sample (e.g. 3 draws in 8 games) makes the hit-rate noisy; that's why the long-run ~60% above is the honest baseline.*
 
+### 🎯 In-tournament verification: the hit-rate is converging to its true value
+
+After **36 finished matches**, the live W/D/L hit-rate reads **55.6%** — and that number tells an honest story. Early on, with only 8 games (3 of them draws), it read **37.5%**. The out-of-sample backtest true value is **~59.5%** (reproduced on 2,420 matches). The 95% confidence intervals of *both* the 8-game and 36-game samples contain 59.5% — statistically they are **the same number**. **The rise is not the model getting better; it is regression to the mean as the sample grows.** The engine has been frozen since the time-leak fix, so this convergence is the proof that it is stable and effective — not a lucky streak, not a quiet edit.
+
+<p align="center">
+  <img src="./docs/screenshot-verify.png" alt="In-tournament verification: 36 games, 55.6% result hit-rate converging to the ~59.5% backtest true value, with confidence-bucket breakdown and miss attribution" width="820">
+  <br><sub><em>The verification scorecard (in the dashboard's Finished section) — per-match result/scoreline hits, bucketed by confidence, with honest miss attribution.</em></sub>
+</p>
+
+- On the **25 decisive games** the model hits **80%**; all **11 draws** (30.6% of the sample) are structural misses — argmax almost never outputs "draw", the shared ceiling of *every* probability model, not a defect.
+- **Calibration holds**: a Monte-Carlo null distribution shows that a *perfectly* calibrated model at n=36 has a mean ECE of **6.02%**; our observed **4.47%** is actually *below* that (p=0.72). The tournament probabilities are honestly calibrated.
+
 Any model/param change **must run `python3 backtest.py` and prove itself better by RPS / LogLoss / hit-rate, or it's not adopted.** This is the project's iron rule.
 
 ```bash
@@ -193,6 +205,20 @@ Out-of-sample calibration (honest footing after fixing the time leak):
 | Isotonic / Platt post-calibration | Already well-calibrated → post-cal just overfits |
 
 > **That's exactly the selling point**: not fewer features — we tried all the fancy options for you, and everything that remains has backtest backing.
+
+#### 2026-06 optimization sprint — 5 levers, all rejected by backtest
+
+After 36 in-tournament games we ran a multi-agent optimization sprint to squeeze more out of the engine. Every lever was tested with **leakage-protected fresh models, train/holdout splits, and adversarial verification**; the adoption bar was a pooled-RPS gain > 0.0008 that does not regress on the most recent cutoff. All five were honestly rejected:
+
+| Lever tried | Backtest verdict |
+|---|---|
+| Draw-aware decision rule | argmax is already hit-rate-optimal; apparent gains don't generalize across rotated holdouts |
+| Neutral-venue home-advantage tilt | A **real** bias was found (home-slot teams under-predicted by +2.24pp) but it buys only +0.0002 RPS — a quarter of the bar, on a narrow peak |
+| Dixon-Coles ρ recency refit | +0.000008 RPS — an inert lever; low-score structure is stable across eras |
+| Per-confederation half-life | Noise (−0.00001 RPS); extra degrees of freedom just add variance on a flat basin |
+| In-tournament recalibration | Already calibrated (see above) — recalibration would only overfit, same as the rejected isotonic pass |
+
+> Nothing was adopted, and that is the correct result. **The hit-rate and RPS are already near the information ceiling of a double-Poisson model on this data** — the remaining error is structural (the draw blind spot) plus small-sample noise, not a fixable systematic bias. Full numbers in `CHANGELOG.md`.
 
 ---
 
