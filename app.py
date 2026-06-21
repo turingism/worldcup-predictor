@@ -33,6 +33,7 @@ import espn_odds as oddsmod
 import inplay as inplaymod
 import live as livemod
 import manager as managermod
+import lineups as lineupsmod
 import market
 import schedule
 import teams_zh
@@ -316,8 +317,16 @@ def api_manager():
     home = request.args.get("home", "").strip()
     away = request.args.get("away", "").strip()
     neutral = request.args.get("neutral", "1") not in ("0", "false", "False")
+    # ?lineup=1：赛前 1h（或完赛后）拉真实首发做缺阵探测；拉不到则降级（available=False）。
+    lineup = None
+    if request.args.get("lineup") in ("1", "true", "True"):
+        try:
+            h_en = MODEL.resolve(home); a_en = MODEL.resolve(away)
+            lineup = lineupsmod.match_availability(h_en, a_en)
+        except Exception as e:  # noqa  拉取失败不让报告 500，降级到无首发
+            lineup = {"available": False, "reason": f"fetch_failed:{e}"}
     try:
-        r = managermod.build_report(MODEL, DF, home, away, neutral=neutral, elo=_ELO)
+        r = managermod.build_report(MODEL, DF, home, away, neutral=neutral, elo=_ELO, lineup=lineup)
     except KeyError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:  # noqa  组装层任何意外都不应 500 整页

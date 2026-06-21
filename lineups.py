@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 import json
+import datetime as dt
 import unicodedata
 import urllib.request
 
@@ -59,8 +60,14 @@ def _espn_to_team(name: str) -> str:
 
 
 def find_event(home_en: str, away_en: str, dates: str | None = None):
-    """在 ESPN scoreboard 里按队名找 event id（顺序无关）。dates=YYYYMMDD 限定日期窗。"""
-    url = f"{ESPN_BASE}/scoreboard" + (f"?dates={dates}" if dates else "")
+    """在 ESPN scoreboard 里按队名找 event id（顺序无关）。dates=YYYYMMDD 或区间 A-B。
+    默认扫描「今天 −3 ~ +2 天」窗口，覆盖即将开赛与最近完赛（用于完赛后补算）。"""
+    if dates is None:
+        today = dt.date.today()
+        lo = (today - dt.timedelta(days=3)).strftime("%Y%m%d")
+        hi = (today + dt.timedelta(days=2)).strftime("%Y%m%d")
+        dates = f"{lo}-{hi}"
+    url = f"{ESPN_BASE}/scoreboard?dates={dates}"
     sb = _fetch_json(url)
     want = {home_en, away_en}
     for e in sb.get("events", []):

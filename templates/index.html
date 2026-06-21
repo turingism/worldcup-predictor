@@ -366,6 +366,7 @@
             onfocus="teamFocus(this)" onblur="teamBlur(this)">
         </div>
         <button class="go" onclick="loadManager()">生成报告</button>
+        <button type="button" onclick="loadManager(1)" title="拉取真实首发（约赛前 1 小时公布）并按确认阵容重算，对比球员数据加入前后变化" style="padding:9px 14px;border:1px solid #1f6feb66;background:#0d1b2e;color:#58a6ff;border-radius:8px;cursor:pointer;font-weight:600">⚡ 拉首发重算</button>
       </div>
       <label class="chk"><input type="checkbox" id="mg_neutral" checked> 中立场（世界杯默认勾选；取消则第一支为主队）</label>
       <div class="muted" style="margin-top:6px">
@@ -1310,11 +1311,11 @@ function resChip(r){ const c={W:'#2ea043',D:'#8b949e',L:'#f85149'}[r]||'#8b949e'
   return `<span style="display:inline-block;width:18px;height:18px;line-height:18px;text-align:center;border-radius:4px;background:${c};color:#fff;font-size:11px;font-weight:700;margin-right:2px">${r}</span>`; }
 function confColor(l){ return {'高':'#2ea043','中':'#d29922','低':'#8b949e'}[l]||'#8b949e'; }
 
-async function loadManager(){
+async function loadManager(lineup){
   const home=$('#mg_home').value, away=$('#mg_away').value, neutral=$('#mg_neutral').checked?1:0;
-  $('#mgres').innerHTML='<div class="card spin">正在获取过程数据、运行算法模型并生成报告…</div>';
+  $('#mgres').innerHTML='<div class="card spin">'+(lineup?'⚡ 拉取真实首发名单、按确认阵容重算…':'正在获取过程数据、运行算法模型并生成报告…')+'</div>';
   let d;
-  try{ d=await (await fetch(`/api/manager?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&neutral=${neutral}`)).json(); }
+  try{ d=await (await fetch(`/api/manager?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&neutral=${neutral}${lineup?'&lineup=1':''}`)).json(); }
   catch(e){ $('#mgres').innerHTML=`<div class="card err">✗ 请求失败：${e}</div>`; return; }
   if(d.error){ $('#mgres').innerHTML=`<div class="card err">✗ ${d.error}</div>`; return; }
   $('#mgres').innerHTML=renderManager(d);
@@ -1455,7 +1456,7 @@ function renderManager(d){
       <div><b>${mgP1(d.p_draw)}</b><div class="muted">平局</div></div>
       <div><b style="color:#58a6ff">${mgP1(d.p_away)}</b><div class="muted">${A} 胜</div></div>
     </div>
-  </div>`;
+  </div>`+renderLineupBar(d,H,A);
 
   // —— 模块一：球队整体画像 ——
   html+=`<div class="card"><h3 class="mgh">一、球队整体画像</h3>
@@ -1477,7 +1478,8 @@ function renderManager(d){
     </table>
     ${renderAvail(d,H,A)}
     ${d.schedule?`<div class="muted" style="margin-top:8px">📅 赛程：${d.schedule.city||'—'} · 北京 ${d.schedule.kickoff_bj||'—'}${d.schedule.kickoff_local?' / 当地 '+d.schedule.kickoff_local:''}${d.schedule.host?` · <b>${d.schedule.host} 享东道主主场</b>`:''}</div>`:''}
-    <div class="mgnote">⚠️ 定性维度（具体阵型、预计首发、临场轮换、体能细节）引擎不提供，需结合最新战报；以上为可量化的过程数据。</div>
+    <div class="mgnote">⚠️ 临场细节（具体战术 / 轮换 / 体能）引擎不提供；<b>首发名单可经上方「⚡ 拉首发重算」接入</b>（约赛前 1 小时公布）。以上为可量化的过程数据。</div>
+    ${renderLineupCard(d,H,A)}
   </div>`;
 
   // —— 模块二：关键对位与弱点 ——
@@ -1583,6 +1585,47 @@ function renderAvail(d,H,A){
     }
   }
   return parts.length?parts.join(''):'<div class="muted" style="margin-top:6px">🩹 伤停：当前可用性数据无双方关键缺阵记录（或数据未录入）。</div>';
+}
+
+// 首发名单：头部「赛前(纯模型) vs 首发确认」对比条
+function renderLineupBar(d,H,A){
+  const L=d.lineup; if(!L) return '';
+  if(!L.available){
+    return `<div class="card" style="border-color:#d2992255;background:#1c1708"><div class="muted">⚡ <b>首发尚未公布</b>（通常赛前约 1 小时出），当前为赛前估计口径；完赛后亦可补算对比。</div></div>`;
+  }
+  const c=L.compare, dp=(c.post.p_home-c.pre.p_home)*100;
+  return `<div class="card" style="border-color:#1f6feb66;background:#0d1b2e">
+    <div class="mgsub" style="color:#58a6ff">⚡ 球员数据加入前后对比 <span class="muted">· 首发已确认（来源 ESPN）</span></div>
+    <table class="mgt">
+      <tr><th>口径</th><th>${H} 胜</th><th>平</th><th>${A} 胜</th></tr>
+      <tr><td>赛前（纯模型基线）</td><td>${mgP1(c.pre.p_home)}</td><td>${mgP1(c.pre.p_draw)}</td><td>${mgP1(c.pre.p_away)}</td></tr>
+      <tr style="color:#58a6ff;font-weight:700"><td>首发确认后</td><td>${mgP1(c.post.p_home)}</td><td>${mgP1(c.post.p_draw)}</td><td>${mgP1(c.post.p_away)}</td></tr>
+    </table>
+    <div class="muted" style="margin-top:6px">本报告下方所有数字已采用<b>首发确认版</b>。${H} 胜 ${dp>=0?'+':''}${dp.toFixed(1)}pp（球员数据净影响）。</div>
+  </div>`;
+}
+
+// 阵容与可用性：登记关键人逐人首发状态 + 覆盖度诚实标注
+function renderLineupCard(d,H,A){
+  const L=d.lineup;
+  if(!L) return renderAvail(d,H,A);                       // 未拉首发 → 沿用赛前伤停展示
+  if(!L.available){
+    return `<div class="muted" style="margin-top:6px">🩹 首发未公布，以下为赛前伤停估计：</div>${renderAvail(d,H,A)}`;
+  }
+  const sFix={started:['首发出场','#2ea043'],bench:['替补席','#d29922'],absent:['缺阵','#f85149'],unknown:['未知','#8b949e']};
+  const teamRow=(side,name)=>{
+    const t=L.teams[side]; if(!t) return '';
+    const players=t.players||[];
+    const pl=players.length? players.map(p=>{const f=sFix[p.lineup_status]||sFix.unknown;
+      return `<span style="display:inline-block;margin:2px 10px 2px 0"><b style="color:${f[1]}">●</b> ${p.player} <span class="muted">${p.tier}/${p.role}</span> <b style="color:${f[1]}">${f[0]}</b></span>`;}).join('')
+      : '<span class="muted">该队未登记关键人，无缺阵探测</span>';
+    return `<tr><td>${name} <span class="muted">${t.formation||'—'}</span></td><td>${pl}</td></tr>`;
+  };
+  return `<div class="muted" style="margin-top:10px">🧩 <b>阵容与可用性</b>（首发已确认 · 来源 ESPN）：仅核对<b>已登记关键人</b>是否首发触发档位惩罚，不做球员级精算；未登记球员的缺阵不在覆盖范围内（诚实边界）。</div>
+    <table class="mgt" style="margin-top:6px">
+      <tr><th>球队（阵型）</th><th>登记关键人首发状态</th></tr>
+      ${teamRow('home',H)}${teamRow('away',A)}
+    </table>`;
 }
 
 // 深链：#bracket / #champ / #manager 直达对应 tab（便于分享与截图）；无 hash 时默认进赛事看板

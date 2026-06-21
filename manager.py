@@ -357,11 +357,13 @@ def market_odds(home_en, away_en):
 
 # ───────────────────────── 总装 ─────────────────────────
 
-def build_report(model, df, home, away, neutral=True, elo=None):
+def build_report(model, df, home, away, neutral=True, elo=None, lineup=None):
     """组装完整报告 dict（英文队名内部用，最外层由 app 本地化）。"""
     h_en = model.resolve(home)
     a_en = model.resolve(away)
-    h, a, lam_h, lam_a, M = model.score_matrix(h_en, a_en, neutral=neutral)
+    # 首发名单层：available 时主报告改用首发确认版乘子；否则 None=维持现状（全局口径）。
+    _ov = lineup["mods"] if (lineup and lineup.get("available")) else None
+    h, a, lam_h, lam_a, M = model.score_matrix(h_en, a_en, neutral=neutral, avail_override=_ov)
     p_home = float(np.tril(M, -1).sum())
     p_draw = float(np.trace(M))
     p_away = float(np.triu(M, 1).sum())
@@ -402,6 +404,27 @@ def build_report(model, df, home, away, neutral=True, elo=None):
         "away": "防守偏松（易被针对）" if sa["dfc"] > sh["dfc"] else "防守相对稳固",
     }
 
+    # 首发名单对比块（lineups 传入则附；不传零影响）。available 时主报告已是首发版，
+    # 这里额外算「纯 DC 基线 pre」与之对照，让用户看到球员数据的净影响。
+    lineup_block = None
+    if lineup:
+        if lineup.get("available"):
+            _, _, _, _, M0 = model.score_matrix(h_en, a_en, neutral=neutral, avail_override={})
+            pre = {"p_home": float(np.tril(M0, -1).sum()),
+                   "p_draw": float(np.trace(M0)),
+                   "p_away": float(np.triu(M0, 1).sum())}
+            lineup_block = {
+                "available": True, "state": lineup.get("state"),
+                "teams": lineup.get("teams"), "mods": lineup.get("mods"),
+                "coverage": lineup.get("coverage"),
+                "compare": {"pre": pre,
+                            "post": {"p_home": p_home, "p_draw": p_draw, "p_away": p_away}},
+            }
+        else:
+            lineup_block = {"available": False,
+                            "reason": lineup.get("reason", "lineup_not_published"),
+                            "coverage": lineup.get("coverage")}
+
     return {
         "home": h_en, "away": a_en, "neutral": neutral,
         "xg_home": round(float(lam_h), 3), "xg_away": round(float(lam_a), 3),
@@ -413,7 +436,7 @@ def build_report(model, df, home, away, neutral=True, elo=None):
         "h2h": h2h,
         "matchup": matchup, "weak": weak,
         "markets": mk, "confidence": conf, "half_full": hft,
-        "availability": avail, "schedule": sched, "odds": odds,
+        "availability": avail, "schedule": sched, "odds": odds, "lineup": lineup_block,
         "elo": elo_note,
         "meta": {
             "fh_share": FH_SHARE, "stats_window": STATS_WINDOW,
