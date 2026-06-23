@@ -119,6 +119,52 @@ def api_config():
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
+def _git(*args):
+    """跑一条 git 命令（cwd=项目根），成功返回 stdout(strip)，失败/异常返回 None。"""
+    try:
+        r = subprocess.run(["git", *args], capture_output=True, text=True,
+                           cwd=_BASE_DIR, timeout=20)
+        return r.stdout.strip() if r.returncode == 0 else None
+    except Exception:  # noqa  git 缺失/超时/网络问题
+        return None
+
+
+_VERSION_CACHE = {"t": 0.0, "data": None}
+_VERSION_TTL = 15 * 60   # 仓库更新检查结果缓存 15min（git ls-remote 走网络，避免频繁请求）
+
+
+@app.route("/api/version")
+def api_version():
+    """检测 GitHub 仓库是否有新版本：本地 HEAD vs 远程 main 的 commit。
+    用 git ls-remote（git 协议）而非 GitHub API——避开匿名 API 60/h 限流（见 CLAUDE.md）。
+    结果缓存 15min，?fresh=1 强制重查（手动「立即检查」用）。网络/git 失败时优雅降级 ok=False。"""
+    now = time.time()
+    if not request.args.get("fresh") and _VERSION_CACHE["data"] and \
+            now - _VERSION_CACHE["t"] < _VERSION_TTL:
+        return jsonify(_VERSION_CACHE["data"])
+    local = _git("rev-parse", "HEAD")
+    remote_url = _git("remote", "get-url", "origin") or ""
+    web = remote_url.replace("git@github.com:", "https://github.com/")
+    if web.endswith(".git"):
+        web = web[:-4]
+    _git("fetch", "origin", "main", "--quiet")   # 更新 origin/main 远程跟踪引用（只动 refs，不动工作区）
+    remote = _git("rev-parse", "origin/main")
+    # 落后数＝远程有、本地没有的提交数。只有 behind>0 才算「有新版本可更新」；
+    # 本地领先远程（有未推送的本地提交）不算更新，避免误报。
+    behind = _git("rev-list", "--count", "HEAD..origin/main") if remote else None
+    out = {"checked_at": dt.datetime.now().strftime("%m-%d %H:%M"),
+           "local": (local or "")[:7], "repo_url": web or None}
+    if local and remote and behind is not None:
+        n = int(behind)
+        out.update(ok=True, remote=remote[:7], behind=n, update_available=(n > 0),
+                   compare_url=(f"{web}/compare/{local[:7]}...{remote[:7]}" if web and n > 0 else None))
+    else:
+        out.update(ok=False, remote=None, behind=0, update_available=False)
+    _VERSION_CACHE.update(t=now, data=out)
+    return jsonify(out)
+
+
 # —— 后台任务节流参数（集中定义；节流口径＝"距上次成功完成"，失败不占窗口，见各 worker）——
 _CI_MIN_INTERVAL = 20 * 60      # 夺冠区间(bayes+champ_ci 约 90s)重训触发的最短间隔；定时/手动 force 无视
 _ODDS_MIN_INTERVAL = 15 * 60    # ESPN 赔率快照重训触发的最短间隔；定时器/手动 snap force 无视
