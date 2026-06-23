@@ -22,9 +22,19 @@
     font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif}
   #livestat{flex:1 1 180px;min-width:0}   /* 实时源文案：可伸缩、不靠 min-content 把行撑宽 */
   header{padding:22px 20px;border-bottom:1px solid var(--line);
-    background:linear-gradient(180deg,#11331f,#0d1117)}
+    background:linear-gradient(180deg,#11331f,#0d1117);
+    display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
   header h1{margin:0;font-size:22px;letter-spacing:.5px}
   header p{margin:6px 0 0;color:var(--mut);font-size:13px}
+  /* 右上角：GitHub 仓库更新检测 */
+  .verchk{flex:0 0 auto;font-size:12px;white-space:nowrap;text-align:right}
+  .verchk .vc-mut{color:var(--dim)}
+  .verchk .vc-ok{color:var(--mut);cursor:help}
+  .verchk .vc-new{background:var(--gold);color:#1a1408;border:none;border-radius:7px;
+    padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;
+    animation:vcpulse 2s infinite}
+  @keyframes vcpulse{0%{box-shadow:0 0 0 0 #e3b34166}70%{box-shadow:0 0 0 8px #e3b34100}100%{box-shadow:0 0 0 0 #e3b34100}}
+  .verchk .vc-refresh{margin-left:8px;color:var(--dim);cursor:pointer;font-size:11px;text-decoration:underline}
   .wrap{max-width:1180px;margin:0 auto;padding:20px}
   .xlink a{color:var(--acc);cursor:pointer;text-decoration:none}
   .xlink a:hover{text-decoration:underline}
@@ -380,8 +390,11 @@
 </head>
 <body>
 <header>
-  <h1>⚽ 世界杯比分预测器</h1>
-  <p>Dixon-Coles 双泊松模型 · 1872–2026 真实国际赛数据 · 含东道主主场修正</p>
+  <div>
+    <h1>⚽ 世界杯比分预测器</h1>
+    <p>Dixon-Coles 双泊松模型 · 1872–2026 真实国际赛数据 · 含东道主主场修正</p>
+  </div>
+  <div class="verchk" id="verchk"></div>
 </header>
 
 <div class="wrap">
@@ -1862,6 +1875,37 @@ DataScheduler.register('verify', 60*1000, ()=>{ if($('#dashres').dataset.loaded)
 DataScheduler.register('verify', 3*60*1000, async ()=>{ const r=await postLive(); if(r&&r.ok&&r.changed) loadDashboard(); });
 DataScheduler.register('xuanxue', 2*60*1000, ()=>{ if(xuanxueLoaded) loadXuanxue(); });  // 完赛后自动结算并入排行
 DataScheduler.start();
+
+// —— GitHub 仓库更新检测（右上角）：定时比对本地 HEAD vs 远程 main，发现新版本提示通过 Claude 更新 ——
+let _verData=null;
+function verRefresh(){ return '<span class="vc-refresh" onclick="checkVersion(1)" title="立即重新检查仓库">立即检查</span>'; }
+async function checkVersion(fresh){
+  const el=$('#verchk'); if(!el) return;
+  if(navigator.onLine===false) return;          // 离线不打扰，恢复后由 online 事件补查
+  if(fresh || !el.innerHTML) el.innerHTML='<span class="vc-mut">检查更新中…</span>';
+  try{
+    const d=await getJSON('/api/version'+(fresh?'?fresh=1':''));
+    _verData=d;
+    if(!d.ok){ el.innerHTML='<span class="vc-mut" title="无法访问仓库（离线或 git 不可用）">更新检查不可用</span>'+verRefresh(); return; }
+    if(d.update_available)
+      el.innerHTML='<button class="vc-new" onclick="showUpdatePrompt()" title="仓库有新版本，点击查看如何更新">🔔 发现新版本</button>'+verRefresh();
+    else
+      el.innerHTML='<span class="vc-ok" title="本地与仓库 main 一致（'+d.local+'）· '+d.checked_at+' 检查">✓ 已是最新</span>'+verRefresh();
+  }catch(e){ el.innerHTML='<span class="vc-mut">更新检查不可用</span>'+verRefresh(); }
+}
+function showUpdatePrompt(){
+  const d=_verData||{};
+  const cmp=d.compare_url?'<div style="margin-top:12px"><a class="xlink" href="'+d.compare_url+'" target="_blank" rel="noopener" style="color:var(--acc)">→ 在 GitHub 查看本次改动</a></div>':'';
+  const nb=d.behind?('，本地落后 <b>'+d.behind+'</b> 个提交'):'';
+  openModal('🔔 发现新版本', '<div style="font-size:13px;line-height:1.7">'
+    +'仓库 <b>main</b> 有新上传的版本'+nb+'：<br>本地 <code>'+(d.local||'?')+'</code> → 远程 <code>'+(d.remote||'?')+'</code>'
+    +'<div class="callout c-gold" style="margin-top:14px"><div class="c-hl" style="font-size:15px">让 Claude 帮你更新</div>'
+    +'<div class="c-sub">在 Claude Code 对话里对我说：<br><b>「把世界杯预测器更新到最新版本」</b><br>我会执行 <code>git pull</code> 拉取新版本并重启 app（改了前端需重启才生效）。</div></div>'
+    +cmp+'</div>');
+}
+checkVersion();                                          // 启动即查一次
+setInterval(()=>checkVersion(false), 15*60*1000);        // 每 15min 自动检查（后端结果缓存 15min）
+window.addEventListener('online', ()=>checkVersion(false));
 </script>
 </body>
 </html>

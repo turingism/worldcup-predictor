@@ -114,6 +114,13 @@ def test_api_ratings_ok(client):
     assert "rows" in d and "available" in d
 
 
+def test_api_version_shape(client):
+    """仓库更新检测端点：离线/在线都应返回结构化结果（失败优雅降级 ok=False，不抛错）。"""
+    d = client.get("/api/version").get_json()
+    assert "update_available" in d and "local" in d and "ok" in d
+    assert isinstance(d["update_available"], bool)
+
+
 def test_api_fixtures_matches_dashboard_upcoming(client):
     """回归：/api/fixtures 的未开赛小组赛集合必须与看板 /api/dashboard 的 upcoming 一致。
     曾因 fixtures 用『全历史交手过的队对』过滤，把历史踢过友谊赛的未来对阵（如英格兰vs加纳）误删，
