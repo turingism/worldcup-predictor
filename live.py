@@ -217,11 +217,18 @@ def fetch_and_save(incremental: bool = True) -> tuple[bool, dict]:
                     dt.datetime.strptime(last, "%Y-%m-%d").date() - dt.timedelta(days=1))
     fresh = fetch_live(start=start)
     by_key = {(frozenset((r["home"], r["away"])), r["stage"], r["utc"]): r for r in saved}
-    n_before = len(by_key)
+    changed = False
     for r in fresh:
-        by_key[frozenset((r["home"], r["away"])), r["stage"], r["utc"]] = r
+        k = (frozenset((r["home"], r["away"])), r["stage"], r["utc"])
+        old = by_key.get(k)
+        if old is None:
+            changed = True
+        elif (old.get("gh"), old.get("ga"), old.get("winner"), old.get("pens")) != \
+                (r.get("gh"), r.get("ga"), r.get("winner"), r.get("pens")):
+            # 同 key 但赛果内容变了（赛果修正/点球补录）也算变化，避免被静默吸收永不重训
+            changed = True
+        by_key[k] = r
     merged = sorted(by_key.values(), key=lambda r: (r["utc"], r["home"]))
-    changed = len(merged) != n_before
     if changed or not os.path.exists(LIVE_PATH):
         _save(merged)
     n_group = sum(1 for r in merged if r["stage"] == "group")

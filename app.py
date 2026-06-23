@@ -70,6 +70,9 @@ _CHAMP_CACHE: dict[int, list] = {}
 # 而 _refit_all 对全局 MODEL/DF/_SIM 做非原子的"重训→写 pkl→清缓存→冻结"。无锁并发会写坏
 # model.pkl、产生半构造 _SIM。所有重训走这把锁串行；抢不到的请求跳过本次重训（数据已落盘，下次刷新即生效）。
 _REFIT_LOCK = threading.Lock()
+# /api/live 的非原子 check-then-set 节流在多客户端并发下会各自打 ESPN/各自尝试重训。
+# 这把锁让同一时刻只有一个 /api/live 真正去拉取，其余直接复用上次结果（只读旁路，不影响正确性）。
+_LIVE_LOCK = threading.Lock()
 
 # 关键球员可用性『上下文层』：从 data/availability.json 现装 xG 乘子（补充层，不入缓存）。
 _AVAIL_N = MODEL.set_availability()
@@ -115,9 +118,14 @@ def api_config():
 
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# —— 后台任务节流参数（集中定义；节流口径＝"距上次成功完成"，失败不占窗口，见各 worker）——
+_CI_MIN_INTERVAL = 20 * 60      # 夺冠区间(bayes+champ_ci 约 90s)重训触发的最短间隔；定时/手动 force 无视
+_ODDS_MIN_INTERVAL = 15 * 60    # ESPN 赔率快照重训触发的最短间隔；定时器/手动 snap force 无视
+ODDS_SNAP_MIN = float(os.environ.get("ODDS_SNAP_MIN", "30"))  # 运行期定时快照间隔(分钟)，0=关闭
+
 # 夺冠区间后台重算任务：bayes.py（导出后验）→ champ_ci.py（MC 区间），约 90s，子进程异步跑。
 _CI_JOB = {"running": False, "updated": None, "error": None, "last": 0.0}
-_CI_MIN_INTERVAL = 20 * 60   # bayes+champ_ci 约 90s 且是补充视图，无需逐场完赛都重算：最短间隔 20min
 
 
 def _regen_ci_worker():
@@ -132,6 +140,7 @@ def _regen_ci_worker():
                 return
         _CI_JOB["error"] = None
         _CI_JOB["updated"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        _CI_JOB["last"] = time.time()   # 节流窗口从"成功完成"起算：失败不占窗口，可立即重试
         print(f"[champ_ci] 后台重算完成 {_CI_JOB['updated']}")
     except Exception as e:  # noqa
         _CI_JOB["error"] = str(e)
@@ -149,14 +158,12 @@ def regen_champ_ci_async(force=False):
         return
     _CI_JOB["running"] = True
     _CI_JOB["error"] = None
-    _CI_JOB["last"] = time.time()
     threading.Thread(target=_regen_ci_worker, daemon=True).start()
     print("[champ_ci] 已在后台启动夺冠区间重算（bayes→champ_ci，约 90s）")
 
 
 # ESPN 赔率快照后台任务：espn_odds.py（~64 次 summary 调用，约数分钟），子进程异步跑。
 _ODDS_JOB = {"running": False, "updated": None, "last": 0.0}
-_ODDS_MIN_INTERVAL = 15 * 60   # 重训触发的快照最短间隔（定时器/手动 snap 不受此限）
 
 
 def _regen_odds_worker():
@@ -164,6 +171,7 @@ def _regen_odds_worker():
         r = subprocess.run([sys.executable, os.path.join(_BASE_DIR, "espn_odds.py")],
                            capture_output=True, text=True, cwd=_BASE_DIR, timeout=600)
         _ODDS_JOB["updated"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        _ODDS_JOB["last"] = time.time()   # 节流窗口从"成功完成"起算（与 champ_ci 同口径）
         _MARKET_CACHE.clear()      # 新快照落盘后失效市场缓存，下次 /api/market 用新盘口重建
         print(f"[odds] 后台快照完成 {_ODDS_JOB['updated']}：{(r.stdout or '').strip().splitlines()[:1]}")
     except Exception as e:  # noqa
@@ -180,13 +188,8 @@ def regen_odds_async(force=False):
     if not force and (time.time() - _ODDS_JOB["last"]) < _ODDS_MIN_INTERVAL:
         return
     _ODDS_JOB["running"] = True
-    _ODDS_JOB["last"] = time.time()
     threading.Thread(target=_regen_odds_worker, daemon=True).start()
     print("[odds] 已在后台启动 ESPN 赔率快照")
-
-
-# app 运行期间的盘口定时快照间隔（分钟，0=关闭）；比赛日开着网页即自动积累开盘/闭盘线。
-ODDS_SNAP_MIN = float(os.environ.get("ODDS_SNAP_MIN", "30"))
 
 
 def _odds_scheduler():
@@ -361,12 +364,13 @@ def api_lineup_ledger():
 def api_fixtures():
     """近期未开赛对阵（对阵分析「明日对战看板」点击填表用）。纯赛程、不拉 live，秒回。"""
     now = verifymod._now_bj()
-    played = datamod.played(DF)
-    played_pairs = {frozenset((str(r["home_team"]), str(r["away_team"])))
-                    for _, r in played.iterrows()}
+    # 已赛过滤只看【本届世界杯】结果，与看板 /api/dashboard 同口径。
+    # 不能用「全历史交手过的队对」过滤——否则历史踢过友谊赛的对阵（如英格兰vs加纳）会被误删，
+    # 曾导致本接口比看板少 15 场未来比赛。开球时间 ko<=now 已排除已开球场次，这里再排除本届已赛。
+    wc_done = set(_sim().actual_results)
     fx = []
     for (h, a), ko in schedule.GROUP.items():
-        if not ko or ko <= now or frozenset((h, a)) in played_pairs:
+        if not ko or ko <= now or (h, a) in wc_done:
             continue
         gv = schedule.group_venue(h, a)
         host = schedule.group_match_host(h, a)
@@ -517,22 +521,33 @@ def _sim():
     return _SIM
 
 
-@app.route("/api/bracket")
-def api_bracket():
-    """模拟完整一届，返回小组排名 + 晋级树 + 冠军（队名本地化）。"""
-    seed = request.args.get("seed")
-    seed = int(seed) if seed not in (None, "") else None
-    d = _sim().simulate_once(seed=seed)
+def _localize_bracket(d, keep_en=False):
+    """把一届投影/模拟结果的队名就地中文化（小组排名/小组赛/淘汰赛/冠军）。
+    keep_en=True 时顺带保留各对阵的英文原名（*_en），供前端北京/当地切换或深链回填用。
+    api_bracket 与 api_project 共用，避免两处本地化逻辑漂移。"""
     L = teams_zh.disp
     for g in d["groups"]:
         for s in g["standings"]:
             s["team"] = L(s["team"])
         for mt in g["matches"]:
+            if keep_en:
+                mt["home_en"], mt["away_en"] = mt["home"], mt["away"]
             mt["home"], mt["away"] = L(mt["home"]), L(mt["away"])
     for rd in d["rounds"]:
         for mt in rd["matches"]:
+            if keep_en:
+                mt["a_en"], mt["b_en"], mt["winner_en"] = mt["a"], mt["b"], mt["winner"]
             mt["a"], mt["b"], mt["winner"] = L(mt["a"]), L(mt["b"]), L(mt["winner"])
     d["champion"] = L(d["champion"])
+    return d
+
+
+@app.route("/api/bracket")
+def api_bracket():
+    """模拟完整一届，返回小组排名 + 晋级树 + 冠军（队名本地化）。"""
+    seed = request.args.get("seed")
+    seed = int(seed) if seed not in (None, "") else None
+    d = _localize_bracket(_sim().simulate_once(seed=seed))
     return jsonify(d)
 
 
@@ -588,14 +603,15 @@ def _refit_all():
         _RAW_CHAMP.clear()
         _compute_elo()             # 解读层 Elo 随新数据重算
         import insights; insights._AVAIL_ITEMS = None
-        try:                       # 重训后用最新模型冻结未开球场次的赛前预测（验证账本）
-            verifymod.freeze(_sim())
-        except Exception as e:  # noqa
-            print(f"[verify] 重训后冻结预测失败（不影响主功能）：{e}")
     finally:
-        _REFIT_LOCK.release()
+        _REFIT_LOCK.release()      # A6：全局 MODEL/DF/_SIM 与 pkl 已原子切换完毕即释放，缩短锁占用
+    try:                           # 账本冻结挪到锁外：verify 账本自身原子写、与全局 MODEL 解耦
+        verifymod.freeze(_sim())
+    except Exception as e:  # noqa
+        print(f"[verify] 重训后冻结预测失败（不影响主功能）：{e}")
     regen_champ_ci_async()     # 新赛果重训后，后台异步重算夺冠区间（bayes→champ_ci，不阻塞）
-    regen_odds_async()         # 同时后台快照 ESPN 赔率（积累开盘/闭盘线供 CLV，不阻塞）
+    # 注：A2——ESPN 赔率快照不再随重训联动（与"市场 CLV 为外部审计层、不随训练联动"红线一致），
+    # 改由 _odds_scheduler（30min）+ 手动 snap + /api/market?fresh 负责，避免分钟级子进程与定时快照口径重叠。
 
 
 @app.route("/api/refresh", methods=["POST"])
@@ -638,20 +654,32 @@ def api_live():
     供前端比赛日自动轮询；无变化时几乎零开销。15s 内的重复调用直接复用上次结果（节流）。"""
     if (blocked := _readonly_block()):
         return blocked
-    now = time.time()
-    if now - _LIVE_CACHE["t"] < _LIVE_TTL:   # 节流窗口内：复用上次结果，视为无变化（真有变化上次已 ingest+重训）
-        changed, summary = False, _LIVE_CACHE["summary"]
-    else:
-        try:
-            changed, summary = livemod.fetch_and_save()
-        except Exception as e:  # noqa
-            return jsonify({"ok": False, "error": f"ESPN 实时源拉取失败：{e}"}), 502
-        _LIVE_CACHE.update(t=now, summary=summary)
-        if changed:
+    # A4：原子节流。并发多客户端同时 POST 时，只有抢到锁的那个去拉 ESPN/重训，其余直接复用上次结果，
+    # 避免各自打 ESPN、各自尝试重训（check-then-set 竞态）。锁只护"判窗口→拉取→回填"这一段。
+    if not _LIVE_LOCK.acquire(blocking=False):
+        summary = _LIVE_CACHE["summary"]
+        s = _sim()
+        return jsonify({"ok": True, "changed": False, "coalesced": True,
+                        "wc_played": len(s.actual_results), "ko_played": len(s.actual_ko),
+                        "live_total": summary.get("total", 0),
+                        "updated": dt.datetime.now().strftime("%H:%M:%S")})
+    try:
+        now = time.time()
+        if now - _LIVE_CACHE["t"] < _LIVE_TTL:   # 节流窗口内：复用上次结果，视为无变化（真有变化上次已 ingest+重训）
+            changed, summary = False, _LIVE_CACHE["summary"]
+        else:
             try:
-                _refit_all()
+                changed, summary = livemod.fetch_and_save()
             except Exception as e:  # noqa
-                return jsonify({"ok": False, "error": f"实时数据已更新但重训失败：{e}"}), 500
+                return jsonify({"ok": False, "error": f"ESPN 实时源拉取失败：{e}"}), 502
+            _LIVE_CACHE.update(t=now, summary=summary)
+            if changed:
+                try:
+                    _refit_all()
+                except Exception as e:  # noqa
+                    return jsonify({"ok": False, "error": f"实时数据已更新但重训失败：{e}"}), 500
+    finally:
+        _LIVE_LOCK.release()
     s = _sim()
     return jsonify({"ok": True, "changed": changed,
                     "wc_played": len(s.actual_results), "ko_played": len(s.actual_ko),
@@ -730,18 +758,7 @@ def api_project():
         known, ko = _parse_overrides(request.get_json(silent=True) or {})
     p = _sim().project(known=known or None, ko_known=ko or None,
                        today=verifymod._now_bj()[:10])  # 北京今天，与赛程/看板北京口径一致（勿用服务器本地日）
-    L = teams_zh.disp
-    for g in p["groups"]:
-        for s in g["standings"]:
-            s["team"] = L(s["team"])
-        for mt in g["matches"]:
-            mt["home_en"], mt["away_en"] = mt["home"], mt["away"]
-            mt["home"], mt["away"] = L(mt["home"]), L(mt["away"])
-    for rd in p["rounds"]:
-        for mt in rd["matches"]:
-            mt["a_en"], mt["b_en"], mt["winner_en"] = mt["a"], mt["b"], mt["winner"]
-            mt["a"], mt["b"], mt["winner"] = L(mt["a"]), L(mt["b"]), L(mt["winner"])
-    p["champion"] = L(p["champion"])
+    _localize_bracket(p, keep_en=True)           # 投影需保留英文原名供前端北京/当地切换与深链回填
     p["facts"] = len(_sim().actual_results)      # 已采用的小组赛真实赛果场数
     p["ko_facts"] = len(_sim().actual_ko)        # 已自动套入的淘汰赛真实赛果场数
     return jsonify(p)

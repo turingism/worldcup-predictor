@@ -114,6 +114,17 @@ def test_api_ratings_ok(client):
     assert "rows" in d and "available" in d
 
 
+def test_api_fixtures_matches_dashboard_upcoming(client):
+    """回归：/api/fixtures 的未开赛小组赛集合必须与看板 /api/dashboard 的 upcoming 一致。
+    曾因 fixtures 用『全历史交手过的队对』过滤，把历史踢过友谊赛的未来对阵（如英格兰vs加纳）误删，
+    导致对阵分析比看板少 15 场。两接口同源同口径，集合应完全相同。"""
+    fx = client.get("/api/fixtures").get_json()["fixtures"]
+    up = client.get("/api/dashboard").get_json()["upcoming"]
+    fx_pairs = {(r["home_en"], r["away_en"]) for r in fx}
+    up_pairs = {(r["home_en"], r["away_en"]) for r in up if r.get("stage") == "group"}
+    assert fx_pairs == up_pairs, f"fixtures 与看板 upcoming 不一致：仅在看板={up_pairs - fx_pairs}，仅在fixtures={fx_pairs - up_pairs}"
+
+
 # ---------- 预测验证层 ----------
 def test_verify_outcome_and_rps():
     import verify
