@@ -2,7 +2,68 @@
 
 > 重启 Claude Code 后读这个文件即可快速接手继续优化。先读本文件，再按需读 `README.md`。
 
-## 📌 最新接手（2026-06-21 · 7-agent 深挖重写七法「忠实排盘」+ 保持诚实铁证）
+## 📌 最新接手（2026-06-25 · 7-agent 产品团队评审 → 落地「比赛解读文案层」）
+- **需求**：用户给 7 个角色（产品/算法/设计/文案/后端/前端/QA）的职责，要团队评审 skill 现状并自动完成优化。
+- **团队评审结论（诚实）**：多数提案 = **已做/死胡同/不合规**——① 算法侧身价/FIFA排名/Elo/分级/负二项/气候 CLAUDE.md 全记录回测否决或数据死胡同（**不准再碰 GLM**），走地秒级 `inplay.py` 已有；② 后端 ESPN 免费源+节流缓存+降级已在，个人应用无海量并发，不引 Sportradar 付费；③ 前端括号抗低端机已做，WebSocket 对个人应用收益<成本；④ **产品的「合规买入/体彩店导航/出票建议」被否决**——本项目个人/教育定位、全站「非投注建议」，加导购=踩 `严禁涉赌` 红线。**唯一真缺口=合规的「比赛解读文案层」**（文案主导+产品/设计/QA 支撑）。
+- **落地 `narrative.py`（纯函数只读层，零碰引擎）**：`match_narrative(home_disp,away_disp,p_home/draw/away,handicap,exp_total)` 把概率翻成球迷语言——`NICK` 球队昵称（桑巴军团/高卢雄鸡/非洲雄狮…）、`_level` 大热/占优/势均/爆冷叙事、接**动态竞彩让球线**（让N/平手倾向）、进球氛围；**合规三铁律**：① `_BANNED` 违规词守卫（稳赚/必中/包赢/推荐下注…，`_clean` 违反即抛；注意不收"投注建议"——是尾注"非投注建议"的子串会误伤）② 每条带「📌 仅为模型概率推演，非投注建议，理性观赛、量力而行」尾注 ③ 只陈述概率事实、不导购彩票。
+- **接入**：`app.py` `/api/predict` 两分支 + `/api/manager` 注入 `narrative`（`_exp_total(M)` 算期望总进球）；前端弹窗 `matrixHTML` 与对阵分析报告头各置顶绿框 `.nar` 解读卡。
+- **实测**：摩洛哥vs海地解读「非洲雄狮实力明显占优…竞彩让球约为摩洛哥让2球，模型倾向让负…非投注建议」截图渲染正常；德国vs厄瓜多尔走势均/平手叙事。**test_core 57 项全绿**（+4：**合规铁测**遍历8对阵断言永不含违规词+必带免责尾注、`_clean` 守卫抛错、昵称/叙事自洽、API 带 narrative）。
+- **可继续**：① 看板 upcoming 行也可挂极简解读（暂未做避免密度）；② 昵称表可扩；③ 解读可加近期状态/伤停一句（需接 availability，注意仍只读不碰引擎）。
+
+## 📌 上一次接手（2026-06-25 · 竞彩让球改「每场动态让球线」——按期望净胜定让N/平手）
+- **需求**：用户指出竞彩让球**写死了"让1球"**是错的——比如摩洛哥打海地该**让2**（净胜>2 才算让球胜、净胜=2 算让球平、净胜<2 算让球负），势均力敌的场次该**平手(让0)**。要每场动态算出该让几球再判让球胜平负，并能识别哪些场次属于"要算让球胜平负"的情况。
+- **判断**：竞彩让球线 N = **round(模型期望净胜球 = Σk·P(净胜=k))**，clamp[0,6]。摩洛哥 vs 海地期望净胜 1.98→**让2**；德国 vs 厄瓜多尔 0.3→**平手(让0)**；巴西 vs 苏格兰 1.01→让1。和用户描述逐字一致。这是**模型推导的竞彩线**（非真实彩票官方线，无免费源），同屏另有 ESPN/DraftKings 实盘亚盘线对照。
+- **实现**：
+  - `manager.py`：`jc_handicap(mp, fav_is_home, line=1)` 泛化到任意整数线（让胜=净胜>line / 让平=net==line / 让负=net<line，**默认 line=1 与旧口径恒等**）；新增 `csl_line(mp,fav_is_home)`（→N, exp_margin）+ `csl_handicap(mp,fav_is_home)`（→{line,is_handicap,home_line主队口径,exp_margin,win/draw/lose,verdict}）。`build_report` 把 `mk["handicap"]["csl"]` 落进报告；`handicap_summary`（看板/弹窗）的 jc_verdict/jc 改用动态线 + 加 csl_line/csl_is_handicap。
+  - `handicap_ledger.py`：竞彩命中改**按每场动态线结算**（`csl_handicap` 出 line+pick，`_jc_actual(real_margin, line)` 按线分桶），逐场 row 带 `jc_line`。命中率随之 0.444(写死让1)→0.407(动态)。
+  - 前端：`cslHTML(csl,favName)` 出动态竞彩段（让N：表头「让胜(净胜>N)/让平(净胜=N)/让负(净胜<N)」+ 定线说明；N=0 平手分支出「德国胜/平/德国负」+「不设让球」说明）；看板 pill 改显「让N / 平手」、看预测弹窗 hcpop 竞彩段动态化；擂台逐场表加「让球线」列、标题去「让1球」。
+- **实测**：manager 三场动态线正确；平手分支正常；摩洛哥截图「竞彩让球（摩洛哥 让2球，按本场期望净胜 1.98 定线）让胜35.1%/让平23.6%/让负41.3% 主判断让负」与用户口径逐字吻合。**test_core 53 项全绿**（+2：jc_handicap 任意线结算、csl 强打弱→让≥2/势均→平手）。
+- **可继续**：① 若拿到真实竞彩官方让球线（需付费/抓彩票站），可对照模型推导线；② 看板可加「让球场 vs 平手场」筛选；③ 擂台竞彩命中可再按让球线档(让1/让2/让3)分桶。
+
+## 📌 上一次接手（2026-06-25 · 让球机制升级「直接给结论 + 综合上下文 + 动机层」）
+- **需求**：用户要在「对阵分析」里把让球做成真正的**机制**而非死表——① 不放选择器，**直接给让球结论**；② 综合**全队净胜球排名 / 小组赛排名 / 已晋级球队心态**。讨论中确认分三种"身份"进，不糊成一个数字：让球=结论层、净胜球榜/小组排名=上下文展示（**不回灌让球**，否则同一实力信息算两遍）、已晋级心态=诚实动机层。用户选 **1+2**：预警常开 + 降权乘子做成默认关的可选项。
+- **新增 `standings.py`（只读衍生层，零碰 GLM/账本）**：`tournament_gd_table(sim)`（全 48 强本届实际累计净胜球榜，仅已踢小组赛，净胜球>进球>积分降序）、`group_table(sim,team)`（队所在组**真实**积分榜+剩余场数）、`clinch_status(sim,team)`（**暴力枚举剩余赛果 3^R≤729 组合**判出线，**保守口径**：并列一律按对该队最不利拆，绝不误报"已出线"→ state∈clinched_first/clinched_qualify/alive/eliminated）。复用 `sim.actual_results`(本届已踢)/`sim.groups`/`sim.fixtures`/`sim.strength`。CLI 自测。
+- **`manager.py` 让球升级**：`settle_line(mp,fav_is_home,line)`（任意让球线结算，整/半档走 `_handicap_back_fav`、分球 .25/.75 走 `_asian_quarter`，返回 win/push/lose/**net=win−lose**）+ `handicap_conclusion(mp,fav_is_home,fav,dog)`（全档 0.5→3.0 扫描 + `fair_line`=|net|最小档「五五开公平盘」+ `max_fair_line`=net≥0 最大档「建议让球上限」+ 每档 `_verdict` 偏值/接近公平/偏亏）。`build_report` 加 `context` 参数：先用基线 M0 定强弱（降权不影响强弱判定），`_motivation()` 出动机块（强队已出线→预警；`motiv_adj` 开启且强队已出线→`avail_override={fav:(0.90,1.0)}` 缩进攻 λ 重算，`MOTIV_MULT=0.90` 启发式非回测）。结论入 `markets.handicap`，动机入顶层 `motivation`。
+- **`app.py /api/manager`**：算 clinch 上下文 + gd_table + 两队组表（同组去重）注入 build_report 并附响应；`?motiv_adj=1` 开降权；上下文层任何异常**退化为纯模型**不 500。
+- **前端 `templates/index.html`**：`hcHTML()` 直接铺让球结论（📌 结论句 + 全档表带性价比配色 + 公平盘金色高亮 + 市场闭盘隐含）；`ctxHTML()` 出两个**折叠**上下文表（组积分榜 + 全队净胜球榜，本场两队高亮）；动机预警 banner 常开 + `mgMotivAdj` 降权 checkbox（强队未出线则 disabled）。模块四标题→「大小球/让球结论/竞彩」、汇总表「亚盘方向」→「让球结论」。
+- **诚实红线守住**：动机降权只走 `avail_override` 上下文乘子通道（默认零影响、`__getstate__` 剥离不入 pkl、backtest 永远纯引擎），**绝不改 GLM**；净胜球榜/小组排名只读展示不回灌让球；降权明确标"启发式·非回测结论"，默认关。
+- **实测**：摩洛哥vs海地（C组未定）→ 公平盘**让1.75**、让2标**偏亏**(赢32%)、无预警、降权 checkbox disabled；阿根廷vs约旦（已出线）→ 预警弹出，降权 off 让2.0 → on **让1.75**（轮换缩水）。截图全档表+性价比配色+折叠上下文齐显。
+
+- **续：让球预测命中率擂台（`handicap_ledger.py`，只读分析层）**——用户「继续」要的选项 2。**复用 verify 已冻结的赛前比分矩阵**（`data/predictions.json` 含完整 matrix，开球前冻结），对每场已完赛推导【赛前】让球预测并用真实赛果结算，**零写 verify 账本、零碰 GLM**（比 xuanxue 擂台更严格——矩阵本就 as_of 冻结不偷看）。两个可证伪指标：① **竞彩让球（强队让1球）argmax 命中率** + Wilson CI + 基线「永远押最常见让球赛果」对照；② **亚盘公平盘校准**——模型每场给公平让球档（称≈五五开），统计强队实际打出(cover)率 vs 模型预测打出率（**校准须 apples-to-apples：两边都条件在非走水上**，预测用 win/(win+lose)）+ 校准差 + Brier。`build(sim,df)` 复用 `verify.load_ledger/_completed/bj_date` 与 `manager._margin_pmf/handicap_conclusion`。`/api/handicap_ledger`（轻量 freeze，backfill 由 verify tab/调度器维护不重复训练）。前端挂看板「已结束·预测核对」下方（同账本同主题），`loadHandicapLedger()` 随 renderDashboard 懒加载/自动刷新，两统计框 + 近12场折叠逐场结算，**强声明小样本波动大、非投注建议**。实测 52 场：竞彩 **44.2%**(CI 31.6–57.7%) 勉强超基线 42.3%；公平盘实际打出 58.8% vs 预测 47.5%（校准差 +11.3%，本届强队略超公平盘，小样本）。**test_core 40 项全绿**（让球结论 4 项 + 擂台结算原子/build结构/API 3 项）。
+- **续：看板「看预测」弹窗让球速览（选项 3，浏览层）**——让球结论原本只在「对阵分析」深报告里，看板浏览/点「看预测」看不到。新增 `manager.jc_handicap()`（竞彩三向，收敛 derived_markets/handicap_ledger 的重复 JC 逻辑到一处）+ `manager.handicap_summary(M,p_home,p_away,home,away)`（紧凑摘要：强队/公平盘/建议上限/竞彩倾向）。`/api/predict` 两个分支（中立 + host 口径）都返回 `handicap`；前端 `matrixHTML` 在大球行下加金色左边框 `.hcpop` 速览条（强队公平盘 让N + 建议上限 + 竞彩让1球倾向 赢2+/赢1/不胜）。CDP 实测摩洛哥vs海地=让1.75、阿根廷vs约旦=让2，文案无重复。**闭环完成：预测(报告)→验证(擂台)→浏览(看板速览)。test_core 仍 40 项全绿**。
+- **可继续**：① 擂台可按 stage/强弱差/公平盘档分桶看命中率，样本够了再说；② 分球盘 .25/.75 的"赢盘"列因半仓退本并入会略显非单调（net 列单调、属标准亚盘结算，如嫌迷惑可前端注脚）；③ 接真实亚盘/让球盘口做对标——但**无免费国家队让球盘口源**（同 odds.csv 困境，数据死胡同）；④ 看板「即将开赛」行也可挂极简让球 pill（暂未做，避免行内拥挤）。
+- **CDP 触发模块化 JS 弹窗的坑（记一笔）**：本页函数虽全局，但 Chrome 远程调试默认上下文需**等 `Page.loadEventFired` 后再 eval**，否则 `typeof fn=undefined`、相对 `fetch` 报 Failed to fetch（在导航前的空文档里跑）；zsh 下 `--remote-allow-origins=*` 要加引号防 glob。
+
+- **续：「都干」三连——市场让球对标 + 擂台分桶 + 看板让球 pill（2026-06-25 末）**
+  - **③ 市场实盘让球盘对标（真做成了，非死胡同！）**：发现 **ESPN summary pickcenter 带 `spread`**（主队口径让球线）+ `homeTeamOdds.favorite` + `spreadOdds` 水位 + `overUnder`——免费、免翻墙，**国家队让球盘口源就在现有 ESPN 通道里**（之前以为死胡同的是历史盘口，实时/临场盘口可取）。`espn_odds.py` 加 `_handicap_from_summary`（解析成站强队口径 `fav_line`/`fav_is_home`）+ `fetch_handicap_pair(home,away)`（**单场** 1×scoreboard+1×summary≈3s；scoreboard 的 odds 是 None，spread 只在 summary）。**坑**：整窗口 `fetch_handicap_current` 每场一次 summary，~18 场数十秒会卡死请求——故 app 用 `_market_handicap_one(h,a)` **按需单场、后台线程抓、请求只读缓存**（首次返回 None，~3s 后台抓完，下次请求带盘；10min 缓存）。`manager._market_compare` 比模型公平盘 vs 市场 `fav_line`：同强队算 `divergence=fair−market`（>0.124 模型更看好强队 / <−0.124 更保守）、强弱判断不一致则不强比。注入 `/api/manager`(context) + `/api/predict`(弹窗 handicap_summary 加 `market=`)。前端：对阵分析蓝色 `.hcmkt` 对标条 + 弹窗 hcpop 第二行。实测摩洛哥vs海地：市场让1.5、模型让1.75→模型更看好强队(+0.25)。
+  - **① 擂台分桶**：`handicap_ledger.build` 加 `buckets`——按阶段（小组赛/淘汰赛）+ 强队赛前实力档（大热≥70%/中等55–70%/接近<55%）统计竞彩命中率 + Wilson CI。前端擂台卡 `hclBuckets()` 两张并排小表（默认展开）。实测大热 54%/中等 40%/接近 43%（样本小 CI 宽，标注仅看趋势）。
+  - **② 看板让球 pill**：`/api/dashboard` upcoming 行用冻结矩阵跑 `handicap_summary`（**不带市场**，避免每行触发 ESPN 抓取）；前端 `upRow` 得分 pill 旁加金色 `.hcpill`「让X」+ tooltip（强队/公平盘/竞彩倾向）。
+  - **诚实守住**：市场盘是真实 DraftKings 实盘（标来源/水位），但仅对标展示**非投注建议**；分桶样本小已标 CI/趋势；看板 pill 不带市场避免性能问题。**test_core 43 项全绿**（+3：市场对标背离/不一致、handicap_summary 带市场、擂台分桶结构）。
+  - **可继续**：① 市场让球盘可像 odds.csv 那样快照存开/闭盘 → 做让球 CLV（赛前线 vs 闭线移动）；② 看板 pill 也可挂极简市场盘（需 dashboard 批量市场抓取，性能要先解决）。
+
+- **续：擂台「模型 vs 市场谁更准」（2026-06-25 续二，最贴诚实气质的一刀）**
+  - **市场闭盘让球线持久化**：`espn_odds.py` 加 `data/handicap_lines.json`（顺序无关 key）+ `backfill_handicap_finished(limit=24)`（增量补已完赛闭盘 spread，ESPN summary 保留；每场一次 summary 故限量，多次后台跑补全）+ `load_handicap_lines()`。app `_hc_lines_backfill_async()`（节流 120s + inflight 锁，后台线程，永不阻塞 `/api/handicap_ledger`）。文件已加 .gitignore（生成缓存）。
+  - **`handicap_ledger.build(sim,df,market_lines=)`** 加 `vs_market`：对每场已完赛（市场与模型强弱判断一致时）算 ① **让球线对实际净胜的 MAE**（模型 vs 市场，谁更接近）② **跟模型背离方下注 vs 市场闭线**的胜率（背离>0.25 球才算真分歧；模型更看好强队→背强队让市场线、更保守→背弱队受让；打赢闭线=有边际价值，金标准）+ Wilson CI。`_vs_market_out` 汇总。
+  - 前端擂台卡 `hclVsMarket()` 蓝边框面板（MAE 对比 + 背离下注胜率 + 逐场表加"市场"列）。
+  - **诚实铁证（关键结果）**：本届 52 场，**模型让球打不赢市场**——MAE 模型 1.399 vs 市场 **1.308**（市场更接近实际净胜，更近场数 13/17/平22）；跟模型背离方下注 vs 闭线 **11/25=44%**（CI 27–63%，<50% 未打赢闭线），27 场模型≈市场无分歧。**市场是有效基准、模型让球无边际优势——正是诚实定位要的可证伪结论**（同 1X2 模型已校准但平局盲区、玄学打不过基线 一脉相承）。**test_core 46 项全绿**（+3：_hc_key 顺序无关、_vs_market_out 派生、build 接 market_lines 集成）。
+- **续：让球市场层架构补全——开盘快照/CLV + 期望净胜 MAE（2026-06-25 续三）**
+  - **让球开盘→闭盘时间线**（对标 1X2 odds.csv/CLV）：`espn_odds.py` 加 `data/handicap_snapshots.jsonl` + `snapshot_handicap()`（快照未完赛场次当前 spread，多次累积开盘/闭盘）+ `load_handicap_timeline()`（按 key 聚合 open(首见)/close(末见)，已完赛优先用 backfill 留存闭盘线）。已挂进 `espn_odds.main()`，**随现有 odds 调度器子进程同节奏自动跑**（`_odds_scheduler` → 子进程 main → 1X2 快照 + 让球快照 + 回补）。两文件已加 .gitignore。
+  - **让球 CLV**（`handicap_ledger.vs_market.clv`）：对已完赛、有开盘线的场次，算模型在开盘相对市场的方向（fair vs open_line），闭盘是否朝模型移动（正 CLV=市场来认同模型）。**今起累积**——已完赛场早期无开盘线（snapshot 刚开），淘汰赛阶段起有数据；前端如实标"暂无开盘线样本"。
+  - **期望净胜 MAE（②，更对味的对比）**：原让球线 MAE 拿离散公平盘(0.5/0.75…)对标，有档位离散化惩罚；新增 `mae_model_em` = 模型**期望净胜** E[净胜]=Σk·P(净胜=k)（连续）vs 实际，去离散后更公平。实测 **1.38**（vs 离散公平盘 1.399，确认离散加了点噪声）但市场 **1.308** 仍更准，em_closer 24/52 接近五五——模型让球点估**竞争性但市场仍略胜**。
+  - 前端 `hclVsMarket()` 加期望净胜 MAE 行 + CLV 行（含"累积中"诚实兜底）；逐场表已有市场列。
+  - **诚实守住**：CLV/em-MAE 同 1X2 CLV 一样诚实门槛——无数据就标累积中、不编。**test_core 48 项全绿**（+2：_vs_market_out 含 em/clv 派生、build 接 timeline 算 CLV）。
+  - **可继续**：① 让球 CLV 需持续快照攒开盘线（已自动跑，等淘汰赛完赛后有样本）；② 背离阈值 0.25 可调；③ 期望净胜 MAE 可加 Wilson/bootstrap CI；④ 让球开/闭线也可像 odds.csv 拼成表供审计。
+
+- **续：收尾硬化（2026-06-25 续四，自主推进）**
+  - **引擎完整性验证**：跑 `backtest.py`——无身价 RPS=0.1624 / Acc=0.597 / 净胜球相关 65%（基线区间内），证明这一长串让球改动（standings/handicap_ledger/市场层/manager）**全是只读旁路、零污染 GLM**，"不碰引擎"红线守住。
+  - **ESPN 让球解析器单测**（最脆弱的新代码）：`_handicap_from_summary` 加 3 个 mock 测试（主队强/客队强/无 spread→None），覆盖 spread 主队口径换算、favorite 定强弱、水位归属、无盘不伪造。
+  - **盘口移动展示**：对阵分析市场对标块加「开盘→现盘」移动（`_market_compare` 用 timeline 的 open_line 算 move + 方向）；首批快照 move=0（单次快照），多次快照后显真实移动。
+  - **README 双语更新**：功能表加「⚖️ 让球机制（一整套）」行 + 文件地图补 standings.py / handicap_ledger.py，公开仓库现已反映完整让球系统。
+  - **test_core 51 项全绿**（+3 解析器 mock 测试）。让球机制至此功能、测试、文档、诚实层全闭环；剩余项均为数据门槛（CLV 待淘汰赛样本）或调参，无紧急优化。
+  - **白皮书 TODO 已废**：核对 `docs/whitepaper-source.html`（6/21 版）——§2.4 蒙特卡洛已写东道主主场 +23%xG（166 行）、§4.3 Elo/分级/负二项已标「已否决」（300-301 行）、half_life=730 全文一致，PDF 同日重渲。**下方历史「接手遗留」里"白皮书 PDF 需更新"那条早被前序会话解决，是过时 TODO，勿再追**（白皮书是核心建模方法论对标高盛，让球/实时/市场等衍生展示层不进白皮书，定位正确）。
+  - **本轮收尾判断**：让球这条主线（结论→上下文→动机→擂台→市场对标→模型vs市场→CLV→看板速览→盘口移动）已穷尽可立即落地的优化，引擎零污染经 backtest 实证。继续只剩数据门槛项（CLV 等淘汰赛样本自动累积）与已验证否决的死胡同，无需再改。
+
+## 📌 上一次接手（2026-06-21 · 7-agent 深挖重写七法「忠实排盘」+ 保持诚实铁证）
 - **需求**：用户派 7 个 agent 各认领一套术数，深挖其真实占卜方式/逻辑，**彻底优化玄学占卜算法**。
 - **关键判断（沿用 B 类诚实定位）**：优化目标 = **对传统术数排盘的忠实度（fidelity）**，**不是**提高命中率。提高命中率 = 灌真实球队先验 = 把玄学变成伪装基线 = 违背诚实定位。三条红线全守：① 完全确定性可复现（禁随机）② 绝不读赛果 ③ 不灌实力先验（队名仅 hash 进取用层做主客归属+区分同时刻不同对阵）。
 - **`xuanxue.py` 七法全部重写为忠实排盘**（每法带 `_前缀_` 专用表/辅助，互不冲突；共享工具 `_settle/_conf/_goals/_sign_winner/_tiyong/GUA/WX_*` 不动；**ganzhi.py 零改动**）：

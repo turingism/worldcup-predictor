@@ -32,6 +32,8 @@ SB_URL = ("https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/"
 SUM_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event={eid}"
 SNAP_PATH = os.path.join(os.path.dirname(__file__), "data", "odds_snapshots.jsonl")
 ODDS_CSV = os.path.join(os.path.dirname(__file__), "data", "odds.csv")
+HC_LINES_PATH = os.path.join(os.path.dirname(__file__), "data", "handicap_lines.json")
+HC_SNAP_PATH = os.path.join(os.path.dirname(__file__), "data", "handicap_snapshots.jsonl")
 _CTX = ssl.create_default_context()
 
 
@@ -45,6 +47,176 @@ def am2dec(ml) -> float:
     """American moneyline → decimal odds. +150→2.5, -200→1.5."""
     ml = float(ml)
     return round(1 + ml / 100, 4) if ml > 0 else round(1 + 100 / abs(ml), 4)
+
+
+def _handicap_from_summary(ev: dict) -> dict | None:
+    """ESPN summary pickcenter → 让球盘行（DraftKings 亚盘/spread）。
+    ESPN 的 `spread` 是**主队口径**（-1.5 = 主队让 1.5），`homeTeamOdds.favorite` 标识主队是否强队，
+    `spreadOdds` 是该盘水位。已完赛 summary 也保留闭盘 spread（同 1X2 回补逻辑）。
+    返回站强队口径的 {fav_line, fav_is_home, ...}；无 spread 返回 None。"""
+    home, away = _event_teams(ev)
+    if not home or not away:
+        return None
+    eid = ev.get("id")
+    try:
+        s = _get(SUM_URL.format(eid=eid))
+    except Exception:  # noqa
+        return None
+    pcs = s.get("pickcenter") or []
+    pc = next((p for p in pcs if (p.get("provider") or {}).get("name") == "DraftKings"),
+              pcs[0] if pcs else None)
+    if not pc or pc.get("spread") is None:
+        return None
+    ho, ao = pc.get("homeTeamOdds") or {}, pc.get("awayTeamOdds") or {}
+    try:
+        utc = dt.datetime.strptime(ev["date"], "%Y-%m-%dT%H:%MZ")
+    except (KeyError, ValueError):
+        return None
+    spread_home = float(pc["spread"])
+    fav_is_home = bool(ho.get("favorite"))
+    _od = lambda v: am2dec(v) if v not in (None, "") else None  # noqa: E731
+    return {"date": str(utc.date()), "home": home, "away": away,
+            "kickoff_utc": utc.strftime("%Y-%m-%d %H:%M"),
+            "spread_home": spread_home,            # 主队口径原值（负=主队让）
+            "fav_line": abs(spread_home),          # 站强队角度：强队让出的球数
+            "fav_is_home": fav_is_home,
+            "ou": pc.get("overUnder"),
+            "fav_spread_odds": _od(ho.get("spreadOdds") if fav_is_home else ao.get("spreadOdds")),
+            "dog_spread_odds": _od(ao.get("spreadOdds") if fav_is_home else ho.get("spreadOdds")),
+            "provider": (pc.get("provider") or {}).get("name", "DraftKings")}
+
+
+def fetch_handicap_current(start: dt.date | None = None, end: dt.date | None = None) -> list[dict]:
+    """拉本届所有可取到 spread 的场次让球盘（含未开赛实时 + 已完赛闭盘）。免费、免翻墙（ESPN）。
+    注意：每场要一次 summary 调用，整窗口较慢——调用方应限定窗口或改用 fetch_handicap_pair。"""
+    start = start or live.TOURN_START
+    end = end or live.TOURN_END
+    sb = _get(SB_URL.format(d1=start.strftime("%Y%m%d"), d2=end.strftime("%Y%m%d")))
+    out = []
+    for ev in sb.get("events", []):
+        r = _handicap_from_summary(ev)
+        if r:
+            out.append(r)
+    return out
+
+
+def _hc_key(home: str, away: str) -> str:
+    """让球线存储键：顺序无关（淘汰赛口径），与 verify._kkey 同思路。"""
+    return "|".join(sorted((home, away)))
+
+
+def load_handicap_lines() -> dict:
+    """读 data/handicap_lines.json：{key: 让球闭盘线行}。文件缺失/损坏返回空。"""
+    try:
+        with open(HC_LINES_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def backfill_handicap_finished(limit: int = 24, start: dt.date | None = None,
+                               end: dt.date | None = None) -> int:
+    """增量回补【已完赛】场次的市场闭盘让球线（ESPN summary 保留闭盘 spread）。
+    每次最多抓 `limit` 场（每场一次 summary，控时不阻塞），跳过已存场次；多次后台运行即补全。
+    存到 data/handicap_lines.json（顺序无关 key）。返回本次新增条数。"""
+    start = start or live.TOURN_START
+    end = end or live.TOURN_END
+    store = load_handicap_lines()
+    sb = _get(SB_URL.format(d1=start.strftime("%Y%m%d"), d2=end.strftime("%Y%m%d")))
+    added = 0
+    for ev in sb.get("events", []):
+        if added >= limit:
+            break
+        if _event_state(ev) != "post":               # 只回补已完赛
+            continue
+        home, away = _event_teams(ev)
+        if not home or not away:
+            continue
+        key = _hc_key(home, away)
+        if key in store:                              # 已有 → 跳过，不再调 summary
+            continue
+        r = _handicap_from_summary(ev)
+        if r:
+            store[key] = {**r, "retro": True}
+            added += 1
+    if added:
+        os.makedirs(os.path.dirname(HC_LINES_PATH), exist_ok=True)
+        tmp = HC_LINES_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(store, f, ensure_ascii=False, indent=0)
+        os.replace(tmp, HC_LINES_PATH)               # 原子写
+    return added
+
+
+def snapshot_handicap(now_iso: str | None = None, start: dt.date | None = None,
+                      end: dt.date | None = None) -> int:
+    """快照【尚未完赛】场次的当前市场让球盘（spread），追加到 handicap_snapshots.jsonl（带时间戳）。
+    多次快照 → 每场积累 开盘(首见)→闭盘(临场最后一档) 时间线，供让球 CLV。每场一次 summary，故只扫
+    未完赛事件、限定窗口。返回本次快照条数。"""
+    start = start or live.TOURN_START
+    end = end or live.TOURN_END
+    sb = _get(SB_URL.format(d1=start.strftime("%Y%m%d"), d2=end.strftime("%Y%m%d")))
+    stamp = now_iso or dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    rows = []
+    for ev in sb.get("events", []):
+        if _event_state(ev) == "post":          # 已完赛由 backfill 取闭盘，不进开盘时间线
+            continue
+        r = _handicap_from_summary(ev)
+        if r:
+            rows.append({**r, "captured_at": stamp})
+    if rows:
+        os.makedirs(os.path.dirname(HC_SNAP_PATH), exist_ok=True)
+        with open(HC_SNAP_PATH, "a", encoding="utf-8") as f:
+            for r in rows:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    return len(rows)
+
+
+def load_handicap_timeline() -> dict:
+    """聚合让球盘开盘/闭盘：{key: {fav_is_home, open_line, open_at, close_line, close_at}}。
+    开盘=快照里最早一条、闭盘=最晚一条（未完赛取最后快照≈临场；已完赛优先用 backfill 的留存闭盘线）。
+    无快照文件则仅由 handicap_lines.json（回补闭盘）给 close_line。"""
+    snaps = {}
+    try:
+        with open(HC_SNAP_PATH, encoding="utf-8") as f:
+            for ln in f:
+                ln = ln.strip()
+                if not ln:
+                    continue
+                s = json.loads(ln)
+                k = _hc_key(s["home"], s["away"])
+                snaps.setdefault(k, []).append(s)
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    out = {}
+    for k, lst in snaps.items():
+        lst.sort(key=lambda s: s.get("captured_at", ""))
+        op, cl = lst[0], lst[-1]
+        out[k] = {"fav_is_home": op.get("fav_is_home"),
+                  "open_line": op.get("fav_line"), "open_at": op.get("captured_at"),
+                  "close_line": cl.get("fav_line"), "close_at": cl.get("captured_at")}
+    # 已完赛的留存闭盘线（backfill）覆盖/补充 close_line（更接近真实闭盘）
+    for k, r in load_handicap_lines().items():
+        e = out.setdefault(k, {"fav_is_home": r.get("fav_is_home"),
+                               "open_line": None, "open_at": None})
+        e["close_line"] = r.get("fav_line")
+        e["fav_is_home"] = r.get("fav_is_home")
+    return out
+
+
+def fetch_handicap_pair(home: str, away: str, start: dt.date | None = None,
+                        end: dt.date | None = None) -> dict | None:
+    """只抓【单场】让球盘（1 次 scoreboard 定位 event + 1 次 summary 取 spread，≈3s）。
+    home/away 为 martj42-canon 名，顺序无关匹配。找不到该对阵/无 spread 返回 None。"""
+    start = start or live.TOURN_START
+    end = end or live.TOURN_END
+    sb = _get(SB_URL.format(d1=start.strftime("%Y%m%d"), d2=end.strftime("%Y%m%d")))
+    want = frozenset((home, away))
+    for ev in sb.get("events", []):
+        h, a = _event_teams(ev)
+        if frozenset((h, a)) == want:
+            return _handicap_from_summary(ev)
+    return None
 
 
 def _event_teams(ev: dict) -> tuple[str, str]:
@@ -227,6 +399,12 @@ def main():
         print(f"[espn_odds] backfill 回补 {nb} 场已完赛闭盘线（赛后留存线，无开盘→不计 CLV）")
     n = snapshot()
     print(f"[espn_odds] snapshot 抓到 {n} 场当前盘口")
+    try:
+        nh = snapshot_handicap()
+        nhb = backfill_handicap_finished(limit=200)
+        print(f"[espn_odds] 让球盘：开盘快照 {nh} 场 + 回补已完赛闭盘线 {nhb} 场")
+    except Exception as e:  # noqa  让球盘抓取失败不影响 1X2 主流程
+        print(f"[espn_odds] 让球盘快照失败：{e}")
     s = build_odds_csv()
     print(f"[espn_odds] odds.csv 已重建：{s['matches']} 场（其中 {s['with_open_close']} 场有开盘≠闭盘"
           f"，{s['retro_closing_only']} 场仅闭盘回补）· 累计快照 {s['snapshots']} 条")

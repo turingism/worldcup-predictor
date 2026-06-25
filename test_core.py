@@ -345,3 +345,369 @@ def test_api_fixtures_ok(client):
     assert "fixtures" in d and isinstance(d["fixtures"], list)
     for f in d["fixtures"]:
         assert {"home_en", "away_en", "home", "away", "kickoff"} <= set(f)
+
+
+# ---------- 让球结论 + 上下文 + 动机层（2026-06-25 新增） ----------
+def test_handicap_conclusion_shape_and_monotone(model):
+    """让球结论：公平盘在档位表内、净胜率随让球档单调非增、公平盘≈净最小、上限不亏。"""
+    import manager
+    import numpy as np
+    _, _, lam_h, lam_a, M = model.score_matrix("Brazil", "Haiti", neutral=True)
+    mp = manager._margin_pmf(M)
+    hc = manager.handicap_conclusion(mp, True, "Brazil", "Haiti")
+    lines = hc["lines"]
+    assert hc["fav"] == "Brazil" and hc["dog"] == "Haiti"
+    assert any(abs(s["line"] - hc["fair_line"]) < 1e-9 for s in lines)   # 公平盘是真实档
+    # 让球越多，站强队角度净胜率(net)单调非增
+    nets = [s["net"] for s in lines]
+    assert all(nets[i] >= nets[i + 1] - 1e-9 for i in range(len(nets) - 1))
+    # 公平盘 = |net| 最小档
+    fair = min(lines, key=lambda s: abs(s["net"]))
+    assert abs(fair["line"] - hc["fair_line"]) < 1e-9
+    # 建议上限不亏（net≥0），且每档赢/走/输归一
+    mf = [s for s in lines if abs(s["line"] - hc["max_fair_line"]) < 1e-9][0]
+    assert mf["net"] >= -1e-9
+    for s in lines:
+        assert abs(s["win"] + s["push"] + s["lose"] - 1.0) < 1e-6
+        assert s["verdict"] in ("偏值", "接近公平", "偏亏")
+
+
+def test_settle_line_quarter_and_whole(model):
+    """分球盘(.75)无走盘、整数盘(让2)有走盘=净胜恰好2球的概率。"""
+    import manager
+    _, _, _, _, M = model.score_matrix("Brazil", "Haiti", neutral=True)
+    mp = manager._margin_pmf(M)
+    s2 = manager.settle_line(mp, True, 2.0)
+    assert s2["push"] > 0 and abs(s2["push"] - mp.get(2, 0.0)) < 1e-9   # 走盘=净胜2
+    sq = manager.settle_line(mp, True, 2.75)
+    assert sq["push"] == 0.0                                            # 分球盘退本并入赢/输
+
+
+def test_standings_gd_table_and_clinch():
+    """全队净胜球榜按净胜球降序、名次连续；clinch_status 状态合法且保守。"""
+    import app, standings
+    sim = app._sim()
+    tab = standings.tournament_gd_table(sim)
+    assert tab and all(tab[i]["gd"] >= tab[i + 1]["gd"] for i in range(len(tab) - 1))
+    assert [r["rank"] for r in tab] == list(range(1, len(tab) + 1))
+    cs = standings.clinch_status(sim, "Argentina")
+    assert cs["state"] in ("clinched_first", "clinched_qualify", "alive", "eliminated")
+    assert cs["qualified"] == (cs["state"] in ("clinched_first", "clinched_qualify"))
+    gt = standings.group_table(sim, "Morocco")
+    assert gt["group"] == "C" and len(gt["rows"]) == 4
+    keys = [(r["pts"], r["gd"], r["gf"]) for r in gt["rows"]]   # 排序键逐行非增
+    assert all(keys[i] >= keys[i + 1] for i in range(len(keys) - 1))
+    assert [r["rank"] for r in gt["rows"]] == [1, 2, 3, 4]
+
+
+def test_motivation_adjust_shrinks_favorite_handicap(model):
+    """动机降权：强队已出线时 motiv_adj 缩进攻 λ → 公平让球档下降（或持平），且预警常开。"""
+    import manager
+    import data as dm
+    df = dm.load_raw()
+    clinched = {"qualified": True, "top1": True, "label": "已锁定小组头名", "state": "clinched_first"}
+    base = manager.build_report(model, df, "Argentina", "Jordan", neutral=True,
+                                context={"home_clinch": clinched, "away_clinch": None,
+                                         "motiv_adj": False})
+    adj = manager.build_report(model, df, "Argentina", "Jordan", neutral=True,
+                               context={"home_clinch": clinched, "away_clinch": None,
+                                        "motiv_adj": True})
+    assert base["motivation"]["warnings"]                     # 预警常开
+    assert base["motivation"]["adjusted"] is False
+    assert adj["motivation"]["adjusted"] is True
+    # 降权后强队公平让球档不升（轮换→大盘缩水）
+    assert adj["markets"]["handicap"]["fair_line"] <= base["markets"]["handicap"]["fair_line"] + 1e-9
+    # 无 context 时退化为纯模型（无 motivation 块不报错）
+    plain = manager.build_report(model, df, "Brazil", "Haiti", neutral=True)
+    assert plain["motivation"] is None and "handicap" in plain["markets"]
+
+
+# ---------- 让球命中率擂台（2026-06-25 续） ----------
+def test_handicap_ledger_settle_helpers():
+    """让球擂台结算原子函数：竞彩三向桶、cover 判定、Wilson 区间边界。"""
+    import handicap_ledger as hl
+    assert hl._jc_actual(3) == "让胜" and hl._jc_actual(1) == "让平" and hl._jc_actual(0) == "让负"
+    assert hl._jc_actual(-2) == "让负"
+    assert hl._cover(3, 2.0) == "cover" and hl._cover(2, 2.0) == "push" and hl._cover(1, 2.0) == "lose"
+    assert hl._cover(1, 0.5) == "cover"           # 让半球无走水
+    p, lo, hi = hl._wilson(5, 10)
+    assert abs(p - 0.5) < 1e-9 and lo < p < hi and 0 <= lo and hi <= 1
+    assert hl._wilson(0, 0) == (0.0, 0.0, 0.0)    # 空样本不崩
+    # 竞彩三向概率从净胜球分布卷出且归一
+    mp = {-1: 0.2, 0: 0.3, 1: 0.3, 2: 0.2}
+    jp = hl._jc_probs(mp, True)
+    assert abs(sum(jp.values()) - 1.0) < 1e-9
+    assert abs(jp["让胜"] - 0.2) < 1e-9 and abs(jp["让平"] - 0.3) < 1e-9 and abs(jp["让负"] - 0.5) < 1e-9
+
+
+def test_handicap_ledger_build_shape():
+    """擂台 build 在真实账本上返回合法结构：命中≤场次、概率归一、校准字段成对。"""
+    import app, handicap_ledger as hl
+    sim, df = app._sim(), app.DF
+    b = hl.build(sim, df)
+    assert b["n"] == len(b["rows"]) and b["n"] >= 0
+    jc = b["jc"]
+    assert 0 <= jc["hits"] <= b["n"]
+    assert 0.0 <= jc["rate"] <= 1.0 and jc["ci"][0] <= jc["rate"] <= jc["ci"][1] + 1e-9
+    assert jc["baseline_pick"] in ("让胜", "让平", "让负")
+    a = b["asian"]
+    if a["decided"]:
+        assert 0.0 <= a["real_cover_rate"] <= 1.0 and 0.0 <= a["pred_cover_rate"] <= 1.0
+        assert abs(a["calib_gap"] - (a["real_cover_rate"] - a["pred_cover_rate"])) < 1e-3
+    for r in b["rows"]:
+        assert r["jc_pick"] in ("让胜", "让平", "让负")
+        assert r["cover_result"] in ("cover", "push", "lose")
+
+
+def test_api_handicap_ledger_ok(client):
+    d = client.get("/api/handicap_ledger").get_json()
+    assert "jc" in d and "asian" in d and "rows" in d
+    assert d["jc"]["hits"] <= d["n"]
+
+
+# ---------- 让球：市场对标 + 分桶（2026-06-25 三连） ----------
+def test_market_compare_divergence_and_disagree(model):
+    """模型公平盘 vs 市场 spread 背离：同强队算背离/倾向；强弱判断不一致则不强比。"""
+    import manager, numpy as np
+    _, _, _, _, M = model.score_matrix("Brazil", "Haiti", neutral=True)
+    mp = manager._margin_pmf(M)
+    hc = manager.handicap_conclusion(mp, True, "Brazil", "Haiti")
+    # 市场让得更少 → 模型更看好强队（divergence>0）
+    mkt = {"fav_line": hc["fair_line"] - 0.5, "fav_is_home": True, "provider": "DraftKings",
+           "ou": 2.5, "fav_spread_odds": 1.9, "dog_spread_odds": 1.9}
+    cmp = manager._market_compare(hc, {"market_handicap": mkt}, "Brazil", "Haiti", True)
+    assert cmp["agree_fav"] and cmp["divergence"] > 0 and "更看好强队" in cmp["lean"]
+    # 市场强队是客队（与模型主队不一致）→ 不强行比较盘口
+    mkt2 = dict(mkt, fav_is_home=False)
+    cmp2 = manager._market_compare(hc, {"market_handicap": mkt2}, "Brazil", "Haiti", True)
+    assert cmp2["agree_fav"] is False and "divergence" not in cmp2
+    # 无市场 → None
+    assert manager._market_compare(hc, {}, "Brazil", "Haiti", True) is None
+
+
+def test_handicap_summary_carries_market(model):
+    """handicap_summary 传入 market 时附带对标块；不传则 market=None。"""
+    import manager, numpy as np
+    _, _, _, _, M = model.score_matrix("Argentina", "Jordan", neutral=True)
+    ph = float(np.tril(M, -1).sum()); pa = float(np.triu(M, 1).sum())
+    s0 = manager.handicap_summary(M, ph, pa, "阿根廷", "约旦")
+    assert s0["market"] is None and s0["fav"] == "阿根廷"
+    mkt = {"fav_line": 1.5, "fav_is_home": True, "provider": "DraftKings", "ou": 2.5,
+           "fav_spread_odds": 1.85, "dog_spread_odds": 1.95}
+    s1 = manager.handicap_summary(M, ph, pa, "阿根廷", "约旦", market=mkt)
+    assert s1["market"] and s1["market"]["market_line"] == 1.5 and "divergence" in s1["market"]
+
+
+def test_handicap_ledger_buckets():
+    """擂台分桶结构合法：每桶命中≤场次、率∈[0,1]、CI 包住率、阶段键合法。"""
+    import app, handicap_ledger as hl
+    b = hl.build(app._sim(), app.DF)
+    assert "buckets" in b and "strength" in b["buckets"]
+    seen = 0
+    for dim, rows in b["buckets"].items():
+        for r in rows:
+            seen += r["n"]
+            assert 0 <= r["hits"] <= r["n"] and 0.0 <= r["rate"] <= 1.0
+            assert r["ci"][0] <= r["rate"] <= r["ci"][1] + 1e-9
+        if dim == "stage":
+            assert all(x["key"] in ("小组赛", "淘汰赛") for x in rows)
+    assert seen >= b["n"]      # 每场至少进 stage+strength 两个维度
+
+
+# ---------- 让球：模型 vs 市场闭盘线（2026-06-25 续二） ----------
+def test_hc_key_order_invariant():
+    import espn_odds
+    assert espn_odds._hc_key("Brazil", "Haiti") == espn_odds._hc_key("Haiti", "Brazil")
+
+
+def test_vs_market_out_logic():
+    """_vs_market_out：MAE 均值、背离下注胜率、谁更接近 的派生正确。"""
+    import handicap_ledger as hl
+    vm = {"n": 4, "edge_w": 3, "edge_l": 1, "edge_push": 0, "agree": 0,
+          "mae_model": 4.0, "mae_market": 6.0, "closer_model": 3, "closer_market": 1, "tie": 0,
+          "mae_model_em": 4.0, "em_closer": 3, "em_worse": 1,
+          "clv_n": 0, "clv_sum": 0.0, "clv_pos": 0}
+    o = hl._vs_market_out(vm)
+    assert o["n"] == 4 and o["mae_model"] == 1.0 and o["mae_market"] == 1.5
+    assert o["model_closer"] is True               # 模型 MAE 更小 + 更近场数更多
+    assert o["edge_decided"] == 4 and o["edge_wins"] == 3 and o["edge_rate"] == 0.75
+    assert o["beats_market"] is True
+    assert hl._vs_market_out({"n": 0})["n"] == 0   # 空样本不崩
+
+
+def test_handicap_ledger_vs_market_integration():
+    """build 接 market_lines：构造合成市场线覆盖一场已完赛，vs_market 至少计入 1 场；
+    空 market_lines 则 vs_market.n=0。纯本地、不联网。"""
+    import app, handicap_ledger as hl, espn_odds
+    sim, df = app._sim(), app.DF
+    base = hl.build(sim, df, market_lines={})
+    assert base["vs_market"]["n"] == 0
+    if not base["rows"]:
+        return
+    r = base["rows"][0]                            # fav/dog 在 build 内是英文 canon
+    # 构造一条与该场强弱一致的市场线（让得比模型少 1 球，制造可下注分歧）
+    key = espn_odds._hc_key(r["fav"], r["dog"])
+    mkt = {key: {"fav_line": max(0.5, r["fair_line"] - 1.0),
+                 "fav_is_home": r["fav_is_home"], "ou": 2.5}}
+    b = hl.build(sim, df, market_lines=mkt)
+    assert b["vs_market"]["n"] >= 1
+    vm = b["vs_market"]
+    assert vm["mae_model"] is not None and vm["closer_model"] + vm["closer_market"] + vm["tie"] == vm["n"]
+
+
+# ---------- 让球：期望净胜 MAE + CLV（2026-06-25 续三） ----------
+def test_vs_market_out_em_and_clv():
+    """_vs_market_out 含期望净胜 MAE 与 CLV 派生字段。"""
+    import handicap_ledger as hl
+    vm = {"n": 2, "edge_w": 1, "edge_l": 0, "edge_push": 0, "agree": 1,
+          "mae_model": 3.0, "mae_market": 2.0, "closer_model": 0, "closer_market": 2, "tie": 0,
+          "mae_model_em": 2.5, "em_closer": 1, "em_worse": 1,
+          "clv_n": 2, "clv_sum": 0.5, "clv_pos": 2}
+    o = hl._vs_market_out(vm)
+    assert o["mae_model_em"] == 1.25 and o["em_beats_market"] is False
+    assert o["clv"]["n"] == 2 and o["clv"]["avg"] == 0.25 and o["clv"]["pos_rate"] == 1.0
+
+
+def test_handicap_ledger_clv_from_timeline():
+    """build 接 timeline：开盘线在模型背离方、闭盘朝模型移动 → 正 CLV 计入。纯本地、不联网。"""
+    import app, handicap_ledger as hl, espn_odds
+    sim, df = app._sim(), app.DF
+    base = hl.build(sim, df, market_lines={}, timeline={})
+    assert base["vs_market"]["clv"]["n"] == 0          # 无 timeline → 无 CLV
+    # 挑一场公平盘≥1.5 的（确保 open=fair−1 严格小于 fair，position≠0）
+    r = next((x for x in base["rows"] if x["fair_line"] >= 1.5), None)
+    if r is None:
+        return
+    key = espn_odds._hc_key(r["fav"], r["dog"])
+    mkt = {key: {"fav_line": r["fair_line"], "fav_is_home": r["fav_is_home"], "ou": 2.5}}
+    # 开盘线比模型公平盘低 1 球（模型更看好强队=position +1），闭盘升 0.5（朝模型移动→正 CLV）
+    open_line = r["fair_line"] - 1.0
+    tl = {key: {"fav_is_home": r["fav_is_home"], "open_line": open_line,
+                "close_line": open_line + 0.5, "open_at": "x", "close_at": "y"}}
+    b = hl.build(sim, df, market_lines=mkt, timeline=tl)
+    clv = b["vs_market"]["clv"]
+    assert clv["n"] >= 1 and clv["avg"] > 0 and clv["pos_rate"] > 0
+
+
+# ---------- ESPN 让球盘解析器（2026-06-25 续四，mock 不联网）----------
+def _fake_event(home="Morocco", away="Haiti", eid="1"):
+    return {"id": eid, "date": "2026-06-25T18:00Z",
+            "competitions": [{"competitors": [
+                {"homeAway": "home", "team": {"displayName": home}},
+                {"homeAway": "away", "team": {"displayName": away}}]}]}
+
+
+def test_handicap_summary_parser_home_fav(monkeypatch):
+    """主队是强队：spread=-1.5 → fav_line=1.5、fav_is_home=True、水位/OU 正确解析。"""
+    import espn_odds as eo
+    monkeypatch.setattr(eo, "_get", lambda url: {"pickcenter": [
+        {"provider": {"name": "DraftKings"}, "spread": -1.5, "overUnder": 2.5,
+         "homeTeamOdds": {"favorite": True, "spreadOdds": -115},
+         "awayTeamOdds": {"favorite": False, "spreadOdds": -105}}]})
+    r = eo._handicap_from_summary(_fake_event("Morocco", "Haiti"))
+    assert r["fav_line"] == 1.5 and r["fav_is_home"] is True
+    assert r["home"] == "Morocco" and r["away"] == "Haiti" and r["ou"] == 2.5
+    assert r["fav_spread_odds"] == eo.am2dec(-115) and r["provider"] == "DraftKings"
+
+
+def test_handicap_summary_parser_away_fav(monkeypatch):
+    """客队是强队：spread=+1.5（主队受让）、favorite=False → fav_line=1.5、fav_is_home=False。"""
+    import espn_odds as eo
+    monkeypatch.setattr(eo, "_get", lambda url: {"pickcenter": [
+        {"provider": {"name": "DraftKings"}, "spread": 1.5, "overUnder": 2.5,
+         "homeTeamOdds": {"favorite": False, "spreadOdds": 120},
+         "awayTeamOdds": {"favorite": True, "spreadOdds": -140}}]})
+    r = eo._handicap_from_summary(_fake_event("Scotland", "Brazil"))
+    assert r["fav_line"] == 1.5 and r["fav_is_home"] is False
+    assert r["fav_spread_odds"] == eo.am2dec(-140)        # 强队=客队的水位
+
+
+def test_handicap_summary_parser_no_spread(monkeypatch):
+    """无 spread 字段 → None（不伪造盘口）。"""
+    import espn_odds as eo
+    monkeypatch.setattr(eo, "_get", lambda url: {"pickcenter": [
+        {"provider": {"name": "DraftKings"}, "homeTeamOdds": {}, "awayTeamOdds": {}}]})
+    assert eo._handicap_from_summary(_fake_event()) is None
+    monkeypatch.setattr(eo, "_get", lambda url: {"pickcenter": []})
+    assert eo._handicap_from_summary(_fake_event()) is None
+
+
+# ---------- 竞彩动态让球线（2026-06-25 续五）----------
+def test_jc_handicap_line_param():
+    """jc_handicap(line) 按任意整数线结算：让胜=净胜>line/让平=net==line/让负=net<line；默认1与旧口径等。"""
+    import manager
+    mp = {-1: 0.1, 0: 0.2, 1: 0.2, 2: 0.25, 3: 0.25}     # 强队=主
+    j1 = manager.jc_handicap(mp, True, 1)                  # 让1：net>1=P(2)+P(3)=0.5, ==1=0.2, <1=P(0)+P(-1)=0.3
+    assert abs(j1["win"] - 0.5) < 1e-9 and abs(j1["draw"] - 0.2) < 1e-9 and abs(j1["lose"] - 0.3) < 1e-9
+    j2 = manager.jc_handicap(mp, True, 2)                  # 让2：净胜>2=P(3)=0.25, ==2=0.25, <2=0.5
+    assert abs(j2["win"] - 0.25) < 1e-9 and abs(j2["draw"] - 0.25) < 1e-9 and abs(j2["lose"] - 0.5) < 1e-9
+    j0 = manager.jc_handicap(mp, True, 0)                  # 平手=常规：胜=P(>0)=0.7, 平=0.2, 负=0.1
+    assert abs(j0["win"] - 0.7) < 1e-9 and abs(j0["lose"] - 0.1) < 1e-9
+
+
+def test_csl_dynamic_line_strong_vs_even(model):
+    """csl_handicap 动态定线：强打弱(摩洛哥vs海地)→让≥2、势均力敌(德国vs厄瓜多尔)→平手(0)。
+    且让球线下 让胜/让平/让负 归一、与本场期望净胜自洽（line=round(exp)）。"""
+    import manager, numpy as np
+    def csl(h, a):
+        _, _, _, _, M = model.score_matrix(h, a, neutral=True)
+        mp = manager._margin_pmf(M)
+        ph = float(np.tril(M, -1).sum()); pa = float(np.triu(M, 1).sum())
+        return manager.csl_handicap(mp, ph >= pa)
+    mor = csl("Morocco", "Haiti")
+    assert mor["line"] >= 2 and mor["is_handicap"] and mor["home_line"] == -mor["line"]  # 摩主让N→主队口径负
+    assert abs(mor["win"] + mor["draw"] + mor["lose"] - 1.0) < 1e-6
+    assert mor["line"] == int(round(mor["exp_margin"]))    # 线=round(期望净胜)
+    ge = csl("Germany", "Ecuador")
+    assert ge["line"] == 0 and ge["is_handicap"] is False and ge["home_line"] == 0   # 势均力敌→平手
+
+
+# ---------- 比赛解读文案层（2026-06-25 续六，文案/QA）----------
+def test_narrative_compliance_no_banned_words(model):
+    """QA 合规铁测：遍历多类对阵（强打弱/均势/弱打强/host）生成解读，断言**永不**含违规词，
+    且每条都带『非投注建议』尾注。这是把守『严禁涉赌』红线的自动化护栏。"""
+    import narrative, manager, teams_zh
+    import numpy as np
+    pairs = [("Brazil", "Haiti"), ("Germany", "Ecuador"), ("Argentina", "France"),
+             ("Haiti", "Brazil"), ("Norway", "France"), ("Mexico", "Canada"),
+             ("Saudi Arabia", "Spain"), ("Morocco", "Haiti")]
+    for h, a in pairs:
+        r = model.predict(h, a, neutral=True)
+        _, _, _, _, M2 = model.score_matrix(h, a, neutral=True)
+        mp = manager._margin_pmf(M2)
+        csl = manager.csl_handicap(mp, r["p_home"] >= r["p_away"])
+        hc = {"csl_is_handicap": csl["is_handicap"], "csl_line": csl["line"], "jc_verdict": csl["verdict"]}
+        M = r["matrix"]
+        tot = float(sum((i + j) * M[i, j] for i in range(M.shape[0]) for j in range(M.shape[1])))
+        s = narrative.match_narrative(teams_zh.disp(h), teams_zh.disp(a),
+                                      r["p_home"], r["p_draw"], r["p_away"], hc, tot)
+        for w in narrative._BANNED:
+            assert w not in s, f"{h} vs {a} 解读含违规词 {w}：{s}"
+        assert "非投注建议" in s and "理性观赛" in s          # 合规尾注必带
+
+
+def test_narrative_clean_guard_raises():
+    """守卫函数 _clean 对含违规词的串必抛（防未来改文案漏词）。"""
+    import narrative
+    import pytest
+    with pytest.raises(ValueError):
+        narrative._clean("本场稳赚不赔")
+    assert narrative._clean("非投注建议，理性观赛") == "非投注建议，理性观赛"   # 合规串放行
+
+
+def test_narrative_nick_and_frame(model):
+    """解读内容自洽：强队带昵称、势均力敌走『平手/均势』叙事。"""
+    import narrative, teams_zh
+    s = narrative.match_narrative(teams_zh.disp("Brazil"), teams_zh.disp("Haiti"),
+                                  0.80, 0.13, 0.07,
+                                  {"csl_is_handicap": True, "csl_line": 2, "jc_verdict": "让负"}, 2.6)
+    assert "桑巴军团" in s and "让 2 球" in s
+    s2 = narrative.match_narrative(teams_zh.disp("Argentina"), teams_zh.disp("France"),
+                                   0.36, 0.30, 0.34,
+                                   {"csl_is_handicap": False, "csl_line": 0, "jc_verdict": "让胜"}, 1.9)
+    assert "平手" in s2 or "五五" in s2 or "难题" in s2
+
+
+def test_api_predict_has_narrative(client):
+    d = client.get("/api/predict?home=Brazil&away=Scotland&neutral=1").get_json()
+    assert "narrative" in d and "非投注建议" in d["narrative"]
