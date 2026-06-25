@@ -24,3 +24,4 @@ data/bayes_draws.npz
 data/odds_snapshots.jsonl
 data/handicap_lines.json
 data/handicap_snapshots.jsonl
+data/sponsor.png

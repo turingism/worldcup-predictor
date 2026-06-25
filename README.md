@@ -9,6 +9,14 @@
 
 ---
 
+## ☕ Support (entirely optional)
+
+This is a **free, open-source** personal project. If it saved you some hassle or made watching the World Cup a bit more fun, you're welcome to buy the author a coffee — click "**♥ 赞赏支持**" in the top-right of the web app to scan a QR (Alipay / WeChat).
+
+> **Tipping is purely voluntary — it unlocks nothing and is not a purchase of any prediction service.** Every feature is, and stays, free for everyone. When self-hosting, drop your own payment QR at `data/sponsor.png` to enable the button (that file is in `.gitignore` by default and is never committed).
+
+---
+
 > **Not another "AI vibes-picking" toy.** This is an **interactive, real-time probability machine** driven by a Dixon-Coles double-Poisson engine fit on every international match from 1872–2026, calibrated by out-of-sample backtesting — every number is falsifiable, and every refresh follows the real results.
 
 <p align="center">
