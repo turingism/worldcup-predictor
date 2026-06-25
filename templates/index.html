@@ -35,6 +35,22 @@
     animation:vcpulse 2s infinite}
   @keyframes vcpulse{0%{box-shadow:0 0 0 0 #e3b34166}70%{box-shadow:0 0 0 8px #e3b34100}100%{box-shadow:0 0 0 0 #e3b34100}}
   .verchk .vc-refresh{margin-left:8px;color:var(--dim);cursor:pointer;font-size:11px;text-decoration:underline}
+  /* 赞赏（纯自愿，不解锁功能）*/
+  .hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+  .sponsor-link{font-size:12px;color:var(--mut);cursor:pointer;border:1px solid var(--line);
+    border-radius:7px;padding:4px 11px;white-space:nowrap;transition:.15s}
+  .sponsor-link:hover{color:#e3678f;border-color:#e3678f55;background:#e3678f12}
+  .sp-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;
+    align-items:center;justify-content:center;padding:20px}
+  .sp-mask.on{display:flex}
+  .sp-box{position:relative;background:var(--panel,#161b22);border:1px solid var(--line);border-radius:16px;
+    padding:14px 14px 16px;max-width:560px;width:100%;text-align:center}
+  .sp-x{position:absolute;top:8px;right:14px;font-size:24px;color:#fff;cursor:pointer;line-height:1;z-index:2;
+    text-shadow:0 1px 4px rgba(0,0,0,.5)}
+  .sp-img{width:100%;border-radius:12px;display:block}
+  .sp-noqr{color:#888;font-size:13px;line-height:1.8;padding:70px 16px;background:#0d1117;border-radius:12px}
+  .sp-noqr small{color:#aaa;font-size:11.5px}
+  .sp-note{font-size:12px;color:var(--mut);line-height:1.6;margin:12px 6px 0}
   .wrap{max-width:1180px;margin:0 auto;padding:20px}
   .xlink a{color:var(--acc);cursor:pointer;text-decoration:none}
   .xlink a:hover{text-decoration:underline}
@@ -408,8 +424,19 @@
     <h1>⚽ 世界杯比分预测器</h1>
     <p>Dixon-Coles 双泊松模型 · 1872–2026 真实国际赛数据 · 含东道主主场修正</p>
   </div>
-  <div class="verchk" id="verchk"></div>
+  <div class="hdr-right">
+    <div class="verchk" id="verchk"></div>
+    <a class="sponsor-link" onclick="openSponsor()" title="开源免费项目，赞赏纯自愿，不解锁任何功能">♥ 赞赏支持</a>
+  </div>
 </header>
+
+<div id="sponsor-modal" class="sp-mask" onclick="if(event.target===this)closeSponsor()">
+  <div class="sp-box">
+    <div class="sp-x" onclick="closeSponsor()">×</div>
+    <img class="sp-img" src="/sponsor-qr" alt="赞赏码" onerror="this.outerHTML='&lt;div class=sp-noqr&gt;赞赏码待添加&lt;br&gt;&lt;small&gt;把收款码图片保存为 data/sponsor.png 即可显示。赞赏纯自愿、不解锁任何功能、不构成购买预测服务。&lt;/small&gt;&lt;/div&gt;'">
+    <div class="sp-note">赞赏<b>纯属自愿</b>，<b>不解锁任何功能、不构成购买预测服务</b>——就当鼓励作者继续折腾。</div>
+  </div>
+</div>
 
 <div class="wrap">
   <div class="tabs">
@@ -2043,6 +2070,10 @@ DataScheduler.register('verify', 60*1000, ()=>{ if($('#dashres').dataset.loaded)
 // 看板：每 3min 拉完赛（可能重训）；有新赛果才重渲看板
 DataScheduler.register('verify', 3*60*1000, async ()=>{ const r=await postLive(); if(r&&r.ok&&r.changed) loadDashboard(); });
 DataScheduler.register('xuanxue', 2*60*1000, ()=>{ if(xuanxueLoaded) loadXuanxue(); });  // 完赛后自动结算并入排行
+
+// —— 赞赏（纯自愿，不解锁任何功能）——
+function openSponsor(){ const m=$('#sponsor-modal'); if(m) m.classList.add('on'); }
+function closeSponsor(){ const m=$('#sponsor-modal'); if(m) m.classList.remove('on'); }
 DataScheduler.start();
 
 // —— GitHub 仓库更新检测（右上角）：定时比对本地 HEAD vs 远程 main，发现新版本提示通过 Claude 更新 ——

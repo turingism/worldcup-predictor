@@ -25,7 +25,7 @@ import time
 import urllib.request
 
 import numpy as np
-from flask import Flask, jsonify, make_response, render_template, request
+from flask import Flask, jsonify, make_response, render_template, request, send_file
 
 import clv as clvmod
 import data as datamod
@@ -115,10 +115,20 @@ def index():
 @app.route("/api/config")
 def api_config():
     """前端启动配置：是否只读分享模式（据此隐藏写操作按钮）。"""
-    return jsonify({"readonly": READONLY})
+    return jsonify({"readonly": READONLY, "sponsor": os.path.exists(_SPONSOR_QR)})
+
+
+@app.route("/sponsor-qr")
+def sponsor_qr():
+    """赞赏码图片（作者把自己的收款/赞赏码放到 data/sponsor.png 即生效）。
+    纯自愿打赏入口，**不解锁任何功能、不构成购买预测服务**——缺图则 404，前端优雅降级。"""
+    if os.path.exists(_SPONSOR_QR):
+        return send_file(_SPONSOR_QR)
+    return "", 404
 
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_SPONSOR_QR = os.path.join(_BASE_DIR, "data", "sponsor.png")   # 作者赞赏码（可选，自愿打赏用）
 
 
 def _git(*args):
