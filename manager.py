@@ -167,6 +167,132 @@ def _asian_quarter(mp, fav_is_home, line):
     return win, lose
 
 
+# 让球档位扫描表（站强队角度，强队让出的球数）。整/半档走 _handicap_back_fav，
+# 分球（.25/.75）走 _asian_quarter（无走盘、半仓退本已并入赢/输）。
+_HANDI_LINES = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]
+
+
+def settle_line(mp, fav_is_home, line):
+    """任意让球线的结算（站强队角度）：返回 {win, push, lose, net}。
+    net = win − lose（push 视退本，不计盈亏），>0 押强队占面、<0 让过头押弱队占面。"""
+    if abs((line * 4) % 2) > 1e-9:        # .25 / .75 分球盘
+        w, l = _asian_quarter(mp, fav_is_home, line)
+        p = 0.0
+    else:                                  # 整数 / 半球盘
+        w, p, l = _handicap_back_fav(mp, fav_is_home, line)
+    return {"win": w, "push": p, "lose": l, "net": w - l}
+
+
+def _verdict(net):
+    """让球性价比判级（站强队角度）。push 已按退本并入 net。"""
+    if net >= 0.10:
+        return "偏值"      # 让这么多强队仍明显占面
+    if net <= -0.10:
+        return "偏亏"      # 让过头，押弱队受让占面
+    return "接近公平"
+
+
+def jc_handicap(mp, fav_is_home, line=1):
+    """竞彩让球（强队让 line 球，line 整数）：让胜(净胜>line)/让平(净胜=line)/让负(净胜<line) + argmax。
+    line=0 即平手（让胜=强队胜/让平=平/让负=强队负），等同常规胜平负。默认 line=1 与旧口径恒等。"""
+    fav = {(k if fav_is_home else -k): p for k, p in mp.items()}
+    win = sum(p for m, p in fav.items() if m > line)
+    draw = sum(p for m, p in fav.items() if m == line)
+    lose = sum(p for m, p in fav.items() if m < line)
+    verdict = max((("让胜", win), ("让平", draw), ("让负", lose)), key=lambda t: t[1])[0]
+    return {"win": win, "draw": draw, "lose": lose, "verdict": verdict, "line": line}
+
+
+def csl_line(mp, fav_is_home):
+    """本场竞彩让球线 N = round(强队期望净胜球)，clamp[0,6]。N≥1 强队让 N 球；N=0 平手(常规胜平负)。"""
+    favm = {(k if fav_is_home else -k): p for k, p in mp.items()}
+    exp = float(sum(k * p for k, p in favm.items()))      # 强队期望净胜
+    return int(max(0, min(6, round(exp)))), round(exp, 2)
+
+
+def csl_handicap(mp, fav_is_home):
+    """竞彩让球胜平负——**按本场期望净胜动态定让球线**（非写死让1）。
+    返回 {line, is_handicap, home_line(主队口径,负=主让/正=主受让), exp_margin, win/draw/lose/verdict}。"""
+    N, exp = csl_line(mp, fav_is_home)
+    jc = jc_handicap(mp, fav_is_home, N)
+    home_line = 0 if N == 0 else (-N if fav_is_home else N)
+    return {**jc, "is_handicap": N >= 1, "home_line": home_line, "exp_margin": exp}
+
+
+def handicap_summary(M, p_home, p_away, home_team, away_team, market=None):
+    """紧凑让球摘要（供看板「看预测」弹窗用）：强队 / 公平盘 / 建议上限 / 竞彩让球倾向。
+    纯从比分矩阵卷积，不碰引擎。M 接受 np.array 或嵌套 list。
+    market（可选）= espn_odds 让球盘行 → 附市场实盘 spread 对标。"""
+    M = np.asarray(M, dtype=float)
+    mp = _margin_pmf(M)
+    fav_is_home = p_home >= p_away
+    fav_team, dog_team = (home_team, away_team) if fav_is_home else (away_team, home_team)
+    hc = handicap_conclusion(mp, fav_is_home, fav_team, dog_team)
+    csl = csl_handicap(mp, fav_is_home)        # 竞彩动态让球线（让N/平手）+ 胜平负
+    out = {
+        "fav": fav_team, "dog": dog_team, "fav_is_home": fav_is_home,
+        "fair_line": hc["fair_line"], "max_fair_line": hc["max_fair_line"],
+        "jc_verdict": csl["verdict"], "csl_line": csl["line"], "csl_is_handicap": csl["is_handicap"],
+        "jc": {"win": csl["win"], "draw": csl["draw"], "lose": csl["lose"]},
+    }
+    out["market"] = _market_compare(hc, {"market_handicap": market}, fav_team, dog_team, fav_is_home)
+    return out
+
+
+def _market_compare(hc, context, fav_en, dog_en, model_fav_is_home):
+    """模型公平盘 vs 市场实盘让球盘（ESPN/DraftKings spread）背离分析。
+    context["market_handicap"] = espn_odds 行（站强队口径 fav_line/fav_is_home/...）。
+    返回 None（无实盘）或 {market_line, source, agree_fav, divergence, lean}。"""
+    mh = (context or {}).get("market_handicap")
+    if not mh:
+        return None
+    # 市场强队与模型强队是否一致（极少数分歧场，如实标注不强行比较盘口数值）
+    agree = (mh.get("fav_is_home") == model_fav_is_home)
+    market_line = mh.get("fav_line")
+    out = {
+        "market_line": market_line, "source": mh.get("provider", "DraftKings"),
+        "ou": mh.get("ou"), "agree_fav": agree,
+        "fav_odds": mh.get("fav_spread_odds"), "dog_odds": mh.get("dog_spread_odds"),
+    }
+    # 盘口移动（开盘→现/闭盘，站强队角度）：>0 市场加大让球(更看好强队)、<0 收窄
+    if mh.get("open_line") is not None and market_line is not None:
+        mv = round(market_line - mh["open_line"], 2)
+        out["open_line"] = mh["open_line"]
+        out["move"] = mv
+        out["move_dir"] = ("市场加大让球（更看好强队）" if mv > 0.124 else
+                           "市场收窄让球（更看好弱队）" if mv < -0.124 else "盘口基本未动")
+    if agree and market_line is not None:
+        div = round(hc["fair_line"] - market_line, 2)   # >0：模型让得更多=更看好强队
+        out["divergence"] = div
+        out["lean"] = ("模型比市场更看好强队" if div > 0.124 else
+                       "模型比市场更保守" if div < -0.124 else "模型与市场基本一致")
+    return out
+
+
+def handicap_conclusion(mp, fav_is_home, fav_team, dog_team):
+    """直接给让球结论（不放选择器）：模型公平盘 + 全档位扫描 + 推荐让球档。
+
+    - fair_line：让球后强队净胜率（win−lose）绝对值最小的档 = 模型「五五开盘口」。
+    - max_fair：强队能让且仍不亏（net≥0）的最大档 = 建议盘口上限，超过即偏亏。
+    - lines：每档赢/走盘/输 + 性价比判级，供前端直接铺表。
+    """
+    scan = []
+    for L in _HANDI_LINES:
+        s = settle_line(mp, fav_is_home, L)
+        s["line"] = L
+        s["verdict"] = _verdict(s["net"])
+        scan.append(s)
+    fair = min(scan, key=lambda s: abs(s["net"]))
+    fair_or = [s for s in scan if s["net"] >= -1e-9]
+    max_fair = max(fair_or, key=lambda s: s["line"]) if fair_or else scan[0]
+    return {
+        "fav": fav_team, "dog": dog_team, "fav_is_home": fav_is_home,
+        "fair_line": fair["line"], "fair": fair,
+        "max_fair_line": max_fair["line"],
+        "lines": scan,
+    }
+
+
 def derived_markets(M, lam_h, lam_a, p_home, p_draw, p_away):
     """从比分矩阵卷积出全部盘口维度。"""
     n = M.shape[0]
@@ -214,13 +340,7 @@ def derived_markets(M, lam_h, lam_a, p_home, p_draw, p_away):
     asian["fair_line"] = fair
 
     # —— 竞彩让球（让 1 球）：强队让 1 → 让胜=赢2+ / 让平=刚好赢1 / 让负=不胜 ——
-    fav = {(k if fav_is_home else -k): p for k, p in mp.items()}
-    jc_win = sum(p for m, p in fav.items() if m >= 2)
-    jc_draw = sum(p for m, p in fav.items() if m == 1)
-    jc_lose = sum(p for m, p in fav.items() if m <= 0)
-    jc = {"win": jc_win, "draw": jc_draw, "lose": jc_lose,
-          "verdict": max((("让胜", jc_win), ("让平", jc_draw), ("让负", jc_lose)),
-                         key=lambda t: t[1])[0]}
+    jc = jc_handicap(mp, fav_is_home)
 
     return {
         "over": over, "goals_dist": goals_dist, "exp_total": exp_total,
@@ -357,18 +477,71 @@ def market_odds(home_en, away_en):
 
 # ───────────────────────── 总装 ─────────────────────────
 
-def build_report(model, df, home, away, neutral=True, elo=None, lineup=None):
-    """组装完整报告 dict（英文队名内部用，最外层由 app 本地化）。"""
+MOTIV_MULT = 0.90   # 动机降权乘子：已出线队进攻 λ × 此值（启发式、非回测结论，默认不启用）
+
+
+def _motivation(context, h_en, a_en, fav_is_home):
+    """动机层：综合「已晋级球队心态」。从 context（app 注入的 clinch 状态）出发——
+    预警常开；降权乘子仅在 motiv_adj 显式开启且强队已出线时应用。返回 motivation 块 +
+    供 score_matrix 用的 avail_override（None=不调整）。**不碰 GLM，只走上下文乘子通道。**"""
+    if not context:
+        return None, None
+    hc, ac = context.get("home_clinch"), context.get("away_clinch")
+    fav_en = h_en if fav_is_home else a_en
+    fav_clinch = hc if fav_is_home else ac
+    # 预警：任一方已锁定出线/头名 → 可能轮换，让球盘性价比下调（尤其强队已出线时大盘易翻）。
+    warn = []
+    for en, c, who in ((h_en, hc, "home"), (a_en, ac, "away")):
+        if c and c.get("qualified"):
+            warn.append({"team": en, "side": who, "label": c["label"],
+                         "top1": c.get("top1", False)})
+    applies = bool(fav_clinch and fav_clinch.get("qualified"))   # 强队已出线=降权才有意义
+    block = {
+        "home_clinch": hc, "away_clinch": ac,
+        "warnings": warn, "applies_to_fav": applies,
+        "fav_clinched": applies, "mult": MOTIV_MULT,
+        "adjusted": False,
+    }
+    override = None
+    if context.get("motiv_adj") and applies:
+        # 强队已出线 → 进攻 λ × MOTIV_MULT（防守不动）。avail_override=(att_mult, def_pen_mult)。
+        override = {fav_en: (MOTIV_MULT, 1.0)}
+        block["adjusted"] = True
+    return block, override
+
+
+def build_report(model, df, home, away, neutral=True, elo=None, lineup=None, context=None):
+    """组装完整报告 dict（英文队名内部用，最外层由 app 本地化）。
+    context（可选，app 注入）：{home_clinch, away_clinch, motiv_adj} 驱动动机层让球微调。"""
     h_en = model.resolve(home)
     a_en = model.resolve(away)
     # 首发名单层：available 时主报告改用首发确认版乘子；否则 None=维持现状（全局口径）。
     _ov = lineup["mods"] if (lineup and lineup.get("available")) else None
-    h, a, lam_h, lam_a, M = model.score_matrix(h_en, a_en, neutral=neutral, avail_override=_ov)
+
+    # 先用基线口径定强弱（动机降权只对「强队已出线」生效，故强弱判定不受降权影响）。
+    _, _, _l0h, _l0a, M0 = model.score_matrix(h_en, a_en, neutral=neutral, avail_override=_ov)
+    fav_is_home = float(np.tril(M0, -1).sum()) >= float(np.triu(M0, 1).sum())
+    motiv, motiv_ov = _motivation(context, h_en, a_en, fav_is_home)
+
+    # 动机降权：把降权乘子叠到现有 override 上（首发层若在则合并，互不覆盖）。
+    av_override = _ov
+    if motiv_ov:
+        av_override = dict(_ov or {}); av_override.update(motiv_ov)
+    h, a, lam_h, lam_a, M = model.score_matrix(h_en, a_en, neutral=neutral,
+                                               avail_override=av_override)
     p_home = float(np.tril(M, -1).sum())
     p_draw = float(np.trace(M))
     p_away = float(np.triu(M, 1).sum())
 
     mk = derived_markets(M, lam_h, lam_a, p_home, p_draw, p_away)
+    # 让球结论（直接给：公平盘 + 全档扫描 + 推荐），队名按强弱归属。
+    fav_en, dog_en = (h_en, a_en) if fav_is_home else (a_en, h_en)
+    _mp = _margin_pmf(M)
+    mk["handicap"] = handicap_conclusion(_mp, fav_is_home, fav_en, dog_en)
+    # 竞彩让球胜平负：按本场期望净胜动态定让球线（如摩洛哥让2、势均力敌平手），非写死让1。
+    mk["handicap"]["csl"] = csl_handicap(_mp, fav_is_home)
+    # 市场让球盘对标（context 注入的 ESPN/DraftKings 实盘 spread）：模型公平盘 vs 市场盘口背离。
+    mk["handicap"]["market"] = _market_compare(mk["handicap"], context, fav_en, dog_en, fav_is_home)
     conf = confidence(p_home, p_draw, p_away)
     hft = half_full_time(lam_h, lam_a)
 
@@ -437,6 +610,7 @@ def build_report(model, df, home, away, neutral=True, elo=None, lineup=None):
         "matchup": matchup, "weak": weak,
         "markets": mk, "confidence": conf, "half_full": hft,
         "availability": avail, "schedule": sched, "odds": odds, "lineup": lineup_block,
+        "motivation": motiv,
         "elo": elo_note,
         "meta": {
             "fh_share": FH_SHARE, "stats_window": STATS_WINDOW,

@@ -139,6 +139,18 @@
     text-align:center;font-size:15px;background:var(--panel2)}
   .mgwdl{display:flex;justify-content:space-around;text-align:center;font-size:20px;margin-top:6px}
   .mgwdl .muted{font-size:12px}
+  /* 让球擂台 */
+  .hcl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+  .hcl-box{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#0f141b}
+  .hcl-h{font-size:12.5px;font-weight:700;color:var(--mut2);margin-bottom:6px}
+  .hcl-big{font-size:26px;font-weight:800}
+  .hcl-big small{font-size:13px;font-weight:400}
+  .hcpop{margin:10px 0 2px;padding:9px 12px;border:1px solid var(--line);border-left:3px solid var(--gold);
+         border-radius:8px;background:#0f141b;font-size:12.5px;line-height:1.5}
+  .hcmkt{margin:6px 0;padding:8px 12px;border:1px solid var(--line);border-left:3px solid var(--blue);
+         border-radius:8px;background:#0e1620;font-size:12px;line-height:1.5}
+  .nar{margin:10px 0;padding:11px 14px;border:1px solid #2ea04333;border-left:3px solid var(--grn2);
+       border-radius:10px;background:linear-gradient(90deg,#0e1c14,#0d1117);font-size:13px;line-height:1.7;color:var(--txt)}
   /* 晋级树 */
   .champ-banner{text-align:center;padding:18px;border:1px solid var(--grn);border-radius:12px;
     margin-bottom:14px;background:linear-gradient(180deg,#12331f,#161b22)}
@@ -285,6 +297,8 @@
   .up-day-n{background:#21262d;border-radius:10px;padding:0 8px;font-size:11px;color:var(--mut);font-weight:600}
   .scpill{display:inline-block;background:#1f6feb22;border:1px solid #1f6feb44;border-radius:6px;
     padding:1px 8px;font-weight:700;font-variant-numeric:tabular-nums;color:#79c0ff;font-size:12.5px}
+  .hcpill{display:inline-block;margin-left:5px;background:#bb8a2618;border:1px solid #bb8a2655;border-radius:6px;
+    padding:1px 7px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--gold);font-size:11.5px;cursor:help}
   .up-act{text-align:right}
   .seebtn{background:#21262d;color:#58a6ff;border:1px solid #30363d;border-radius:6px;
     padding:4px 9px;cursor:pointer;font-size:11.5px;white-space:nowrap}
@@ -578,6 +592,8 @@ function teamBlur(el){ if(!el.value.trim()) el.value=el.dataset.prev||''; }
 // tab 切换
 // 各 tab 懒加载标志（verify/看板用 #dashres.dataset.loaded 这一 DOM-state，故意不在此列）
 let bracketLoaded=false, ratingsLoaded=false, marketLoaded=false, champCILoaded=false, managerLoaded=false, xuanxueLoaded=false, champPanelsLoaded=false;
+let mgMotivAdj=false;   // 动机降权开关（已出线队进攻 λ×0.90 启发式，默认关，铁律：默认纯模型）
+function toggleMotivAdj(cb){ mgMotivAdj=cb.checked; loadManager(); }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');
@@ -1033,7 +1049,97 @@ function renderDashboard(d){
   h+=secHead('🟡 即将开赛', d.upcoming.length)+renderUpcoming(d.upcoming);
   // —— 已结束（预测核对）——
   h+=secHead('✅ 已结束 · 预测核对', (d.done.summary||{}).done||0)+renderDone(d.done);
+  // —— 让球预测命中率擂台（懒加载，复用同一冻结账本）——
+  h+=`<div id="hcledger"></div>`;
   $('#dashres').innerHTML=h;
+  loadHandicapLedger();
+}
+
+// 让球擂台：从赛前冻结矩阵推导的让球预测，用真实赛果检验命中率+公平盘校准（只读，小样本须标注）。
+let hcLedgerLoading=false;
+async function loadHandicapLedger(){
+  const box=$('#hcledger'); if(!box||hcLedgerLoading) return;
+  hcLedgerLoading=true;
+  box.innerHTML='<div class="card spin">结算让球预测命中率…</div>';
+  let b; try{ b=await (await fetch('/api/handicap_ledger')).json(); }
+  catch(e){ box.innerHTML=''; hcLedgerLoading=false; return; }
+  hcLedgerLoading=false;
+  if(!b||b.error||!b.n){ box.innerHTML=''; return; }
+  box.innerHTML=renderHandicapLedger(b);
+}
+// 竞彩让球命中率分桶（按阶段 / 强队赛前实力档），看模型在哪类场次的让球预测更准。
+function hclBuckets(bk){
+  if(!bk) return '';
+  const P=x=>(x*100).toFixed(0)+'%';
+  const tbl=(title,rows)=>!rows||!rows.length?'':`<div style="flex:1;min-width:220px">
+    <div class="muted" style="font-size:11.5px;margin:6px 0 3px;font-weight:600">${title}</div>
+    <table class="mgt"><tr><th style="text-align:left">分组</th><th>命中</th><th>命中率</th><th>95%CI</th></tr>
+    ${rows.map(r=>`<tr><td style="text-align:left">${r.key}</td><td>${r.hits}/${r.n}</td>
+      <td><b>${P(r.rate)}</b></td><td class="muted">${P(r.ci[0])}–${P(r.ci[1])}</td></tr>`).join('')}</table></div>`;
+  const stage=tbl('按阶段', bk.stage), str=tbl('按强队赛前实力档', bk.strength);
+  if(!stage&&!str) return '';
+  return `<details style="margin-top:10px" open><summary style="cursor:pointer;font-size:12.5px;color:var(--mut2)">📊 竞彩命中率分桶（阶段 / 强弱）</summary>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px">${stage}${str}</div>
+    <div class="muted" style="font-size:11px;margin-top:4px">分桶样本更小、CI 更宽，仅看趋势。</div></details>`;
+}
+function renderHandicapLedger(b){
+  const jc=b.jc, as=b.asian, P=x=>(x*100).toFixed(1)+'%';
+  const beats=jc.beats_baseline;
+  const recent=(b.rows||[]).slice(0,12).map(r=>`<tr>
+    <td>${r.date.slice(5)}</td><td style="text-align:left">${r.fav}</td>
+    <td>${r.score}</td>
+    <td>${r.jc_line>=1?'让'+r.jc_line:'平手'}</td>
+    <td>${r.jc_pick}/${r.jc_actual} ${r.jc_hit?'<span style="color:var(--grn2)">✓</span>':'<span style="color:var(--wdl-a)">✗</span>'}</td>
+    <td>让${r.fair_line}</td>
+    <td>${r.market_line!=null?'让'+r.market_line:'<span class="muted">—</span>'}</td>
+    <td>${r.cover_result==='cover'?'打出':(r.cover_result==='push'?'走水':'未打出')}</td></tr>`).join('');
+  return `<div class="card" style="margin-top:14px">
+    <h3 class="mgh">🎯 让球预测命中率擂台 <span class="muted" style="font-weight:400;font-size:12px">（${b.n} 场已结算）</span></h3>
+    <div class="muted" style="margin:-2px 0 10px;font-size:12px">让球预测取自<b>赛前冻结的比分矩阵</b>（开球前存盘、不偷看赛果），用真实赛果检验。<b>样本小、命中率波动大</b>，仅作诚实自检，非投注建议。</div>
+    <div class="hcl-grid">
+      <div class="hcl-box">
+        <div class="hcl-h">竞彩让球（每场按期望净胜定线）命中率</div>
+        <div class="hcl-big" style="color:${beats?'var(--grn2)':'var(--mut2)'}">${P(jc.rate)} <small class="muted">${jc.hits}/${b.n}</small></div>
+        <div class="muted" style="font-size:11.5px">95%CI ${P(jc.ci[0])}–${P(jc.ci[1])}</div>
+        <div class="muted" style="font-size:11.5px;margin-top:4px">基线「永远押${jc.baseline_pick}」 ${P(jc.baseline_rate)} · ${beats?'<span style="color:var(--grn2)">勉强超基线</span>':'<span style="color:var(--wdl-a)">未超基线</span>'}</div>
+      </div>
+      <div class="hcl-box">
+        <div class="hcl-h">亚盘「模型公平盘」校准 ${as.decided?`<span class="muted">(${as.decided} 场非走水)</span>`:''}</div>
+        ${as.decided?`<div class="hcl-big">${P(as.real_cover_rate)} <small class="muted">实际打出</small></div>
+        <div class="muted" style="font-size:11.5px">模型预测打出 ${P(as.pred_cover_rate)} · 校准差 <b style="color:${Math.abs(as.calib_gap)<0.08?'var(--grn2)':'var(--gold)'}">${as.calib_gap>0?'+':''}${P(as.calib_gap)}</b></div>
+        <div class="muted" style="font-size:11.5px;margin-top:4px">公平盘本应≈五五开；差越接近 0 越校准（Brier ${as.brier}）。${as.calib_gap>0.08?'本届强队略<b>超</b>公平盘（小样本）':''}</div>`:'<div class="muted">暂无非走水样本</div>'}
+      </div>
+    </div>
+    ${hclVsMarket(b.vs_market)}
+    ${hclBuckets(b.buckets)}
+    <details style="margin-top:10px"><summary style="cursor:pointer;font-size:12.5px;color:var(--mut2)">📋 近 12 场逐场结算</summary>
+      <table class="mgt" style="margin-top:6px"><tr><th>日期</th><th style="text-align:left">强队</th><th>比分</th><th title="本场竞彩让球线（按期望净胜定）">让球线</th><th title="模型竞彩让球预测/实际，✓命中">竞彩 预测/实际</th><th title="亚盘模型公平盘">亚盘</th><th title="市场 DraftKings 闭盘让球线">市场</th><th title="强队是否打出亚盘公平盘">公平盘</th></tr>${recent}</table>
+    </details>
+  </div>`;
+}
+
+// 模型 vs 市场闭盘让球线：让球线 MAE 谁更接近实际 + 跟模型背离方下注能否打赢市场闭线（价值金标准）。
+function hclVsMarket(vm){
+  if(!vm||!vm.n) return `<div class="hcmkt muted" style="margin-top:10px">📡 模型 vs 市场：市场闭盘让球线后台补全中（每场一次 ESPN 抓取），稍后刷新即见对比。</div>`;
+  const P=x=>x==null?'—':(x*100).toFixed(0)+'%';
+  const maeWin=vm.model_closer;
+  const edge=vm.edge_decided?`跟模型背离方下注 vs 市场闭线 <b style="color:${vm.beats_market?'var(--grn2)':'#e3b341'}">${P(vm.edge_rate)}</b> <span class="muted">(${vm.edge_wins}/${vm.edge_decided}, CI ${P(vm.edge_ci[0])}–${P(vm.edge_ci[1])})</span> ${vm.beats_market?'<b style="color:var(--grn2)">→ 打赢闭线(有价值信号)</b>':'<span class="muted">→ 未打赢闭线</span>'}`
+    : `暂无与市场的「真分歧(>0.25球)」可下注样本（${vm.agree} 场模型≈市场）`;
+  return `<div class="card" style="margin-top:12px;border-left:3px solid var(--blue)">
+    <div class="hcl-h" style="font-size:13px;color:var(--txt)">📡 模型 vs 市场闭盘线 <span class="muted" style="font-weight:400">（${vm.n} 场有 DraftKings 让球盘）</span></div>
+    <div style="margin-top:8px;font-size:12.5px;line-height:1.7">
+      <div>让球线对实际净胜的 <b>MAE</b>：模型 <b>${vm.mae_model}</b> vs 市场 <b>${vm.mae_market}</b> →
+        <b style="color:${maeWin?'var(--grn2)':'#e3b341'}">${maeWin?'模型更接近实际净胜':'市场更接近实际净胜'}</b>
+        <span class="muted">(更近场数 模型 ${vm.closer_model} / 市场 ${vm.closer_market} / 平 ${vm.tie})</span></div>
+      ${vm.mae_model_em!=null?`<div>模型<b>期望净胜</b>(连续) MAE <b>${vm.mae_model_em}</b> vs 市场 <b>${vm.mae_market}</b> →
+        <b style="color:${vm.em_beats_market?'var(--grn2)':'#e3b341'}">${vm.em_beats_market?'模型期望净胜更准':'市场仍更准'}</b>
+        <span class="muted">(去档位离散化后更公平的对比；更近 ${vm.em_closer}/${vm.n})</span></div>`:''}
+      <div style="margin-top:4px">${edge}</div>
+      ${vm.clv&&vm.clv.n?`<div style="margin-top:4px">让球 <b>CLV</b>（开盘→闭盘朝模型移动）：${vm.clv.n} 场 · 均值 <b style="color:${vm.clv.avg>0?'var(--grn2)':'#e3b341'}">${vm.clv.avg>0?'+':''}${vm.clv.avg} 球</b> · 正 CLV ${(vm.clv.pos_rate*100).toFixed(0)}%</div>`
+        :`<div class="muted" style="margin-top:4px">让球 CLV：暂无开盘线样本（今起多次快照，淘汰赛阶段起累积开盘→闭盘移动）。</div>`}
+    </div>
+    <div class="muted" style="font-size:11px;margin-top:6px">市场闭盘线≈最强效率基准；模型能在分歧场打赢闭线 / 闭线朝模型移动(正CLV) 才算真有边际价值。样本小，仅看信号、非投注建议。</div>
+  </div>`;
 }
 
 // 看预测按钮（队名走 data 属性，避免队名含特殊字符破坏 onclick）
@@ -1077,7 +1183,7 @@ function upRow(u){
   return `<div class="uprow">
     <div class="up-t">${hm?`<b>${hm}</b><small>北京</small>`:'<b>待定</b>'}</div>
     <div class="up-vs"><span>${u.home}</span><span class="up-x">vs</span><span>${u.away}</span></div>
-    <div class="up-pred"><span class="scpill" title="最可能的单一比分（点「看预测」看完整正确比分盘与大球/大胜概率）">${u.pred_gh}–${u.pred_ga}</span></div>
+    <div class="up-pred"><span class="scpill" title="最可能的单一比分（点「看预测」看完整正确比分盘与大球/大胜概率）">${u.pred_gh}–${u.pred_ga}</span>${u.handicap?`<span class="hcpill" title="竞彩让球：${u.handicap.csl_is_handicap?`强队 ${u.handicap.fav} 让 ${u.handicap.csl_line} 球，倾向 ${u.handicap.jc_verdict}`:'平手（势均力敌，让0=常规胜平负）'}（让球线按本场期望净胜定）· 亚盘模型公平盘 让 ${u.handicap.fair_line}。点看预测看详情">${u.handicap.csl_is_handicap?'让'+u.handicap.csl_line:'平手'}</span>`:''}</div>
     <div class="up-p" title="主胜/平/客胜概率%（加粗=模型判定的最可能结果）">${P3(u)}</div>
     <div class="up-act">${seeBtn(u)}${reportBtn(u)}${lineupBtn(u)}</div>
   </div>`;
@@ -1162,6 +1268,7 @@ function matrixHTML(d){
   const mk=(lab,v,tip)=>`<div class="mkcell" title="${tip}"><div class="mkv">${(v*100).toFixed(0)}%</div><div class="mkl">${lab}</div></div>`;
   return `<div class="scoreline">${d.home} ${top.h}–${top.a} ${d.away}
       <small>（最可能的单一比分 ${pct(top.p)} · ${venueLab}）</small></div>
+    ${d.narrative?`<div class="nar">📣 ${d.narrative}</div>`:''}
     <div class="xg">期望进球 xG：${d.home} ${d.xg_home} － ${d.xg_away} ${d.away}</div>
     <div class="wdl"><div class="nm">${d.home} 胜</div><div class="barwrap"><div class="bar h" style="width:${d.p_home*100}%"></div></div><div class="pct">${pct(d.p_home)}</div></div>
     <div class="wdl"><div class="nm">平局</div><div class="barwrap"><div class="bar d" style="width:${d.p_draw*100}%"></div></div><div class="pct">${pct(d.p_draw)}</div></div>
@@ -1174,6 +1281,7 @@ function matrixHTML(d){
       ${mk('任一方 ≥3 球（大胜）',big,'至少一方单队打进 3 球及以上的概率')}
       ${mk('双方均进球',btts,'两队都至少进 1 球的概率（BTTS）')}
     </div>
+    ${d.handicap?`<div class="hcpop">⚖️ <b>让球速览</b>：强队 <b>${d.handicap.fav}</b> 模型公平盘 <b>让 ${d.handicap.fair_line}</b>（建议最多让 ${d.handicap.max_fair_line} 球，再多偏亏）· 竞彩让球（${d.handicap.csl_is_handicap?`${d.handicap.fav} 让 ${d.handicap.csl_line} 球`:'平手·让0'}）倾向 <b style="color:var(--grn2)">${d.handicap.jc_verdict}</b> <span class="muted">${d.handicap.csl_is_handicap?`让胜 ${pct(d.handicap.jc.win)} / 让平 ${pct(d.handicap.jc.draw)} / 让负 ${pct(d.handicap.jc.lose)}`:`胜 ${pct(d.handicap.jc.win)} / 平 ${pct(d.handicap.jc.draw)} / 负 ${pct(d.handicap.jc.lose)}`}</span>${d.handicap.market&&d.handicap.market.agree_fav?`<br>📡 市场 ${d.handicap.market.source} <b>让 ${d.handicap.market.market_line}</b>${typeof d.handicap.market.divergence==='number'?` · <b style="color:${d.handicap.market.divergence>0.124?'var(--grn2)':(d.handicap.market.divergence<-0.124?'#e3b341':'var(--mut2)')}">${d.handicap.market.lean}</b>`:''}`:''}</div>`:''}
     <h3 style="margin:16px 0 6px;font-size:13px">比分概率矩阵（%，行=${d.home} 进球，列=${d.away} 进球）</h3>
     ${scoreMatrixHTML(d.matrix, top.h, top.a)}
     <div class="muted" style="font-size:11px;margin-top:8px">${d.host?'已计入东道主主场修正，与看板该场概率同口径。':'中立场快算（双方均非本届东道主或非本国出战）。'}</div>
@@ -1446,7 +1554,7 @@ async function loadManager(lineup){
   const home=$('#mg_home').value, away=$('#mg_away').value, neutral=$('#mg_neutral').checked?1:0;
   $('#mgres').innerHTML='<div class="card spin">'+(lineup?'⚡ 拉取真实首发名单、按确认阵容重算…':'正在获取过程数据、运行算法模型并生成报告…')+'</div>';
   let d;
-  try{ d=await (await fetch(`/api/manager?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&neutral=${neutral}${lineup?'&lineup=1':''}`)).json(); }
+  try{ d=await (await fetch(`/api/manager?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&neutral=${neutral}${lineup?'&lineup=1':''}${mgMotivAdj?'&motiv_adj=1':''}`)).json(); }
   catch(e){ $('#mgres').innerHTML=`<div class="card err">✗ 请求失败：${e}</div>`; return; }
   if(d.error){ $('#mgres').innerHTML=`<div class="card err">✗ ${d.error}</div>`; return; }
   $('#mgres').innerHTML=renderManager(d);
@@ -1636,6 +1744,80 @@ function renderXuanxue(b){
   return html;
 }
 
+// 竞彩让球胜平负：让球线按本场期望净胜动态确定（让N / 平手让0），非写死让1。
+function cslHTML(csl, favName){
+  if(!csl) return '';
+  const N=csl.line;
+  if(N===0) return `<div class="mgsub">竞彩让球 <span title="中国体彩竞彩让球胜平负：让球数按本场强弱动态确定" style="cursor:help;color:var(--dim)">ⓘ</span>（本场<b>平手 · 让0</b>，势均力敌，等同常规胜平负）</div>
+    <table class="mgt"><tr><th>结果</th><th>${favName} 胜</th><th>平</th><th>${favName} 负</th></tr>
+      <tr><td>概率</td><td>${mgP1(csl.win)}</td><td>${mgP1(csl.draw)}</td><td>${mgP1(csl.lose)}</td></tr></table>
+    <div class="muted" style="margin:6px 0">模型<b>期望净胜仅 ${csl.exp_margin} 球</b>，强弱接近 → 本场<b>不设让球（让0=平手）</b>，按常规胜平负判，主判断 <b>${csl.verdict.replace('让','')}</b>。</div>`;
+  return `<div class="mgsub">竞彩让球 <span title="中国体彩竞彩让球胜平负：让球数按本场强弱（模型期望净胜球）动态确定，非写死让1；强队让N后再判胜/平/负" style="cursor:help;color:var(--dim)">ⓘ</span>（<b>${favName} 让 ${N} 球</b>，按本场期望净胜 ${csl.exp_margin} 定线）</div>
+    <table class="mgt">
+      <tr><th>结果</th><th title="强队净胜球 > ${N}">让胜（净胜&gt;${N}）</th><th title="强队净胜球正好 = ${N}">让平（净胜=${N}）</th><th title="强队净胜球 < ${N}（含平/负）">让负（净胜&lt;${N}）</th></tr>
+      <tr><td>概率</td><td>${mgP1(csl.win)}</td><td>${mgP1(csl.draw)}</td><td>${mgP1(csl.lose)}</td></tr>
+    </table>
+    <div class="muted" style="margin:6px 0">让球线由模型<b>期望净胜 ${csl.exp_margin} 球</b>定为 <b>${favName} 让 ${N}</b>：让胜=净胜超过 ${N}、让平=正好赢 ${N}、让负=净胜不足 ${N}。主判断 <b>${csl.verdict}</b>（最高概率项）。</div>`;
+}
+function hcVerdictColor(v){ return v==='偏值'?'var(--grn2)':(v==='偏亏'?'var(--wdl-a)':'var(--mut2)'); }
+function hcFmtL(L){ const s=L.toFixed(2); return '-'+(s.endsWith('00')?s.slice(0,-2)+'0':(s.endsWith('0')?s.slice(0,-1):s)); }
+
+// 让球结论块：模型直接给公平盘 + 全档扫描 + 性价比 + 动机层（预警常开 / 降权开关默认关）。
+function hcHTML(d, H, A, favName){
+  const hc=d.markets.handicap, mo=d.motivation;
+  if(!hc) return '';
+  const rows=hc.lines.map(s=>{
+    const hi=(Math.abs(s.line-hc.fair_line)<1e-9), col=hcVerdictColor(s.verdict);
+    return `<tr style="${hi?'background:#13251a':''}">
+      <td>${hcFmtL(s.line)}${hi?' <span style="color:var(--gold);font-size:11px">公平盘</span>':''}</td>
+      <td>${mgP1(s.win)}</td><td>${s.push>1e-9?mgP1(s.push):'—'}</td><td>${mgP1(s.lose)}</td>
+      <td style="color:${col};font-weight:600">${s.verdict}</td></tr>`;
+  }).join('');
+  let motiv='';
+  if(mo){
+    const w=mo.warnings||[];
+    if(w.length) motiv=`<div style="margin:8px 0;padding:8px 12px;border-radius:8px;background:#2a1f0a;border:1px solid #8a6d1a55;font-size:12.5px">
+      ⚠️ <b>动机提示</b>：${w.map(x=>`${x.team_disp||x.team} ${x.label}`).join('、')} —— 已出线球队可能轮换主力、不求大胜，<b>大让球盘性价比下调</b>。模型默认不自动计入（无回测依据），仅提示。</div>`;
+    const can=mo.applies_to_fav;
+    motiv+=`<label style="display:inline-flex;align-items:center;gap:6px;margin:2px 0 6px;font-size:12px;color:${can?'var(--mut2)':'var(--dim)'};cursor:${can?'pointer':'not-allowed'}" title="${can?'把已出线强队的进攻 λ ×'+mo.mult+' 后重算让球（启发式、非回测结论）':'强队未提前出线，降权无意义'}">
+      <input type="checkbox" ${mgMotivAdj?'checked':''} ${can?'':'disabled'} onchange="toggleMotivAdj(this)"> 应用动机降权（×${mo.mult} 启发式）${mo.adjusted?' <span style="color:var(--gold)">· 已生效</span>':''}</label>`;
+  }
+  const mkt=hc.market, leanCol=mkt&&mkt.divergence>0.124?'var(--grn2)':(mkt&&mkt.divergence<-0.124?'#e3b341':'var(--mut2)');
+  const mktHTML=mkt?`<div class="hcmkt">📡 <b>市场实盘对标</b>（${mkt.source}）：${mkt.agree_fav
+      ?`市场 <b>${favName} 让 ${mkt.market_line}</b>（水位 ${mkt.fav_odds||'—'}）· 模型公平 让 ${hc.fair_line} → <b style="color:${leanCol}">${mkt.lean}</b>${typeof mkt.divergence==='number'?` <span class="muted">(背离 ${mkt.divergence>0?'+':''}${mkt.divergence} 球)</span>`:''}${typeof mkt.move==='number'?`<br><span class="muted">盘口移动：开盘 让${mkt.open_line} → 现 让${mkt.market_line}（${mkt.move>0?'+':''}${mkt.move}，${mkt.move_dir}）</span>`:''}`
+      :`市场与模型对强弱判断不一致，不强行比较盘口（市场口径见 DraftKings）。`}${mkt.ou!=null?` · 大小球盘 ${mkt.ou}`:''}</div>`
+    :`<div class="hcmkt muted">📡 市场实盘对标：暂未取到该场 DraftKings 让球盘（仅临场挂盘；稍后重开本报告即带）。</div>`;
+  return `<div class="mgsub">让球结论 <span title="让球盘：强队先让出 N 球再比净胜。本处由比分概率矩阵直接卷积，给出模型公平盘与各档赢/走/输，并与 ESPN/DraftKings 实盘让球盘对标。非投注建议。" style="cursor:help;color:var(--dim)">ⓘ</span>（模型直接推导，强队=${favName}）</div>
+    <div class="muted" style="margin:2px 0 8px">📌 模型直接结论：<b>${favName}</b> 公平盘 ≈ <b>让 ${hc.fair_line}</b>，建议<b>最多让 ${hc.max_fair_line} 球</b>，再多即偏亏${mo&&mo.adjusted?'（已含动机降权）':''}。</div>
+    ${mktHTML}
+    ${motiv}
+    <table class="mgt">
+      <tr><th>${favName} 让</th><th title="让球后强队仍净胜，赢得该让球盘">赢盘</th><th title="走水(push)：让球后净胜恰好等于让球数，本金退回">走水</th><th>输盘</th><th title="站强队角度：赢盘−输盘>0 偏值 / ≈0 公平 / <0 让过头偏亏">性价比</th></tr>
+      ${rows}
+    </table>
+    <div class="muted" style="margin:6px 0">${d.odds?`市场闭盘隐含：${H} ${mgP(d.odds.imp_home)} / 平 ${mgP(d.odds.imp_draw)} / ${A} ${mgP(d.odds.imp_away)}（ESPN·DraftKings，抽水 ${mgP1(d.odds.margin)}）。`:'<b>该对阵无已采集赔率，以上为纯模型推导，非市场实盘、非投注建议。</b>'}</div>
+    ${ctxHTML(d, H, A)}`;
+}
+
+// 上下文表：本场两队所在组实时积分榜 + 全队本届净胜球榜（折叠，默认收起降密度）。
+function ctxHTML(d, H, A){
+  const gts=d.group_tables||[], gd=d.gd_table||[], hi=new Set([H,A]);
+  let html='';
+  gts.forEach(gt=>{
+    html+=`<details style="margin:6px 0"><summary style="cursor:pointer;font-size:12.5px;color:var(--mut2)">📊 ${gt.group} 组实时积分榜（真实已踢 · 剩 ${gt.remaining} 场）</summary>
+      <table class="mgt" style="margin-top:6px"><tr><th>#</th><th style="text-align:left">球队</th><th>积分</th><th>净胜球</th><th>进球</th><th>剩</th></tr>
+      ${gt.rows.map(r=>{const on=hi.has(r.team_disp);return `<tr style="${on?'background:#13251a':''}"><td>${r.rank}</td><td style="text-align:left">${r.team_disp||r.team}</td><td>${r.pts}</td><td>${r.gd>0?'+':''}${r.gd}</td><td>${r.gf}</td><td>${r.remaining}</td></tr>`;}).join('')}
+      </table></details>`;
+  });
+  if(gd.length){
+    html+=`<details style="margin:6px 0"><summary style="cursor:pointer;font-size:12.5px;color:var(--mut2)">🏆 全队本届净胜球榜（${gd.length} 队 · 仅已踢小组赛，本场两队高亮）</summary>
+      <table class="mgt" style="margin-top:6px"><tr><th>#</th><th style="text-align:left">球队</th><th>踢</th><th>净胜球</th><th>进</th><th>失</th><th>积分</th></tr>
+      ${gd.map(r=>{const on=hi.has(r.team_disp);return `<tr style="${on?'background:#13251a':''}"><td>${r.rank}</td><td style="text-align:left">${r.team_disp||r.team}</td><td>${r.pld}</td><td>${r.gd>0?'+':''}${r.gd}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.pts}</td></tr>`;}).join('')}
+      </table></details>`;
+  }
+  return html;
+}
+
 function renderManager(d){
   const H=d.home_disp, A=d.away_disp, mk=d.markets, cf=d.confidence, venue=d.neutral?'中立场':`${H} 主场`;
   const sh=d.stats.home, sa=d.stats.away, fh=d.form.home, fa=d.form.away;
@@ -1650,6 +1832,7 @@ function renderManager(d){
       <div><b>${mgP1(d.p_draw)}</b><div class="muted">平局</div></div>
       <div><b style="color:#58a6ff">${mgP1(d.p_away)}</b><div class="muted">${A} 胜</div></div>
     </div>
+    ${d.narrative?`<div class="nar">📣 ${d.narrative}</div>`:''}
   </div>`+renderLineupBar(d,H,A);
 
   // —— 模块一：球队整体画像 ——
@@ -1700,8 +1883,9 @@ function renderManager(d){
 
   // —— 模块四：盘口、比分与结论 ——
   const a=mk.asian, jc=mk.jc_handicap, favName=mk.fav_is_home?H:A;
+  const csl=mk.handicap&&mk.handicap.csl;   // 竞彩动态让球线（按本场期望净胜定让N/平手）
   const hftRows=d.half_full.ranked.map(([k,p])=>`<tr><td>${k}</td><td>${mgP1(p)}</td></tr>`).join('');
-  html+=`<div class="card"><h3 class="mgh">四、盘口推导（大小球 / 亚盘 / 竞彩）</h3>
+  html+=`<div class="card"><h3 class="mgh">四、盘口推导（大小球 / 让球结论 / 竞彩）</h3>
     <div class="muted" style="margin:-4px 0 10px;font-size:12px">以下均为从比分概率矩阵<b>卷积推导</b>的概率，非实盘报价、非投注建议。</div>
 
     <div class="mgsub">大小球 / 进球数 <span title="大/小 X.5：两队合计进球数高于/低于 X.5 的概率。BTTS=双方都进球(Both Teams To Score)" style="cursor:help;color:var(--dim)">ⓘ</span></div>
@@ -1714,24 +1898,9 @@ function renderManager(d){
     </table>
     <div class="muted" style="margin:6px 0">总进球期望 <b>${mk.exp_total.toFixed(2)}</b> 球 · 区间分布：0-1 球 ${mgP(mk.goals_dist['0-1'])} / 2 球 ${mgP(mk.goals_dist['2'])} / 3 球 ${mgP(mk.goals_dist['3'])} / 4+ 球 ${mgP(mk.goals_dist['4+'])}</div>
 
-    <div class="mgsub">亚盘 <span title="让球盘：强队先让出 N 球再比净胜。让球后胜率最接近 50% 的那档即市场公平盘。此处为模型推导的公平盘，非实盘报价" style="cursor:help;color:var(--dim)">ⓘ</span>（模型公平盘推导，强队=${favName}）</div>
-    <table class="mgt">
-      <tr><th>让球档</th><th title="让球后强队仍净胜，赢得该让球盘">${favName} 赢盘</th><th title="走水(push)：让球后净胜恰好等于让球数，本金退回">走水</th><th>输盘</th></tr>
-      <tr><td>-0.5</td><td>${mgP1(a['-0.5'].win)}</td><td>—</td><td>${mgP1(a['-0.5'].lose)}</td></tr>
-      <tr><td>-0.75</td><td>${mgP1(a['-0.75'].win)}</td><td>—</td><td>${mgP1(a['-0.75'].lose)}</td></tr>
-      <tr><td>-1.0</td><td>${mgP1(a['-1.0'].win)}</td><td>${mgP1(a['-1.0'].push)}</td><td>${mgP1(a['-1.0'].lose)}</td></tr>
-      <tr><td>-1.25</td><td>${mgP1(a['-1.25'].win)}</td><td>—</td><td>${mgP1(a['-1.25'].lose)}</td></tr>
-      <tr><td>-1.5</td><td>${mgP1(a['-1.5'].win)}</td><td>—</td><td>${mgP1(a['-1.5'].lose)}</td></tr>
-    </table>
-    <div class="muted" style="margin:6px 0">模型公平让球档约 <b>${favName} -${a.fair_line}</b>（让球后胜率最接近 50%）。
-    ${d.odds?`市场闭盘隐含：${H} ${mgP(d.odds.imp_home)} / 平 ${mgP(d.odds.imp_draw)} / ${A} ${mgP(d.odds.imp_away)}（ESPN·DraftKings，抽水 ${mgP1(d.odds.margin)}）。`:'<b>该对阵无已采集赔率，以上为纯模型推导，非市场实盘。</b>'}</div>
+    ${hcHTML(d, H, A, favName)}
 
-    <div class="mgsub">竞彩让球 <span title="中国体彩竞彩玩法：强队赛前先扣 1 球，再按扣减后的比分判胜/平/负三种结果的概率" style="cursor:help;color:var(--dim)">ⓘ</span>（${favName} 让 1 球）</div>
-    <table class="mgt">
-      <tr><th>结果</th><th>让胜(赢2+)</th><th>让平(刚好赢1)</th><th>让负(不胜)</th></tr>
-      <tr><td>概率</td><td>${mgP1(jc.win)}</td><td>${mgP1(jc.draw)}</td><td>${mgP1(jc.lose)}</td></tr>
-    </table>
-    <div class="muted" style="margin:6px 0">竞彩让球主判断：<b>${jc.verdict}</b>（最高概率项）。低比分时强队净胜≥2 球的概率不高，<b>让 1 球赢盘并不稳</b>，故「让平/让负」概率偏高。</div>
+    ${cslHTML(csl, favName)}
   </div>`;
 
   // —— 模块五：比分预测与最终倾向（从臃肿的模块四拆出，降密度）——
@@ -1764,7 +1933,7 @@ function renderManager(d){
       <tr><td>进球数方向</td><td>${ouDir}（大2.5 ${mgP(mk.over['2.5'])}）</td></tr>
       <tr><td>总进球区间</td><td>最可能 ${totBucket} 球 · 期望 ${mk.exp_total.toFixed(2)}</td></tr>
       <tr><td>竞彩让球判断</td><td>${favName} 让1 → <b>${jc.verdict}</b></td></tr>
-      <tr><td>亚盘方向</td><td>${favName} -${a.fair_line}（公平档）</td></tr>
+      <tr><td>让球结论</td><td>${favName} 公平盘 让${mk.handicap?mk.handicap.fair_line:a.fair_line}，建议最多让 ${mk.handicap?mk.handicap.max_fair_line:a.fair_line} 球${d.motivation&&d.motivation.adjusted?'（已含动机降权）':''}</td></tr>
       <tr><td>半全场方向</td><td>${d.half_full.ranked[0][0]}（启发式，低置信）</td></tr>
       <tr><td>关键影响因素</td><td>${d.matchup.home_att_vs_away_def} · xG ${d.xg_home}–${d.xg_away}</td></tr>
       <tr><td>最大不确定性</td><td>${cf.pick==='平局'||cf.level==='低'?'胜负接近，平局/冷门风险高':'低比分剧本下让球赢盘不易与定位球偶然性'}；定性维度（伤停名单/临场）未纳入</td></tr>

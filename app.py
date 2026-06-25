@@ -33,6 +33,7 @@ import espn_odds as oddsmod
 import inplay as inplaymod
 import live as livemod
 import manager as managermod
+import narrative as narrativemod
 import lineups as lineupsmod
 import market
 import schedule
@@ -319,6 +320,13 @@ def api_teams():
     return jsonify([teams_zh.disp(t) for t in teams])
 
 
+def _exp_total(M) -> float:
+    """比分矩阵 → 期望总进球（Σ(i+j)·P(i,j)），供解读文案氛围判断。"""
+    M = np.asarray(M, dtype=float)
+    n = M.shape[0]
+    return float(sum((i + j) * M[i, j] for i in range(n) for j in range(n)))
+
+
 @app.route("/api/predict")
 def api_predict():
     home = request.args.get("home", "").strip()
@@ -329,19 +337,29 @@ def api_predict():
     host = request.args.get("host", "").strip() or None
     city = request.args.get("city", "").strip() or None
     try:
+        # 市场让球盘按英文 canon 名查（地图键是英文）；拉取失败不致命。
+        try:
+            _mh = _market_handicap_one(MODEL.resolve(home), MODEL.resolve(away))
+        except Exception:  # noqa
+            _mh = None
         if host in (home, away):
             p = verifymod.pair_predict(MODEL, home, away, host=host, city=city)
             M = np.array(p["matrix"])
             flat = sorted(((i, j, float(M[i, j])) for i in range(M.shape[0])
                            for j in range(M.shape[1])), key=lambda t: -t[2])[:5]
+            dh, da = teams_zh.disp(home), teams_zh.disp(away)
+            hc = managermod.handicap_summary(M, p["p_home"], p["p_away"], dh, da, market=_mh)
             return jsonify({
-                "home": teams_zh.disp(home), "away": teams_zh.disp(away), "neutral": False,
+                "home": dh, "away": da, "neutral": False,
                 "host": teams_zh.disp(host),
                 "xg_home": p["xg_home"], "xg_away": p["xg_away"],
                 "p_home": p["p_home"], "p_draw": p["p_draw"], "p_away": p["p_away"],
                 "top_scores": [{"h": i, "a": j, "p": pr} for (i, j, pr) in flat],
                 "matrix": M.tolist(), "side": int(M.shape[0]),
                 "mv_home": market.value(home), "mv_away": market.value(away),
+                "handicap": hc,
+                "narrative": narrativemod.match_narrative(dh, da, p["p_home"], p["p_draw"],
+                                                          p["p_away"], hc, _exp_total(M)),
             })
         r = MODEL.predict(home, away, neutral=neutral)
     except KeyError as e:
@@ -349,13 +367,18 @@ def api_predict():
 
     M = r["matrix"]
     side = M.shape[0]
+    dh, da = teams_zh.disp(r["home"]), teams_zh.disp(r["away"])
+    hc = managermod.handicap_summary(M, r["p_home"], r["p_away"], dh, da, market=_mh)
     return jsonify({
-        "home": teams_zh.disp(r["home"]), "away": teams_zh.disp(r["away"]), "neutral": neutral,
+        "home": dh, "away": da, "neutral": neutral,
         "xg_home": round(r["xg_home"], 3), "xg_away": round(r["xg_away"], 3),
         "p_home": r["p_home"], "p_draw": r["p_draw"], "p_away": r["p_away"],
         "top_scores": [{"h": i, "a": j, "p": p} for (i, j), p in r["top_scores"]],
         "matrix": M.tolist(), "side": side,
         "mv_home": market.value(r["home"]), "mv_away": market.value(r["away"]),
+        "handicap": hc,
+        "narrative": narrativemod.match_narrative(dh, da, r["p_home"], r["p_draw"],
+                                                  r["p_away"], hc, _exp_total(M)),
     })
 
 
@@ -374,14 +397,60 @@ def api_manager():
             lineup = lineupsmod.match_availability(h_en, a_en)
         except Exception as e:  # noqa  拉取失败不让报告 500，降级到无首发
             lineup = {"available": False, "reason": f"fetch_failed:{e}"}
+    # 动机/出线上下文（只读，从本届真实赛果推 clinch 状态）。任何意外都不挡报告。
+    context = {"motiv_adj": request.args.get("motiv_adj") in ("1", "true", "True")}
+    gd_table = group_h = group_a = None
     try:
-        r = managermod.build_report(MODEL, DF, home, away, neutral=neutral, elo=_ELO, lineup=lineup)
+        import standings
+        sim = _sim()
+        h_en = MODEL.resolve(home); a_en = MODEL.resolve(away)
+        context["home_clinch"] = standings.clinch_status(sim, h_en)
+        context["away_clinch"] = standings.clinch_status(sim, a_en)
+        mh = _market_handicap_one(h_en, a_en)
+        # 让球盘移动：从开盘→闭盘时间线取开盘线（强弱一致时），让报告显示盘口移动方向。
+        if mh:
+            try:
+                tl = oddsmod.load_handicap_timeline().get(oddsmod._hc_key(h_en, a_en))
+                if tl and tl.get("open_line") is not None and tl.get("fav_is_home") == mh.get("fav_is_home"):
+                    mh = {**mh, "open_line": tl["open_line"]}
+            except Exception:  # noqa
+                pass
+        context["market_handicap"] = mh
+        gd_table = standings.tournament_gd_table(sim)
+        group_h = standings.group_table(sim, h_en)
+        group_a = standings.group_table(sim, a_en)
+    except Exception:  # noqa  上下文层失败 → 退化为无动机层（纯模型让球）
+        context = {"motiv_adj": context.get("motiv_adj", False)}
+
+    try:
+        r = managermod.build_report(MODEL, DF, home, away, neutral=neutral, elo=_ELO,
+                                    lineup=lineup, context=context)
     except KeyError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:  # noqa  组装层任何意外都不应 500 整页
         return jsonify({"error": f"报告生成失败：{e}"}), 500
 
     L = teams_zh.disp
+    # 附上下文表（本地化队名）：全队净胜球榜 + 两队所在组实时排名。
+    if gd_table:
+        for row in gd_table:
+            row["team_disp"] = L(row["team"])
+    for gt in (group_h, group_a):
+        if gt:
+            for row in gt["rows"]:
+                row["team_disp"] = L(row["team"])
+    r["gd_table"] = gd_table
+    # 同组两队（如摩洛哥 vs 海地）只展示一张组表，去重。
+    seen = set(); ugt = []
+    for gt in (group_h, group_a):
+        if gt and gt["group"] not in seen:
+            seen.add(gt["group"]); ugt.append(gt)
+    r["group_tables"] = ugt
+    # 动机块里的 clinch label/队名本地化
+    mo = r.get("motivation")
+    if mo:
+        for w in mo.get("warnings", []):
+            w["team_disp"] = L(w["team"])
     r["home_disp"], r["away_disp"] = L(r["home"]), L(r["away"])
     for side in ("home", "away"):
         for mt in r["form"][side]["matches"]:
@@ -390,6 +459,16 @@ def api_manager():
         row["home"], row["away"] = L(row["home"]), L(row["away"])
         if row.get("winner"):
             row["winner"] = L(row["winner"])
+    # 比赛解读文案（球迷语言，合规守卫，置顶报告头）
+    try:
+        _csl = r["markets"]["handicap"].get("csl") or {}
+        _hcn = {"csl_is_handicap": _csl.get("is_handicap"), "csl_line": _csl.get("line"),
+                "jc_verdict": _csl.get("verdict")}
+        r["narrative"] = narrativemod.match_narrative(
+            r["home_disp"], r["away_disp"], r["p_home"], r["p_draw"], r["p_away"],
+            _hcn, r["markets"].get("exp_total"))
+    except Exception:  # noqa  解读失败不挡报告
+        r["narrative"] = None
     return jsonify(r)
 
 
@@ -826,6 +905,82 @@ def api_verify():
     return jsonify(r)
 
 
+@app.route("/api/handicap_ledger")
+def api_handicap_ledger():
+    """让球预测命中率擂台：从 verify 已冻结的赛前矩阵推导让球预测，用真实赛果结算命中率+校准。
+    纯只读分析层，复用 verify 账本，绝不回写、不碰 GLM。"""
+    s = _sim()
+    try:
+        verifymod.freeze(s)        # 轻量冻结未开球场次（backfill 由 verify tab/调度器维护，此处不重复训练）
+    except Exception as e:  # noqa
+        print(f"[handicap] freeze 失败：{e}")
+    _hc_lines_backfill_async()     # 后台增量补市场闭盘让球线（不阻塞本次请求；build 读已存的）
+    try:
+        import handicap_ledger
+        b = handicap_ledger.build(s, DF)
+    except Exception as e:  # noqa  分析层任何意外都不应 500
+        return jsonify({"error": f"让球擂台生成失败：{e}"}), 500
+    for x in b["rows"]:
+        x["fav"], x["dog"] = teams_zh.disp(x["fav"]), teams_zh.disp(x["dog"])
+    return jsonify(b)
+
+
+# —— 市场让球盘（ESPN DraftKings spread）：**按需单场**抓取（每场 1 summary），后台跑、请求只读缓存 ——
+# 用户看哪场只抓哪场，永不阻塞请求；首次拿到 None，后台 ~3s 抓完，下次请求即带市场盘。缓存 10min。
+_HC_LINES_LOCK = threading.Lock()
+_HC_LINES_LAST = {"t": 0.0}
+
+
+def _hc_lines_worker():
+    try:
+        added = oddsmod.backfill_handicap_finished(limit=24)   # 每次最多补 24 场，多次后台补全
+        if added:
+            print(f"[handicap] 市场闭盘让球线后台补 {added} 场")
+    except Exception as e:  # noqa
+        print(f"[handicap] 市场闭盘让球线回补失败：{e}")
+    finally:
+        if _HC_LINES_LOCK.locked():
+            _HC_LINES_LOCK.release()
+
+
+def _hc_lines_backfill_async(min_gap: float = 120.0):
+    """后台增量回补已完赛市场闭盘让球线（每场一次 summary，故限量 + 节流，永不阻塞请求）。"""
+    if time.time() - _HC_LINES_LAST["t"] < min_gap:
+        return
+    if _HC_LINES_LOCK.acquire(blocking=False):
+        _HC_LINES_LAST["t"] = time.time()
+        threading.Thread(target=_hc_lines_worker, daemon=True).start()
+
+
+_HC_MKT = {}                      # pairkey(tuple sorted) -> {"t": ts, "row": row|None}
+_HC_MKT_INFLIGHT = set()
+_HC_MKT_LOCK = threading.Lock()
+
+
+def _hc_fetch_pair(h_en, a_en, key):
+    try:
+        row = oddsmod.fetch_handicap_pair(h_en, a_en)
+        with _HC_MKT_LOCK:
+            _HC_MKT[key] = {"t": time.time(), "row": row}
+    except Exception as e:  # noqa
+        print(f"[handicap] 单场市场让球盘抓取失败 {key}：{e}")
+    finally:
+        with _HC_MKT_LOCK:
+            _HC_MKT_INFLIGHT.discard(key)
+
+
+def _market_handicap_one(h_en: str, a_en: str, max_age: float = 600.0):
+    """返回该对阵当前缓存的市场让球盘行（顺序无关）；缺失/过期则**后台**单场抓取，不阻塞本次请求。"""
+    key = tuple(sorted((h_en, a_en)))
+    ent = _HC_MKT.get(key)
+    if not ent or time.time() - ent["t"] > max_age:
+        with _HC_MKT_LOCK:
+            if key not in _HC_MKT_INFLIGHT:
+                _HC_MKT_INFLIGHT.add(key)
+                threading.Thread(target=_hc_fetch_pair, args=(h_en, a_en, key), daemon=True).start()
+    return ent["row"] if ent else None
+
+
 # —— 主页看板：正在比赛 / 即将开赛 / 已结束 三态聚合 ——
 _STATUS_CACHE = {"t": 0.0, "data": []}
 
@@ -913,6 +1068,14 @@ def api_dashboard():
                "date": verifymod.bj_date(ko, e.get("date")),
                "city": e.get("city"), "host": e.get("host"), "local": loc, "retro": False}
         row.update(_probs(e))
+        # 紧凑让球（公平盘 + 竞彩倾向，看板速览用；不带市场盘，避免每行触发 ESPN 抓取）
+        if e.get("matrix"):
+            try:
+                row["handicap"] = managermod.handicap_summary(
+                    e["matrix"], e["p_home"], e["p_away"],
+                    teams_zh.disp(e["home"]), teams_zh.disp(e["away"]))
+            except Exception:  # noqa  让球摘要失败不影响看板
+                pass
         upcoming.append(row)
     upcoming.sort(key=lambda x: (x["kickoff"] or "9999-99-99 99:99"))
 
