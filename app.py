@@ -537,11 +537,13 @@ def api_lineup_ledger():
 def api_fixtures():
     """近期未开赛对阵（对阵分析「明日对战看板」点击填表用）。纯赛程、不拉 live，秒回。"""
     now = verifymod._now_bj()
+    s = _sim()
     # 已赛过滤只看【本届世界杯】结果，与看板 /api/dashboard 同口径。
     # 不能用「全历史交手过的队对」过滤——否则历史踢过友谊赛的对阵（如英格兰vs加纳）会被误删，
     # 曾导致本接口比看板少 15 场未来比赛。开球时间 ko<=now 已排除已开球场次，这里再排除本届已赛。
-    wc_done = set(_sim().actual_results)
+    wc_done = set(s.actual_results)
     fx = []
+    # ① 小组赛：静态赛程（完整，含尚未冻结预测的远期场次）
     for (h, a), ko in schedule.GROUP.items():
         if not ko or ko <= now or (h, a) in wc_done:
             continue
@@ -549,10 +551,29 @@ def api_fixtures():
         host = schedule.group_match_host(h, a)
         fx.append({"home_en": h, "away_en": a,
                    "home": teams_zh.disp(h), "away": teams_zh.disp(a),
-                   "kickoff": ko, "date": ko[:10],
+                   "kickoff": ko, "date": ko[:10], "stage": "group",
                    "city": gv.get("city") if gv else None,
                    "local": gv.get("local") if gv else None,
                    "host": teams_zh.disp(host) if host else None})
+    # ② 淘汰赛：从冻结账本取（小组赛定队后 R32+ 出现在此），与看板 upcoming 同源。
+    #    先 freeze 一次确保对阵已入账本（仅模型预测、不拉 live；本 tab 默认在看板之后访问，
+    #    但独立访问也要自给自足，故此处自行冻结一次，幂等）。
+    try:
+        verifymod.freeze(s)
+        done_keys = {c["key"] for c in verifymod._completed(s, DF)}
+        for k, e in verifymod.load_ledger().items():
+            if e.get("stage") == "group" or k in done_keys:
+                continue                                  # 小组赛已在①；已完赛剔除
+            ko = e.get("kickoff") or ""
+            if not ko or ko <= now:
+                continue                                  # 已开球/无时间不算未赛
+            fx.append({"home_en": e["home"], "away_en": e["away"],
+                       "home": teams_zh.disp(e["home"]), "away": teams_zh.disp(e["away"]),
+                       "kickoff": ko, "date": verifymod.bj_date(ko, e.get("date")),
+                       "stage": e.get("stage"), "city": e.get("city"), "local": None,
+                       "host": teams_zh.disp(e["host"]) if e.get("host") else None})
+    except Exception as ex:  # noqa  淘汰赛段失败不影响小组赛 fixtures
+        print(f"[fixtures] 淘汰赛对阵装载失败：{ex}")
     fx.sort(key=lambda x: x["kickoff"])
     return jsonify({"fixtures": fx, "now": now})
 

@@ -128,13 +128,15 @@ def test_api_version_shape(client):
 
 
 def test_api_fixtures_matches_dashboard_upcoming(client):
-    """回归：/api/fixtures 的未开赛小组赛集合必须与看板 /api/dashboard 的 upcoming 一致。
-    曾因 fixtures 用『全历史交手过的队对』过滤，把历史踢过友谊赛的未来对阵（如英格兰vs加纳）误删，
-    导致对阵分析比看板少 15 场。两接口同源同口径，集合应完全相同。"""
+    """回归：/api/fixtures 的未开赛集合必须与看板 /api/dashboard 的 upcoming【全阶段】一致。
+    曾踩两次坑：① fixtures 用『全历史交手过的队对』过滤误删未来对阵（少 15 场）；
+    ② fixtures 只遍历小组赛静态赛程，小组赛踢完后取不到淘汰赛 → 对阵分析 tab 空白
+    （2026-06-28 小组赛结束、R32 开打时复现）。现 fixtures = 小组赛赛程 + 淘汰赛账本同源，
+    两接口【所有阶段】集合应完全相同（故意不再只比 group 子集，以锁死阶段切换回归）。"""
     fx = client.get("/api/fixtures").get_json()["fixtures"]
     up = client.get("/api/dashboard").get_json()["upcoming"]
     fx_pairs = {(r["home_en"], r["away_en"]) for r in fx}
-    up_pairs = {(r["home_en"], r["away_en"]) for r in up if r.get("stage") == "group"}
+    up_pairs = {(r["home_en"], r["away_en"]) for r in up}
     assert fx_pairs == up_pairs, f"fixtures 与看板 upcoming 不一致：仅在看板={up_pairs - fx_pairs}，仅在fixtures={fx_pairs - up_pairs}"
 
 

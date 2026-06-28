@@ -1855,7 +1855,7 @@ async function loadFixtures(){
 }
 function renderFixtures(d){
   const fx=(d&&d.fixtures)||[];
-  if(!fx.length) return '<div class="card muted">📅 近期暂无未开赛的小组赛对阵（可能都已开打）。直接在下方输入两队分析。</div>';
+  if(!fx.length) return '<div class="card muted">📅 近期暂无未开赛对阵（可能都已开打，或下一轮对阵未定）。直接在下方输入两队分析。</div>';
   const today=(d.now||'').slice(0,10), byDay={};
   fx.forEach(f=>{(byDay[f.date]=byDay[f.date]||[]).push(f);});
   const lab=dt=>{const diff=Math.round((new Date(dt)-new Date(today))/864e5);return diff<=0?'今天':(diff===1?'明天':(diff===2?'后天':dt));};
