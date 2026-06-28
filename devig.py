@@ -45,32 +45,30 @@ def _solve(f, lo, hi):
         return None
 
 
-def proportional(o1: float, ox: float, o2: float) -> np.ndarray:
-    """按比例归一（原口径）：p_i = (1/o_i) / Σ(1/o_j)。"""
-    inv = np.array([1.0 / o1, 1.0 / ox, 1.0 / o2])
+# ---------- n 路通用核（3 路胜平负 / 2 路让球·大小球共用同一套公式） ----------
+def proportional_n(odds) -> np.ndarray:
+    """按比例归一（原口径）：p_i = (1/o_i) / Σ(1/o_j)。任意路数。"""
+    inv = np.array([1.0 / o for o in odds])
     return inv / inv.sum()
 
 
-def odds_ratio(o1: float, ox: float, o2: float) -> np.ndarray:
-    """Cheung 赔率比法：p_i = b_i / (c + b_i − c·b_i)，b_i=1/o_i，解 c 使 Σp_i=1。"""
-    b = np.array([1.0 / o1, 1.0 / ox, 1.0 / o2])
+def odds_ratio_n(odds) -> np.ndarray:
+    """Cheung 赔率比法（任意路数）：p_i = b_i/(c+b_i−c·b_i)，解 c 使 Σp=1。"""
+    b = np.array([1.0 / o for o in odds])
 
     def total(c):
         return float((b / (c + b - c * b)).sum()) - 1.0
 
-    # overround>1 时需 c>1 收缩；给宽括号
     c = _solve(total, 1e-6, 1e6)
     if c is None:
-        return proportional(o1, ox, o2)
+        return proportional_n(odds)
     p = b / (c + b - c * b)
-    return p / p.sum()                              # 数值兜底再归一
+    return p / p.sum()
 
 
-def shin(o1: float, ox: float, o2: float) -> np.ndarray:
-    """Shin 内幕交易法：p_i = (√(z²+4(1−z)·a_i²/Σa) − z) / (2(1−z))，a_i=1/o_i，解 z 使 Σp=1。
-
-    z = 估计的知情下注比例（≈庄家因防内幕而额外加的水）。能纠正 favorite–longshot 偏差。"""
-    a = np.array([1.0 / o1, 1.0 / ox, 1.0 / o2])
+def shin_n(odds) -> np.ndarray:
+    """Shin 内幕交易法（任意路数）：p_i=(√(z²+4(1−z)·a_i²/Σa)−z)/(2(1−z))，解 z 使 Σp=1。"""
+    a = np.array([1.0 / o for o in odds])
     sa = float(a.sum())
 
     def probs(z):
@@ -79,15 +77,38 @@ def shin(o1: float, ox: float, o2: float) -> np.ndarray:
     def total(z):
         return float(probs(z).sum()) - 1.0
 
-    # z=0 时 Σp=√(Σa)>1（有抽水必 >1）；z↑ 使 Σp↓，根在 (0, ~0.5)
     z = _solve(total, 1e-9, 0.9)
     if z is None:
-        return proportional(o1, ox, o2)
+        return proportional_n(odds)
     p = probs(z)
     return p / p.sum()
 
 
+# ---------- 3 路胜平负（向后兼容旧签名，clv/market_research/bt_odds 直接调用） ----------
+def proportional(o1: float, ox: float, o2: float) -> np.ndarray:
+    return proportional_n([o1, ox, o2])
+
+
+def odds_ratio(o1: float, ox: float, o2: float) -> np.ndarray:
+    return odds_ratio_n([o1, ox, o2])
+
+
+def shin(o1: float, ox: float, o2: float) -> np.ndarray:
+    """Shin：z=估计的知情下注比例（≈庄家因防内幕额外加的水），能纠正 favorite–longshot 偏差。"""
+    return shin_n([o1, ox, o2])
+
+
 METHODS = {"proportional": proportional, "odds_ratio": odds_ratio, "shin": shin}
+METHODS_N = {"proportional": proportional_n, "odds_ratio": odds_ratio_n, "shin": shin_n}
+
+
+def implied2(o_fav: float, o_dog: float, method: str = "shin"):
+    """2 路盘口（让球 cover / 大小球）de-vig：返回 ([p_fav, p_dog], overround)。
+    让球双边水位齐时可用；同一套 Shin/OR/prop 公式在 n=2 上自然退化。"""
+    fn = METHODS_N.get(method, proportional_n)
+    p = fn([o_fav, o_dog])
+    margin = float(1.0 / o_fav + 1.0 / o_dog - 1.0)
+    return p, margin
 
 
 def implied(o1: float, ox: float, o2: float, method: str = "proportional"):

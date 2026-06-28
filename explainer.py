@@ -117,8 +117,25 @@ def line_shift(o_open, o_close):
     }
 
 
-def explain_match(name, model_probs, close_odds, open_odds=None, margin_baseline=None):
-    """组装单场机制解读卡（dict）。所有字段=描述/解释，无任何行动建议。"""
+def handicap_structure(o_fav, o_dog, fav_line, fav_name, method="shin"):
+    """A（让球）：2 路 Shin 去水真实 cover 隐含概率 + overround。"""
+    p, overround = devig.implied2(o_fav, o_dog, method)
+    return {"fav_name": fav_name, "line": float(fav_line),
+            "odds": {"fav_cover": float(o_fav), "dog_cover": float(o_dog)},
+            "implied_cover_shin": {"fav": float(p[0]), "dog": float(p[1])},
+            "overround": float(overround)}
+
+
+def handicap_divergence(model_fav_cover, market_fav_cover):
+    """C（让球）：模型 vs 市场 的强队 cover 概率分歧 + 强制 CLV 先验注脚。"""
+    return {"model_fav_cover": float(model_fav_cover), "market_fav_cover": float(market_fav_cover),
+            "diff": float(model_fav_cover - market_fav_cover), "prior_note": CLV_PRIOR}
+
+
+def explain_match(name, model_probs, close_odds, open_odds=None, margin_baseline=None,
+                  handicap=None):
+    """组装单场机制解读卡（dict）。所有字段=描述/解释，无任何行动建议。
+    handicap（可选）={o_fav,o_dog,fav_line,fav_name,model_fav_cover}：附让球 A/C 段。"""
     A = water_structure(*close_odds, margin_baseline=margin_baseline)
     C = divergence_map(model_probs, (A["implied_shin"]["home"], A["implied_shin"]["draw"],
                                      A["implied_shin"]["away"]))
@@ -126,6 +143,12 @@ def explain_match(name, model_probs, close_odds, open_odds=None, margin_baseline
     card = {"match": name, "A_water_structure": A, "C_divergence": C,
             "line_movement": mv, "B_D_status": "frozen（样本不足，见 bt_explainer.b_gate）",
             "disclaimer": "描述性认知，非投注建议，不含买/跳指令；理性观赛、量力而行。"}
+    if handicap:
+        hA = handicap_structure(handicap["o_fav"], handicap["o_dog"],
+                                handicap["fav_line"], handicap["fav_name"])
+        hC = handicap_divergence(handicap["model_fav_cover"], hA["implied_cover_shin"]["fav"])
+        card["A_handicap"] = hA
+        card["C_handicap_divergence"] = hC
     _assert_clean(render(card))   # 设计层红线自检
     return card
 
@@ -150,6 +173,17 @@ def render(card) -> str:
         L += ["", "【赛前线移动 开→闭】",
               f"  隐含概率位移：主 {s['主胜']:+.1%} / 平 {s['平']:+.1%} / 客 {s['客胜']:+.1%}"
               f"（总变差 {mv['total_variation']:.1%}）"]
+    hA, hC = card.get("A_handicap"), card.get("C_handicap_divergence")
+    if hA and hC:
+        L += ["", f"【A 让球水位】{hA['fav_name']} 让 {hA['line']:.2g} 球",
+              f"  双边水位 强队cover {hA['odds']['fav_cover']:.2f} / 弱队受让 {hA['odds']['dog_cover']:.2f}"
+              f"，抽水 {hA['overround']:.1%}",
+              f"  Shin 去水真实 cover 隐含：强队 {hA['implied_cover_shin']['fav']:.1%}"
+              f" / 弱队 {hA['implied_cover_shin']['dog']:.1%}",
+              "【C 让球分歧】",
+              f"  强队 cover 概率：模型 {hC['model_fav_cover']:.1%} vs 市场 {hC['market_fav_cover']:.1%}"
+              f"（模型−市场 {hC['diff']:+.1%}）",
+              f"  ⚠ {hC['prior_note']}"]
     L += ["", f"  {card['disclaimer']}"]
     return "\n".join(L)
 
@@ -176,9 +210,27 @@ def _cli():
     has_open = not any(pd.isna(o[c]) for c in ("odds_1_open", "odds_x_open", "odds_2_open"))
     open_odds = None if not has_open else orient_odds(
         o.home_team, o.away_team, h, a, o.odds_1_open, o.odds_x_open, o.odds_2_open)
+    # 让球段（可选）：从 handicap_lines.json 取闭盘双边水位 + 模型 settle_line cover。
+    hc = None
+    try:
+        import json, manager
+        hl = json.load(open(os.path.join(os.path.dirname(__file__), "data", "handicap_lines.json")))
+        rec = next((v for v in hl.values()
+                    if {v["home"], v["away"]} == {h, a}), None)
+        if rec and rec.get("fav_spread_odds") and rec.get("dog_spread_odds"):
+            *_, M = m.score_matrix(h, a, neutral=True)
+            mp = manager._margin_pmf(M)
+            s = manager.settle_line(mp, rec["fav_is_home"], rec["fav_line"])
+            denom = s["win"] + s["lose"]
+            model_cover = s["win"] / denom if denom > 1e-9 else s["win"]
+            fav_name = teams_zh.disp(h if rec["fav_is_home"] else a)
+            hc = {"o_fav": rec["fav_spread_odds"], "o_dog": rec["dog_spread_odds"],
+                  "fav_line": rec["fav_line"], "fav_name": fav_name, "model_fav_cover": model_cover}
+    except Exception:  # noqa  让球段缺失不影响 1X2 卡
+        hc = None
     card = explain_match(f"{teams_zh.disp(h)} vs {teams_zh.disp(a)}",
                          (pr["p_home"], pr["p_draw"], pr["p_away"]),
-                         (c1, cx, c2), open_odds, (q25, q75))
+                         (c1, cx, c2), open_odds, (q25, q75), handicap=hc)
     print(render(card))
 
 

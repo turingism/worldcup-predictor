@@ -825,11 +825,19 @@ def test_explainer_redline_guard_is_functional():
     card = explainer.explain_match("A vs B", (0.41, 0.31, 0.28), (1.77, 4.20, 4.30),
                                    (1.80, 4.10, 4.20), (0.03, 0.07))
     explainer._assert_clean(explainer.render(card))      # 真实卡渲染必过红线
-    # 反例：一批『指导下注行为』的变体（含评分→行动、信号灯、星级、价值标签）→ 必须全拦
+    # 含让球段的真实卡渲染也必过红线（新增渲染分支 → 同步覆盖，见红线修改纪律）
+    card_h = explainer.explain_match(
+        "A vs B", (0.53, 0.30, 0.17), (1.43, 4.30, 8.50), None, (0.03, 0.07),
+        handicap={"o_fav": 2.40, "o_dog": 1.51, "fav_line": 1.5, "fav_name": "强队A",
+                  "model_fav_cover": 0.25})
+    assert "A_handicap" in card_h
+    explainer._assert_clean(explainer.render(card_h))
+    # 反例：『指导下注行为』变体（评分→行动/信号灯/星级/价值标签/让球盘变体）→ 必须全拦
     banned_variants = [
         "建议下注主胜", "这场值得下", "可以考虑跟一注", "强烈推荐主胜", "value bet 在客胜",
         "评分≥7分 → 买入主胜", "信号灯绿灯，上车", "给这场打 5 星级买入", "稳赚不赔",
         "该买主胜", "正EV，加仓", "性价比买客胜", "跳过此盘", "建议买大球",
+        "让球盘建议下注受让", "亚盘可以买强队 -1.5", "受让方值博，加仓",   # 让球分支反例
     ]
     for t in banned_variants:
         try:
@@ -890,3 +898,34 @@ def test_b_gate_structure_and_invariant():
         if b["unlocked"]:
             assert b["n"] >= bte.GATE_MIN_N and b["ci_excludes_0"]
     assert g["any_unlocked"] == (len(g["unlocked_buckets"]) > 0)
+
+
+# ---------- 让球 2 路 de-vig + b_gate 并入让球样本（Step 2） ----------
+def test_devig_2way_normalizes_and_corrects_flb():
+    """2 路 de-vig（让球 cover）：三口径都归一；shin/OR 相对 prop 抬高概率高的一侧（FLB 方向）。"""
+    import numpy as np
+    import devig
+    for ofav, odog in [(2.40, 1.5128), (1.80, 2.10), (3.50, 1.33)]:
+        for m in ("proportional", "odds_ratio", "shin"):
+            p, mg = devig.implied2(ofav, odog, m)
+            assert abs(p.sum() - 1.0) < 1e-9 and mg > 0          # 归一 + 有抽水
+        pp, _ = devig.implied2(ofav, odog, "proportional")
+        ps, _ = devig.implied2(ofav, odog, "shin")
+        hi = int(np.argmax(pp))                                   # 概率高的一侧
+        assert ps[hi] >= pp[hi] - 1e-9                            # shin 抬高高概率侧（纠 FLB）
+    # 3 路 wrapper 仍与 n 路核一致（向后兼容回归）
+    assert np.allclose(devig.shin(1.77, 4.20, 4.30), devig.shin_n([1.77, 4.20, 4.30]))
+
+
+def test_b_gate_handicap_inclusion_grows_buckets():
+    """include_handicap=True 把让球 cover 点并入：总点数增加、桶计数不减；解锁仍需 AND 条件。"""
+    import bt_explainer as bte
+    g0 = bte.b_gate()
+    g1 = bte.b_gate(include_handicap=True)
+    assert g1["n_handicap"] >= 0 and g1["n_points"] == g1["n_1x2"] + g1["n_handicap"]
+    assert g1["n_points"] >= g0["n_points"]                       # 并入后不减
+    by0 = {b["lo"]: b["n"] for b in g0["buckets"]}
+    for b in g1["buckets"]:
+        assert b["n"] >= by0.get(b["lo"], 0)                      # 每桶计数单调不减
+        if b["unlocked"]:                                        # 解锁不变量仍成立
+            assert b["n"] >= bte.GATE_MIN_N and b["ci_excludes_0"]
