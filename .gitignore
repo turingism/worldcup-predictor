@@ -17,8 +17,11 @@ data/xuanxue_ledger.json
 # 实验性 / 临时
 _seed_live_demo.py
 
-# bayes 后验抽样中间产物（可由 bayes.py 重生成；champ_ci.json 已提交）
+# bayes 生成产物（均可由 bayes.py 固定种子=42 / champ_ci.py 从 results.csv 重生成，
+# 跟随当前数据每次刷新自动重写，非快照→不进 git，与下方 .npz 口径统一）
 data/bayes_draws.npz
+data/bayes_ratings.json
+data/champ_ci.json
 
 # ESPN 赔率快照（随赛事累积，本地运行时数据）
 data/odds_snapshots.jsonl
