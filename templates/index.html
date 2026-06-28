@@ -256,8 +256,11 @@
   .vstat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 12px;text-align:center}
   .vstat .vnum{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums}
   .vstat .vlab{font-size:11px;color:var(--mut);margin-top:4px;line-height:1.5}
-  .vrow{display:grid;grid-template-columns:48px 52px 1fr 84px 104px 188px 74px;gap:8px;align-items:center;
+  .vrow{display:grid;grid-template-columns:50px 54px minmax(160px,230px) 116px 104px 1fr 76px;gap:8px;align-items:center;
     padding:7px 4px;border-bottom:1px solid var(--line);font-size:12.5px}
+  .vrow .vpred{line-height:1.45}
+  .vrow .vpred small{color:var(--mut);font-size:11px}
+  .vrow .vverd{display:flex;align-items:center;flex-wrap:wrap;gap:6px;row-gap:4px}
   .vrow:last-of-type{border-bottom:none}
   .vrow.vhead{color:var(--mut);font-size:11px;border-bottom:1px solid var(--line)}
   .vbreak{padding:14px 16px}
@@ -296,17 +299,57 @@
   .lc-wdlbar i.a{background:var(--wdl-a)}
   .lc-wdlnum{display:flex;justify-content:space-between;font-size:11.5px;margin-top:4px;font-variant-numeric:tabular-nums}
   .lc-wdlnum b{color:#e6edf3;font-weight:700}
-  .uprow{display:grid;grid-template-columns:90px 1fr 96px 96px;gap:10px;align-items:center;
+  .uprow{display:grid;grid-template-columns:70px minmax(140px,250px) 72px 96px 1fr;gap:10px;align-items:center;
     padding:8px 4px;border-bottom:1px solid var(--line);font-size:13px}
   .uprow:last-of-type{border-bottom:none}
   .up-t b{display:block;font-size:12.5px;color:#e6edf3;font-variant-numeric:tabular-nums}
   .up-t small{color:var(--mut);font-size:10.5px}
-  .up-vs{display:flex;align-items:center;gap:7px;color:#e6edf3}
+  .up-vs{display:flex;flex-wrap:wrap;align-items:center;gap:4px 7px;color:#e6edf3}
   .up-vs .up-x{color:var(--mut);font-size:11px}
-  .up-pred{font-variant-numeric:tabular-nums;color:#c9d1d9}
+  .up-pred{display:flex;flex-direction:column;align-items:flex-start;gap:3px;font-variant-numeric:tabular-nums;color:#c9d1d9}
+  .up-pred .hcpill{margin-left:0}
   .up-p{color:var(--mut);font-variant-numeric:tabular-nums;text-align:right}
   .upmore-btn{background:#21262d;margin-top:10px;width:100%;font-size:12.5px}
-  .uprow{grid-template-columns:74px 1fr 60px 92px 72px}
+  .up-act{display:flex;justify-content:flex-end;flex-wrap:wrap;align-items:center;gap:6px}
+  .mr-row{display:grid;grid-template-columns:minmax(160px,1.3fr) 92px 1fr;gap:10px;align-items:center;
+    padding:7px 2px;border-bottom:1px solid var(--line);font-size:12.5px}
+  .mr-row:last-of-type{border-bottom:none}
+  .mr-l{color:var(--mut)}
+  .mr-v{font-weight:700;font-variant-numeric:tabular-nums;color:#e6edf3;text-align:right}
+  .mr-x{color:var(--mut);font-size:11.5px;font-variant-numeric:tabular-nums}
+  .mr-yes{color:var(--grn2);font-weight:700}
+  .mr-no{color:#8b949e}
+  .sc-tab{width:100%;border-collapse:collapse;margin:10px 0;font-size:12.5px}
+  .sc-tab th{text-align:center;color:var(--mut);font-size:11px;font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line)}
+  .sc-tab th:first-child{text-align:left}
+  .sc-tab td{text-align:center;padding:5px 6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  .sc-tab td.sc-l{text-align:left;color:var(--mut)}
+  .sc-tab td.sc-win{color:var(--grn2);font-weight:700}
+  .cal-wrap{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;margin-top:8px}
+  .cal-svg{flex:0 0 300px;max-width:100%}
+  .cal-tabs{flex:1 1 280px;min-width:240px}
+  .cal-ax{fill:#6e7681;font-size:9px}
+  .cal-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .cal-dot.dm{background:#3fb950} .cal-dot.dk{background:#58a6ff}
+  @media(max-width:520px){ .cal-svg{flex-basis:100%} }
+  .mr-summary{background:#0d2818;border:1px solid #2ea04344;border-radius:8px;padding:9px 12px;
+    font-size:12.5px;line-height:1.55;color:#c9d1d9;margin-bottom:10px}
+  .mr-summary b{color:var(--grn2)}
+  .mrsub{margin-top:12px}
+  .mrsub-h{font-size:11.5px;color:var(--mut2);font-weight:600;margin-bottom:4px}
+  .mrseg{display:grid;grid-template-columns:minmax(108px,1.3fr) 48px 1fr 1fr;gap:8px;align-items:center;
+    padding:5px 2px;border-bottom:1px solid var(--line);font-size:12px}
+  .mrseg:last-of-type{border-bottom:none}
+  .mrseg .mr-v{text-align:right;font-weight:600}
+  @media(max-width:520px){ .mrseg{grid-template-columns:1fr auto auto;gap:4px} }
+  @media(max-width:520px){ .mr-row{grid-template-columns:1fr auto;gap:4px} .mr-row .mr-x{grid-column:1/-1} }
+  .upnar-bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+  .upnar-btn.on{border-color:#2ea04366;color:var(--grn2)}
+  .upnar-tip{font-size:11px;color:var(--mut)}
+  .up-nar{grid-column:1/-1;font-size:11.5px;color:var(--mut);line-height:1.55;
+    background:#0d1117;border-left:2px solid #2ea04344;border-radius:0 6px 6px 0;
+    padding:6px 10px;margin:3px 0 1px;display:none}
+  #upwrap.upnar-on .up-nar{display:block}
   .up-day{display:flex;align-items:center;gap:8px;margin:14px 2px 4px;padding-bottom:5px;
     border-bottom:1px dashed var(--line);font-size:12.5px;font-weight:700;color:#8b949e}
   .up-day:first-child{margin-top:2px}
@@ -315,7 +358,6 @@
     padding:1px 8px;font-weight:700;font-variant-numeric:tabular-nums;color:#79c0ff;font-size:12.5px}
   .hcpill{display:inline-block;margin-left:5px;background:#bb8a2618;border:1px solid #bb8a2655;border-radius:6px;
     padding:1px 7px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--gold);font-size:11.5px;cursor:help}
-  .up-act{text-align:right}
   .seebtn{background:#21262d;color:#58a6ff;border:1px solid #30363d;border-radius:6px;
     padding:4px 9px;cursor:pointer;font-size:11.5px;white-space:nowrap}
   .seebtn:hover{border-color:#1f6feb;background:#1f6feb1a}
@@ -406,8 +448,10 @@
     .uprow{grid-template-columns:58px 1fr 56px auto;font-size:12px;gap:7px}
     .uprow .up-p{display:none}
     .livewrap{grid-template-columns:1fr}
-    .vrow{grid-template-columns:46px 1fr 88px 96px auto;font-size:11.5px;gap:6px}
-    .vrow>div:nth-child(2),.vrow>div:nth-child(6){display:none}
+    /* 手机端保留最核心列：日期 / 对阵 / 预测·倾向 / 判定（命中与否）；隐藏 阶段·胜平负%·留痕 */
+    .vrow{grid-template-columns:42px 1fr auto auto;font-size:11.5px;gap:6px}
+    .vrow>div:nth-child(2),.vrow>div:nth-child(5),.vrow>div:nth-child(7){display:none}
+    .vrow .vverd small{display:none}   /* 省"该比分赛前X%"补充文字，保留命中徽章 */
     .champ .top{grid-template-columns:22px minmax(70px,1fr) 1fr 84px;gap:6px}
     .rr{grid-template-columns:24px minmax(64px,1fr) 1fr 110px;gap:6px}
   }
@@ -1047,6 +1091,8 @@ const STAGEZH={group:'小组赛',R32:'1/16',R16:'1/8',QF:'八强',SF:'四强',Fi
 // 三向概率串：主/平/客，加粗模型判定 pick
 const P3=r=>{const f=(v,k)=>r.pick===k?`<b style="color:var(--grn2)">${(v*100).toFixed(0)}</b>`:(v*100).toFixed(0);
   return `${f(r.p_home,'H')}/${f(r.p_draw,'D')}/${f(r.p_away,'A')}<small>%</small>`;};
+// 模型「赛果倾向」=胜/平/负概率最大的一方（判定就按这个，可能与最可能比分的方向不一致）
+const PICKZH=r=> r.pick==='D'?'平局':(r.pick==='H'?'主胜':'客胜');
 const secHead=(t,n)=>`<div class="dsec-h">${t}<span class="cnt">${n}</span></div>`;
 
 async function loadDashboard(btn){
@@ -1178,8 +1224,8 @@ function gotoManager(h, a, withLineup){
   setTimeout(()=>{ if($('#mg_home'))$('#mg_home').value=h; if($('#mg_away'))$('#mg_away').value=a;
     if($('#mg_neutral'))$('#mg_neutral').checked=true; loadManager(withLineup?1:0); }, 180);
 }
-const reportBtn=r=>`<button class="seebtn" style="margin-left:4px" data-h="${r.home||''}" data-a="${r.away||''}" onclick="gotoManager(this.dataset.h,this.dataset.a,false)" title="到对阵分析看这场的完整深度报告（过程数据/算法模型/全盘口结论）">深度报告</button>`;
-const lineupBtn=r=>`<button class="seebtn" style="border-color:#1f6feb55;color:#58a6ff;margin-left:4px" data-h="${r.home||''}" data-a="${r.away||''}" onclick="gotoManager(this.dataset.h,this.dataset.a,true)" title="到对阵分析、拉取真实首发并重算（约赛前 1 小时公布；未公布则降级为赛前估计）">⚡首发分析</button>`;
+const reportBtn=r=>`<button class="seebtn" data-h="${r.home||''}" data-a="${r.away||''}" onclick="gotoManager(this.dataset.h,this.dataset.a,false)" title="到对阵分析看这场的完整深度报告（过程数据/算法模型/全盘口结论）">深度报告</button>`;
+const lineupBtn=r=>`<button class="seebtn" style="border-color:#1f6feb55;color:#58a6ff" data-h="${r.home||''}" data-a="${r.away||''}" onclick="gotoManager(this.dataset.h,this.dataset.a,true)" title="到对阵分析、拉取真实首发并重算（约赛前 1 小时公布；未公布则降级为赛前估计）">⚡首发分析</button>`;
 
 function liveCard(r){
   const pred = r.pred_gh!=null?`赛前 ${r.pred_gh}–${r.pred_ga}`:'';
@@ -1213,6 +1259,7 @@ function upRow(u){
     <div class="up-pred"><span class="scpill" title="最可能的单一比分（点「看预测」看完整正确比分盘与大球/大胜概率）">${u.pred_gh}–${u.pred_ga}</span>${u.handicap?`<span class="hcpill" title="竞彩让球：${u.handicap.csl_is_handicap?`强队 ${u.handicap.fav} 让 ${u.handicap.csl_line} 球，倾向 ${u.handicap.jc_verdict}`:'平手（势均力敌，让0=常规胜平负）'}（让球线按本场期望净胜定）· 亚盘模型公平盘 让 ${u.handicap.fair_line}。点看预测看详情">${u.handicap.csl_is_handicap?'让'+u.handicap.csl_line:'平手'}</span>`:''}</div>
     <div class="up-p" title="主胜/平/客胜概率%（加粗=模型判定的最可能结果）">${P3(u)}</div>
     <div class="up-act">${seeBtn(u)}${reportBtn(u)}${lineupBtn(u)}</div>
+    ${u.narrative?`<div class="up-nar">📣 ${u.narrative}</div>`:''}
   </div>`;
 }
 // 按比赛日分组渲染（list 已按开球时间升序）
@@ -1234,10 +1281,16 @@ function renderUpcoming(list){
   const head=list.filter(u=>headDays.has(u.date)), rest=list.filter(u=>!headDays.has(u.date));
   const more=rest.length?`<div id="upmore" style="display:none">${dayBlocks(rest)}</div>
     <button class="go upmore-btn" data-lab="展开后续 ${rest.length} 场（共 ${list.length}）" onclick="toggleUpMore(this)">展开后续 ${rest.length} 场（共 ${list.length}）▾</button>`:'';
-  return `<div class="card">${dayBlocks(head)}${more}</div>`;
+  // 球迷解读：默认收起（保持看板密度），点开后逐行显示一句解读 + 顶部统一一次免责声明
+  const bar=list.some(u=>u.narrative)?`<div class="upnar-bar"><button class="seebtn upnar-btn" onclick="toggleUpNar(this)" title="把胜率翻译成一句球迷语言（含让球倾向与进球氛围）">💬 球迷解读</button><span class="upnar-tip"></span></div>`:'';
+  return `<div class="card" id="upwrap">${bar}${dayBlocks(head)}${more}</div>`;
 }
 function toggleUpMore(btn){ const m=$('#upmore'); const show=m.style.display==='none';
   m.style.display=show?'block':'none'; btn.textContent=show?'收起 ▴':btn.dataset.lab+' ▾'; }
+function toggleUpNar(btn){ const w=$('#upwrap'); if(!w) return;
+  const on=w.classList.toggle('upnar-on'); btn.classList.toggle('on',on);
+  const tip=w.querySelector('.upnar-tip');
+  if(tip) tip.textContent=on?'📌 仅为模型概率推演，非投注建议，理性观赛、量力而行。':''; }
 
 // —— 看预测弹窗：复用 /api/predict 的比分矩阵 ——
 function openModal(title,body){ $('#pmodal-title').innerHTML=title; $('#pmodal-body').innerHTML=body;
@@ -1357,15 +1410,15 @@ function renderDone(ev){
     <div class="muted">${(r.date||'').slice(5).replace('-','/')}</div>
     <div class="muted">${STAGEZH[r.stage]||r.stage}</div>
     <div>${r.home} <b>${r.act_gh}–${r.act_ga}</b> ${r.away}</div>
-    <div>预测 <b>${r.pred_gh}–${r.pred_ga}</b></div>
+    <div class="vpred">预测 <b>${r.pred_gh}–${r.pred_ga}</b><br><small title="模型胜/平/负概率最大的一方，判定按此口径（可能与最可能比分的方向不一致）">倾向 ${PICKZH(r)} ${(r.conf*100).toFixed(0)}%</small></div>
     <div class="muted" title="主胜/平/客胜概率%（加粗=模型判定）">${P3(r)}</div>
-    <div>${badge(r)} ${why(r)}${r.p_actual_score!=null?` <small class="muted">赛前给该比分 ${(r.p_actual_score*100).toFixed(1)}%</small>`:''}</div>
+    <div class="vverd">${badge(r)}${why(r)}${r.p_actual_score!=null?`<small class="muted">该比分赛前 ${(r.p_actual_score*100).toFixed(1)}%</small>`:''}</div>
     <div>${r.retro?'<span class="b b-set" title="账本缺失，用只含开球前数据训练的回溯模型补">⏪ 回溯</span>'
                   :'<span class="b b-fin" title="开球前冻结存盘">🔒 赛前</span>'}</div>
   </div>`).join('');
   return cards+breakdown+`<div class="card">
     <h3 style="margin-top:0">逐场对比（${rows.length} 场 · 最新在前）</h3>
-    <div class="vrow vhead"><div>日期</div><div>阶段</div><div>对阵 · 实际比分</div><div>预测比分</div><div>胜/平/负%</div><div>判定</div><div>留痕</div></div>
+    <div class="vrow vhead"><div>日期</div><div>阶段</div><div>对阵 · 实际比分</div><div>预测比分 · 倾向</div><div>胜/平/负%</div><div>判定</div><div>留痕</div></div>
     ${list}
     <div class="muted" style="margin-top:12px">判定口径：<b>赛果命中</b>＝模型给的<b>胜/平/负概率最大的那一方</b> vs 实际胜平负——<b>注意它可能与左侧「预测比分」的方向不一致</b>（平局边界处，最可能比分是 1-0 但三向概率最大的是"平"）。<b>比分命中</b>＝最可能比分恰好等于实际比分。
     🔒 赛前＝预测在开球前冻结存盘（开球后不可改）；⏪ 回溯＝账本缺失时用<b>只含开球前数据</b>训练的模型补算，与赛前口径一致、不偷看结果。</div>
@@ -1416,7 +1469,68 @@ async function loadMarket(mode){
   try{
     const d=await getJSON('/api/market'+q);
     host.innerHTML = renderMarket(d);
+    if(!d.demo) loadMarketResearch(mode==='fresh'||mode==='snap');   // 线移动信息研究（只读）
   }catch(e){ if(!mode) host.innerHTML=errCard(e); }   // 后台静默刷新(mode)失败不打断已显示内容
+}
+async function loadMarketResearch(fresh){
+  const box=$('#mrpanel'); if(!box) return;
+  try{
+    const d=await getJSON('/api/market_research'+(fresh?'?fresh=1':''));
+    box.innerHTML=renderMarketResearch(d);
+  }catch(e){ /* 研究面板失败不影响主对标 */ }
+}
+// 开盘→闭盘 线移动信息检验（纯研究、非投注建议）。CI 不含 0/0.5 才判"显著"。
+function renderMarketResearch(d){
+  const m=(d&&d.line_movement)||{};
+  if(!m.n) return '';
+  const sg=ok=>ok?'<span class="mr-yes">显著</span>':'<span class="mr-no">不显著</span>';
+  const pp=v=>(v>0?'+':'')+(v*100).toFixed(1)+'pp';
+  const ci=a=>`[${(a[0]*100).toFixed(1)}, ${(a[1]*100).toFixed(1)}]pp`;
+  const row=(lab,val,extra)=>`<div class="mr-row"><span class="mr-l">${lab}</span><span class="mr-v">${val}</span><span class="mr-x">${extra||''}</span></div>`;
+  const summary=(d.summary&&d.summary.text)?`<div class="mr-summary">📋 ${d.summary.text.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>`:'';
+  return `<div class="card">
+    <h3 style="margin-top:0">🔬 开盘 → 闭盘 线移动 · 信息检验 <small class="muted" style="font-weight:400">(${m.n} 场 · de-vig=${m.method})</small></h3>
+    ${summary}
+    <div class="muted" style="font-size:12px;margin-bottom:10px">研究<b>市场如何运作</b>：开盘线偏"软"、闭盘线偏"锐"。检验①闭盘是否更准 ②线移动是否朝最终结果（含信息）。带 bootstrap/Wilson 95% CI——<b>CI 不含 0 才算显著</b>。纯研究、非投注建议。</div>
+    ${row('闭盘 vs 开盘 LogLoss（负=闭盘更准）',`${m.logloss_diff>0?'+':''}${m.logloss_diff}`,`CI ${m.logloss_diff_ci.join(' ~ ')} · 闭盘更锐利 ${sg(m.closing_sharper)}`)}
+    ${row('线移动朝【实际结果】mean',pp(m.move_toward_actual),`CI ${ci(m.move_toward_actual_ci)} · 移动含信息 ${sg(m.movement_informative)}`)}
+    ${row('移动方向正确率',(m.right_dir_rate*100).toFixed(0)+'%',`Wilson CI [${(m.right_dir_ci[0]*100).toFixed(0)}, ${(m.right_dir_ci[1]*100).toFixed(0)}]% · 显著 ${sg(m.right_dir_ci[0]>0.5)}`)}
+    ${row('平均线移动幅度（总变差）',(m.avg_move*100).toFixed(1)+'pp','越大=市场越改主意')}
+    ${segBlock('信息集中在哪类场次 · 强弱档',(d.segments||{}).by_strength)}
+    ${segBlock('信息集中在哪类场次 · 移动幅度',(d.segments||{}).by_move)}
+    ${segBlock('信息集中在哪类场次 · 阶段（淘汰赛开打后自动生效）',(d.segments||{}).by_stage)}
+    ${calibBlock(d.calibration)}
+    ${sensBlock(d.devig_sensitivity)}
+    <div class="muted" style="font-size:11.5px;margin-top:10px">${d.source_note||''}</div>
+  </div>`;
+}
+// 分桶小表：每行 标签 · n · 朝实际移动(+CI) · 方向正确率 · 显著性
+function segBlock(title,arr){
+  if(!arr||!arr.length) return '';
+  const sg=ok=>ok?'<span class="mr-yes">含信息</span>':'<span class="mr-no">不显著</span>';
+  const pp=v=>(v>0?'+':'')+(v*100).toFixed(1);
+  const rows=arr.map(s=> s.n? `<div class="mrseg"><span class="mr-l">${s.label}</span><span class="mr-x">n=${s.n}</span><span class="mr-v" title="线移动朝实际结果；方向正确率 ${(s.right_dir_rate*100).toFixed(0)}%">移动 ${pp(s.move_toward_actual)}pp ${sg(s.movement_informative)}</span><span class="mr-v" title="闭盘 vs 开盘 LogLoss 差，负=闭盘更准">锐利 ${s.logloss_diff} ${sg(s.closing_sharper)}</span></div>`
+    : `<div class="mrseg"><span class="mr-l">${s.label}</span><span class="mr-x">n=0</span><span class="mr-x" style="grid-column:3/-1">暂无样本</span></div>`).join('');
+  return `<div class="mrsub"><div class="mrsub-h">${title}<small class="muted" style="font-weight:400">（移动含信息？+ 闭盘是否更锐利？）</small></div>${rows}</div>`;
+}
+// 闭盘线校准：reliability 分箱（预测均 vs 实际频率 + Wilson CI）+ ECE + 各 de-vig 口径 ECE
+function calibBlock(c){
+  if(!c||!c.n_points) return '';
+  const pc=v=>(v*100).toFixed(0)+'%';
+  const rows=(c.bins||[]).filter(b=>b.n).map(b=>`<div class="mrseg"><span class="mr-l">预测 ${pc(b.lo)}–${pc(b.hi)}</span><span class="mr-x">n=${b.n}</span><span class="mr-v" title="该档预测概率均值">预测 ${pc(b.pred)}</span><span class="mr-v" title="该档实际发生频率 + Wilson CI">实际 ${pc(b.obs)} <small class="mr-x">[${pc(b.obs_ci[0])},${pc(b.obs_ci[1])}]</small></span></div>`).join('');
+  const em=c.ece_by_method||{};
+  const best=Object.entries(em).sort((a,b)=>a[1]-b[1])[0];
+  const emLine=Object.entries(em).map(([k,v])=>`${k} ${(v*100).toFixed(2)}%${best&&k===best[0]?' ✓最优':''}`).join(' · ');
+  return `<div class="mrsub"><div class="mrsub-h">闭盘线校准 · 作为概率源是否可信 <small class="muted" style="font-weight:400">ECE=${(c.ece*100).toFixed(2)}%（越低越准）· ${c.n_points} 预测点</small></div>
+    ${rows}
+    <div class="muted" style="font-size:11.5px;margin-top:6px">预测档均值≈实际频率=校准良好；冷门档系统性高估=favorite–longshot 偏差。各 de-vig 口径 ECE：${emLine}（独立印证 Shin 读盘最准）。</div></div>`;
+}
+// de-vig 敏感性：三口径结论是否一致（稳健性）
+function sensBlock(arr){
+  if(!arr||!arr.length) return '';
+  const pp=v=>(v>0?'+':'')+(v*100).toFixed(1);
+  const rows=arr.map(a=>`<div class="mrseg"><span class="mr-l">${a.method}</span><span class="mr-v">${pp(a.move_toward_actual)}pp</span><span class="mr-x">CI下界 ${(a.move_toward_actual_ci[0]*100).toFixed(1)}pp</span><span class="mr-x">方向 ${(a.right_dir_rate*100).toFixed(0)}%</span><span class="mr-x">${a.movement_informative?'<span class="mr-yes">✓</span>':'<span class="mr-no">✗</span>'}</span></div>`).join('');
+  return `<div class="mrsub"><div class="mrsub-h">de-vig 口径敏感性（三法一致=结论稳健，非某口径假象）</div>${rows}</div>`;
 }
 function renderMarket(d){
   const c=d.clv||{};
@@ -1483,7 +1597,71 @@ function renderMarket(d){
     <div style="white-space:nowrap">${refreshBtn}</div></div></div>`;
   const demoBanner = d.demo ? `<div class="card val-demo">🧪 <b>合成演示数据</b>（非真实赔率、非投注建议）：展示「CLV 证明信息优势后」价值/Kelly 面板的样子。真实数据仍受诚实门槛约束、保持锁定。
     <button class="seebtn" style="margin-left:8px" onclick="loadMarket()">← 返回真实数据</button></div>` : '';
-  return demoBanner+guard+intro+verdict+cards+table+value;
+  return demoBanner+guard+intro+verdict+cards+table+calCmpHTML(d.calibration_compare)+value+'<div id="mrpanel"></div>';
+}
+// 模型 vs 闭盘线 校准对比（谁的概率更可信）：两边 ECE + 各自 reliability 分箱
+function calCmpHTML(cc){
+  if(!cc||!cc.n_points) return '';
+  const pc=v=>(v*100).toFixed(0)+'%';
+  const e=v=>(v*100).toFixed(2)+'%';
+  const winLab={model:'模型更校准',market:'闭盘线更校准',tie:'打平'}[cc.better]||'';
+  const winCls=cc.better==='model'?'v-ok':(cc.better==='market'?'v-no':'v-mut');
+  const bins=(b,who)=>(b||[]).filter(x=>x.n).map(x=>`<div class="mrseg"><span class="mr-l">预测 ${pc(x.lo)}–${pc(x.hi)}</span><span class="mr-x">n=${x.n}</span><span class="mr-v" title="该档预测概率均值">预测 ${pc(x.pred)}</span><span class="mr-v" title="该档实际频率 + Wilson CI">实际 ${pc(x.obs)} <small class="mr-x">[${pc(x.obs_ci[0])},${pc(x.obs_ci[1])}]</small></span></div>`).join('');
+  return `<div class="card">
+    <h3 style="margin-top:0">🎯 模型 vs 闭盘线 · 校准对比 <small class="muted" style="font-weight:400">(${cc.n_points} 预测点 · 越低越好)</small></h3>
+    <div class="mkt-verdict ${winCls}">模型 ECE <b>${e(cc.model.ece)}</b> · 闭盘线 ECE <b>${e(cc.market.ece)}</b> → <b>${winLab}</b></div>
+    ${scoreCard(cc.scorecard)}
+    ${decompHTML(cc.model.decomp,cc.market.decomp)}
+    <div class="cal-wrap">
+      <div class="cal-svg">${reliabilitySVG(cc.model.bins,cc.market.bins)}</div>
+      <div class="cal-tabs">
+        <div class="mrsub"><div class="mrsub-h"><span class="cal-dot dm"></span>模型 reliability</div>${bins(cc.model.bins,'model')}</div>
+        <div class="mrsub"><div class="mrsub-h"><span class="cal-dot dk"></span>闭盘线 reliability</div>${bins(cc.market.bins,'market')}</div>
+      </div>
+    </div>
+    <div class="muted" style="font-size:11.5px;margin-top:8px">点越贴对角线=校准越好。模型校准好≠能赢钱（赢钱看 CLV，上方已证为负）——<b>校准好但无市场边际，二者不矛盾</b>。小样本，看趋势。非投注建议。</div>
+  </div>`;
+}
+// 评分卡：三种正规评分规则（RPS/LogLoss/ECE，越低越好）模型 vs 市场并排，逐项高亮胜者
+function scoreCard(sc){
+  if(!sc) return '';
+  const w=sc.winner||{};
+  const cell=(metric,who)=>{const win=w[metric]===who; return `<td class="${win?'sc-win':''}">${sc[who][metric]}${win?' ✓':''}</td>`;}
+  const r=(metric,lab)=>`<tr><td class="sc-l">${lab}</td>${cell(metric,'model')}${cell(metric,'market')}</tr>`;
+  return `<table class="sc-tab"><tr><th>评分（越低越好）</th><th>模型</th><th>闭盘线</th></tr>
+    ${r('rps','RPS')}${r('logloss','LogLoss')}${r('ece','ECE')}</table>`;
+}
+// 校准-锐度分解（Brier=reliability−resolution+uncertainty）：模型输在校准还是输在分辨力？
+function decompHTML(md,kd){
+  if(!md||!kd||md.reliability==null||kd.reliability==null) return '';
+  const f=v=>v.toFixed(4);
+  const cmp=(a,b,lowerBetter)=>{const win=lowerBetter?(a<b?'model':(b<a?'market':'')):(a>b?'model':(b>a?'market':''));return win;};
+  const cell=(val,win,who)=>`<td class="${win===who?'sc-win':''}">${f(val)}${win===who?' ✓':''}</td>`;
+  const rRel=cmp(md.reliability,kd.reliability,true), rRes=cmp(md.resolution,kd.resolution,false);
+  return `<table class="sc-tab"><tr><th>Brier 分解</th><th>模型</th><th>闭盘线</th></tr>
+    <tr><td class="sc-l">reliability 校准误差（↓越好）</td>${cell(md.reliability,rRel,'model')}${cell(kd.reliability,rRel,'market')}</tr>
+    <tr><td class="sc-l">resolution 分辨力（↑越好）</td>${cell(md.resolution,rRes,'model')}${cell(kd.resolution,rRes,'market')}</tr></table>
+    <div class="muted" style="font-size:11px;margin-top:2px">校准误差几乎一样小→两边都校准好；差距主要在<b>分辨力(resolution)</b>=谁更敢在该极端时给极端概率、且给对。uncertainty=${f(md.uncertainty)}（基率方差，两边相同）。</div>`;
+}
+// SVG reliability 图：x=预测概率 y=实际频率，对角线=完美校准；模型(绿)/闭盘线(蓝)两条折线
+function reliabilitySVG(mb,kb){
+  const S=260,P=34,W=S-2*P;
+  const X=p=>P+p*W, Y=p=>S-P-p*W;
+  const path=(arr,col)=>{const pts=(arr||[]).filter(b=>b.n).map(b=>[X(b.pred),Y(b.obs)]);
+    if(!pts.length) return '';
+    const ln=pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ');
+    const dots=pts.map(q=>`<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="3.5" fill="${col}"/>`).join('');
+    return `<path d="${ln}" fill="none" stroke="${col}" stroke-width="2"/>${dots}`;}
+  const ticks=[0,.25,.5,.75,1].map(t=>`<text x="${X(t)}" y="${S-P+14}" class="cal-ax">${t*100}</text>`+
+    `<text x="${P-8}" y="${Y(t)+3}" text-anchor="end" class="cal-ax">${t*100}</text>`).join('');
+  return `<svg viewBox="0 0 ${S} ${S}" width="100%" style="max-width:300px">
+    <rect x="${P}" y="${P}" width="${W}" height="${W}" fill="#0d1117" stroke="#21262d"/>
+    <line x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(1)}" stroke="#6e7681" stroke-dasharray="4 3"/>
+    ${path(kb,'#58a6ff')}${path(mb,'#3fb950')}
+    ${ticks}
+    <text x="${S/2}" y="${S-4}" text-anchor="middle" class="cal-ax">预测概率 %</text>
+    <text x="12" y="${S/2}" text-anchor="middle" class="cal-ax" transform="rotate(-90 12 ${S/2})">实际频率 %</text>
+  </svg>`;
 }
 function valuePanel(d){
   const ov=d.unlock_override;

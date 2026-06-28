@@ -25,21 +25,38 @@ import numpy as np
 import pandas as pd
 
 import data as datamod
+import devig
 from backtest import _rps
 
 ODDS_PATH = os.path.join(os.path.dirname(__file__), "data", "odds.csv")
 MIN_N = 30                       # CLV 出结论的最小样本量
 _AS_OF_MODEL = {}               # cutoff -> 冻结模型缓存（避免重复 ~10s 训练）
+# de-vig（去抽水）口径：Shin 法在 bt_devig.py 真实赛果上 RPS/LogLoss/赋实概 三项一致≥
+# proportional（n=66，差异噪声量级但方向一致），且 z 由本场赔率自解、不在赛果上拟合=不会过拟合，
+# 是纠正 favorite–longshot 偏差的学界标准口径。仅改"读盘口"，不碰 GLM。
+DEVIG_METHOD = "shin"
 
 
 KELLY_FRACTION = 0.25       # 分数 Kelly（1/4）——全 Kelly 在评级有估计误差时必过注、破产风险高
 
 
+def boot_ci(values, B: int = 5000, alpha: float = 0.05, seed: int = 12345):
+    """均值的百分位 bootstrap 置信区间（小样本/偏态比 t 近似更稳）。固定种子=可复现。"""
+    a = np.asarray(values, dtype=float)
+    a = a[np.isfinite(a)]
+    if a.size == 0:
+        return (None, None)
+    if a.size == 1:
+        return (float(a[0]), float(a[0]))
+    rng = np.random.default_rng(seed)
+    means = a[rng.integers(0, a.size, size=(B, a.size))].mean(axis=1)
+    lo, hi = np.percentile(means, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+    return float(lo), float(hi)
+
+
 def implied(o1: float, ox: float, o2: float):
-    """十进制赔率 → (去 margin 的隐含概率 [主,平,客], overround/margin)。"""
-    inv = np.array([1.0 / o1, 1.0 / ox, 1.0 / o2])
-    margin = float(inv.sum() - 1.0)         # 抽水（庄家长期优势的来源）
-    return inv / inv.sum(), margin
+    """十进制赔率 → (去 margin 的隐含概率 [主,平,客], overround/margin)。口径见 DEVIG_METHOD。"""
+    return devig.implied(o1, ox, o2, DEVIG_METHOD)
 
 
 def _kelly(p: float, odds: float) -> dict:
@@ -111,6 +128,8 @@ def evaluate(odds_path: str = ODDS_PATH, df=None, include_upcoming: bool = False
 
     LAB = {0: "主胜", 1: "平", 2: "客胜"}
     rows, m_rps, l_rps, margins, clvs, beats = [], 0.0, 0.0, [], [], []
+    model_pts, market_pts = [], []             # (概率, 赛果) 对，用于模型 vs 闭盘线 校准对比
+    m_ll = l_ll = 0.0                          # 模型/闭盘 LogLoss 累加（评分卡用）
     n_eval = 0                                 # 已完赛、进入 RPS/CLV 统计的场次数
     for _, o in odds.iterrows():
         oc = _result(played, o["home_team"], o["away_team"], o["date"])
@@ -138,6 +157,9 @@ def evaluate(odds_path: str = ODDS_PATH, df=None, include_upcoming: bool = False
             m_rps += _rps(mp[0], mp[1], mp[2], oc)
             l_rps += _rps(line[0], line[1], line[2], oc)
             margins.append(margin)
+            m_ll += -float(np.log(max(float(mp[oc]), 1e-12)))
+            l_ll += -float(np.log(max(float(line[oc]), 1e-12)))
+            model_pts.append((mp, oc)); market_pts.append((line, oc))
             # 有开盘赔率才算 CLV（闭盘隐含 − 开盘隐含，价值档）。
             # 逐行守卫：赛后回补的场次开盘列为空(NaN) → 无真实开盘，不计入 CLV（仅参与模型 vs 闭盘线对标）。
             row_has_open = has_open and not any(
@@ -169,16 +191,43 @@ def evaluate(odds_path: str = ODDS_PATH, df=None, include_upcoming: bool = False
             clv_block["t_stat"] = round(float(t), 3)
         else:
             clv_block["t_stat"] = None
+        ci_lo, ci_hi = boot_ci(arr)                            # 平均 CLV 的 95% bootstrap CI
+        clv_block["avg_clv_ci"] = ([round(ci_lo, 4), round(ci_hi, 4)]
+                                   if ci_lo is not None else None)
         clv_block["enough_n"] = len(arr) >= MIN_N
-        # 证明信息优势 = 样本足够 且 平均 CLV>0 且 t>1.65（单侧 ~95%）
+        # 证明信息优势 = 样本足够 且 平均 CLV>0 且 t>1.65（单侧 ~95%）且 bootstrap CI 下界>0
         clv_block["proven_edge"] = bool(len(arr) >= MIN_N and avg > 0
-                                        and (clv_block["t_stat"] or 0) > 1.65)
+                                        and (clv_block["t_stat"] or 0) > 1.65
+                                        and ci_lo is not None and ci_lo > 0)
     else:
         clv_block["enough_n"] = False
         clv_block["proven_edge"] = False
     out["clv"] = clv_block
     # 是否允许显示 Kelly/价值：必须 CLV 证明有正边际（否则 edge 只是噪声）
     out["show_value"] = clv_block["proven_edge"]
+    # 模型 vs 闭盘线 校准对比（谁的概率更可信）——复用 market_research 的分箱/ECE。
+    # 懒导入避免循环（market_research 顶部已 import clv；clv 只在运行时反向用它）。
+    out["calibration_compare"] = None
+    if model_pts:
+        try:
+            import market_research as _mr
+            mb, mece, mN = _mr._ece(model_pts)
+            kb, kece, _ = _mr._ece(market_pts)
+            # 评分卡：三种正规评分规则（越低越好）并排 + 逐项胜者
+            sc = {"model": {"rps": round(m_rps / n, 4), "logloss": round(m_ll / n, 4), "ece": mece},
+                  "market": {"rps": round(l_rps / n, 4), "logloss": round(l_ll / n, 4), "ece": kece}}
+            sc["winner"] = {k: ("model" if sc["model"][k] < sc["market"][k]
+                                else ("market" if sc["market"][k] < sc["model"][k] else "tie"))
+                            for k in ("rps", "logloss", "ece")}
+            out["calibration_compare"] = {
+                "n_points": mN,
+                "model": {"ece": mece, "bins": mb, "decomp": _mr._brier_decomp(model_pts)},
+                "market": {"ece": kece, "bins": kb, "decomp": _mr._brier_decomp(market_pts)},
+                "better": "model" if mece < kece else ("market" if kece < mece else "tie"),
+                "scorecard": sc,
+            }
+        except Exception:  # noqa  校准对比失败不影响主对标
+            pass
     return out
 
 

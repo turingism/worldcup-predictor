@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 
 import data as datamod
+import devig
 from backtest import _rps
 from model import DixonColesModel
 
@@ -24,9 +25,8 @@ ODDS_PATH = os.path.join(os.path.dirname(__file__), "data", "odds.csv")
 
 
 def _implied(o1, ox, o2):
-    """十进制赔率 -> 去 margin 的隐含概率 [主胜,平,客胜]。"""
-    inv = np.array([1.0 / o1, 1.0 / ox, 1.0 / o2])
-    return inv / inv.sum()          # 归一即去掉 overround
+    """十进制赔率 -> 去 margin 的隐含概率 [主胜,平,客胜]（Shin 口径，见 devig.py / bt_devig.py）。"""
+    return devig.shin(o1, ox, o2)
 
 
 def _find_result(played, home, away, date, tol_days=2):

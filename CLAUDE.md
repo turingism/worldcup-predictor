@@ -12,7 +12,72 @@
 - **裁决（诚实，落 CLAUDE.md 防后人重做）**：① **不叠进 GLM**——在引擎预测上再乘 0.80~0.90 会**重复扣减强度、过度修正**，且 p=0.16 过不了项目「回测显著才采用」门槛。② 效应**只对 90 分钟结算盘**相关；引擎含加时标的与之方向相反，混进主引擎是错的。③ **90 分钟旁路开关 = 经裁决【不引入】**（2026-06-28 用户明确确认其盘口=**含加时全场盘**，与引擎标的一致、无结构性错配）：含加时标的上保守信号本就不显著（进球差 -0.08、p=0.60），在含加时盘上叠保守乘子只会让 RPS 变差。故不写任何开关。④ 用户提案里小组赛那半套（默契球/互利平/摆烂）淘汰赛确实作废——但那是**情绪叙事层**，本引擎从不建模「谁更想赢」，无需删（引擎里本就没有）。
 - **可继续**：① 2026 淘汰赛打完 → 重跑 `bt_knockout.py`（自动并入新样本）看纯阶段乘子是否随样本变显著；② τ 低分格的纯阶段增量未单测，但 goals 已 p=0.16，τ 残差大概率更弱。（90 分钟旁路开关已裁决不做，见上 ③。）
 
-## 📌 最新接手（2026-06-25 · 7-agent 产品团队评审 → 落地「比赛解读文案层」）
+## 📌 上一次接手（2026-06-27 · 7-agent 三轮评审 → 修手机端看板隐藏「判定」列）
+- **背景**：用户第三次贴同一 7-agent 评审。此前本会话已做：看板对齐、逐行解读、de-vig Shin、整套市场研究层(线移动/分桶/校准/分解/模型vs市场)。对**当前状态**重新诚实过一遍。
+- **逐角色裁决(对当前状态)**：产品「合规买入/体彩导航/出票」=**涉赌红线否决**(本会话已多次拒、含用户「红线可破」仍拒)；算法身价/FIFA/伤停/气候=回测否决或死胡同、走地有 inplay.py；后端 Sportradar/高并发=个人应用无必要——**核查 `app.run` 是否 single-thread：Flask 3.1 `run()` 已 `setdefault("threaded",True)`，本就多线程，本会话那次 timeout 是 Chrome 狂刷+并发训练把单训练请求挤爆+系统负载，非单线程，故不改**(避免基于错误诊断改代码)；前端 WebSocket=收益<成本；文案=narrative 已做+已上看板逐行。
+- **唯一真缺口=手机端看板隐藏了「判定」列**：`.vrow` 的 `@media(max-width:430px)` 原 `nth-child(2),(6){display:none}` 把**阶段+判定**都隐了——判定(命中与否)是该表最核心信息却被砍。**已修**：改隐 `nth-child(2),(5),(7)`(阶段/胜平负%/留痕)、**保留判定(6)**，grid→`42px 1fr auto auto` 四列(日期/对阵/预测·倾向/判定)，`.vverd small{display:none}` 省补充文字。**test_core 61 项全绿**。
+- **headless 验证坑(记一笔)**：Chrome `--headless=new` **innerWidth 有 ~500px 地板**(实测 `--window-size=390` 仍 innerWidth=500、`matchMedia(max-width:430)=false`)，故 ≤430 的手机断点**截不出来**——不是 CSS bug。验证法：用独立 HTML 把断点临时改 520(headless 的 500 能命中)证明 grid+hide 机制正确(实测 row 由 7 列塌成 4 列、阶段隐藏)。真机 ≤430 会生效。`--force-device-scale-factor=2` 还会把 CSS 视口撑到 window×?，测手机别加 DSF。
+- **可继续**：① 即将开赛行手机端也可同理保「倾向」；② 若要真机级手机截图需 CDP `Emulation.setDeviceMetricsOverride`(扩展未连)。
+
+## 📌 上一次接手（2026-06-27 · 看板对齐修复 + 7-agent 二轮评审 → 落地「看板逐行球迷解读」）
+- **用户三连**：① 解释「预测 0-0(平) 却判赛果未中被逼平」——已澄清:**赛果判定用三向概率 argmax(本场客胜 36%)，不是最可能比分(0-0)的方向**，平局边界两者可不一致(平局是 argmax 结构性盲区)。② 修「已结束·逐场对比」表:判定列折行/徽章不对齐 + 对阵→预测比分中间大空位。③ 修「即将开赛」同类问题。④ 7-agent 二轮评审并自动优化。
+- **看板对齐修复（`templates/index.html` 纯前端）**：
+  - 已结束 `.vrow`:`对阵` 列从 `1fr` 改 `minmax(160px,230px)`(封顶、消除大空位)，`判定` 列改 `1fr` 弹性吃富余宽度(不再折行)，加 `.vverd{display:flex;align-items:center;flex-wrap:wrap}` 徽章对齐。`预测比分` 列加 **`倾向 主胜/客胜 NN%`** 小字行(`PICKZH(r)`)直接点明判定方向(对应①的困惑)，表头改「预测比分 · 倾向」。
+  - 即将开赛 `.uprow`:`对阵` 列封顶 `minmax(140px,250px)`，操作列从 72px 改 `1fr` 右对齐(三个按钮 看预测/深度报告/⚡首发 从竖堆三行改为**一行**)，比分/让球 pill 改 `.up-pred` 竖排。清掉被覆盖的废弃 `.uprow`/`.up-act{text-align:right}` 与按钮内联 margin(统一走 flex gap)。
+- **7-agent 二轮评审结论（诚实，多数仍是已做/否决/红线，勿重提）**：与 6-25 评审一致——产品「合规买入/体彩店导航/出票建议」=**涉赌红线否决**；算法身价/FIFA/伤病/气候特征=**回测否决或数据死胡同，不碰 GLM**(`走地`已有 `inplay.py`)；后端 Sportradar/高并发=个人应用无必要(ESPN 免费源+节流缓存+降级已在)；前端 WebSocket=收益<成本；文案 narrative=已做。**唯一真增量缺口=文案层 narrative 上看板逐行**(CLAUDE.md 旧「可继续」项「看板 upcoming 行可挂极简解读，暂未做避免密度」，此次落地)。
+- **落地「看板逐行球迷解读」(只读文案层，零碰引擎/账本)**：
+  - `narrative.match_narrative` 加 `compact=True`(省每行重复尾注，`_clean` 违规词守卫照常逐行跑)；`app.py` `/api/dashboard` upcoming 每行注入 `row["narrative"]`(compact，复用 `handicap_summary`+`_exp_total`)。
+  - 前端 `renderUpcoming` 加 `💬 球迷解读` 折叠开关(`toggleUpNar`，**默认关保持密度**)，`upRow` 加 `.up-nar`(grid-column:1/-1 整宽子行，`#upwrap.upnar-on .up-nar{display:block}`)；开关打开时解读区**顶部统一展示一次** TAIL 免责(compact 不带尾注，合规由此处守)。
+  - **实测**:default 看板干净(解读隐藏)、开关打开逐行 📣 解读整宽显示不破列对齐、payload 解读 compact 无尾注。**test_core 58 项全绿**(+1 `test_narrative_compact_mode`:compact 永不含违规词 + 不带尾注 + 是 full 去尾前缀)。
+- **可继续**：① 解读可加近期状态/伤停一句(需接 availability，仍只读不碰引擎)；② 昵称表可扩；③ 手机窄屏看板目前隐藏「判定」「胜平负%」列，可重排让窄屏也看得到判定。
+
+- **续：de-vig（去抽水）口径升级 proportional→Shin（2026-06-27，「365/皇冠/伟德/威廉数据有何算法启发」之答）**
+  - **问题**：用户问博彩公司赔率在算法上的启发。诚实梳理后多数已做/死胡同/红线（CLV 闭盘金标准/亚盘让球对标=已做且结论"模型打不过市场"；身价/伤停=回测否决；无免费国家队历史赔率源、皇冠/伟德/威廉抓取=Cloudflare+ToS+涉赌红线）。**唯一真增量=de-vig 口径**：原 `clv.py`/`bt_odds.py` 都用 proportional（按比例归一），已知**高估冷门/低估热门**（favorite–longshot bias）。
+  - **`devig.py`（新，纯函数库）**：`proportional`/`odds_ratio`（Cheung 赔率比，解 c）/`shin`（Shin 1992 内幕模型，解 z，闭式纠偏），`implied(o1,ox,o2,method)` 统一入口（返回 (概率,margin) 与旧签名一致）。自测三法均归一、shin/OR 抬高热门概率（1.2/7/15 盘：主 0.799→0.814）。scipy.brentq 解根 + 手写二分兜底。
+  - **`bt_devig.py`（新，回测）**：只评盘口本身（不掺模型），66 场真实闭盘 vs 赛果。**Shin 三项一致最优**：RPS 0.1481(−0.0003)、LogLoss 0.8346(−0.0015)、赋实概 50.5%(+0.5%)；odds_ratio 混合（RPS↓ 但 LogLoss↑→不取）。差异噪声量级，但**Shin 的 z 由本场赔率自解、不在赛果上拟合=结构上不会过拟合**，且是学界纠 FL-bias 标准口径 → 采用。
+  - **接入**：`clv.py` 加 `DEVIG_METHOD="shin"`，`implied` 委托 `devig.implied`；`bt_odds._implied` 改走 `devig.shin`。**仅改"读盘口"，零碰 GLM**（model.py 未动、回测引擎口径不变）。`/api/market` 仍 200。**test_core 59 项全绿**（+1 `test_devig_methods_normalize_and_correct_bias`：三法归一 + shin/OR 抬热门 + clv.implied 签名不变）。
+  - **诚实定位不变**：这是把"外部金标准盘口"读得更准，不是让模型更会赢钱；结论仍是模型打不过市场。**可继续**：① 样本攒多后重跑 bt_devig 看 Shin 优势是否稳；② 让球/亚盘的 de-vig 同理可换 Shin（目前亚盘水位换算另算）；③ 仍无免费国家队历史赔率源扩样本（死胡同未变）。
+
+- **续：市场研究层（2026-06-27 续二，「sharp/soft + 线移动信息检验 + CLV bootstrap CI」）**
+  - **背景/红线**：用户提"涉赌红线可以打破"——**已拒绝并解释**：不做博彩导流/投注建议(出票/体彩店导航/无条件价值注/去免责/去 `_BANNED`/煽动文案/个性化"该买啥")，这是**我方行为边界、与授权无关**(危害外溢第三方)。**信息性分析照常做满**(概率/校准/CLV/de-vig)，**交易/劝导性不做**。用户认可后让我做满信息层的 #2+#3。
+  - **`clv.boot_ci`(新)**：均值百分位 bootstrap CI(固定种子可复现)。CLV 块加 `avg_clv_ci`；`proven_edge` 门槛**收紧**=还需 bootstrap CI 下界>0(更诚实)。实测本届 CLV `avg=-0.0139 CI[-0.0212,-0.007]`(整段<0、t=-3.788)——模型"价值档"CLV **显著为负**(不只"未证明",是确证无边际优势)，proven_edge=false。
+  - **`market_research.py`(新，只读纯分析)**：`line_movement` 开盘→闭盘信息检验——①闭盘 vs 开盘 RPS/LogLoss(diff 带 bootstrap CI)；②`move_toward_actual`=mean(闭盘给实际结果概率−开盘给的)(>0=移动含信息)；③移动方向正确率 + Wilson CI。`_wilson` 内置。**sharp/soft 跨书背离=数据死胡同**(只有单一 ESPN/DraftKings 源，抓皇冠/365=Cloudflare+ToS+红线)，故用**单书内 开盘(软)→闭盘(锐)**作可落地代理，如实标注。
+  - **实测(n=58)**：线移动**含信息**(mean d=+1.7pp CI[0.6,3.0]不含0；方向正确率 65.5% Wilson[52.7,76.4]不含50%)；闭盘更锐利按 LogLoss 显著(CI[-.053,-.0025]<0)、按 RPS 不显著(CI 跨0)——报告**如实分别标注显著/不显著**。
+  - **接入**：`/api/market_research`(只读、不训练、轻量缓存，odds 快照落盘时随 `_MARKET_CACHE` 一起失效)；`市场对标` tab 底部加 `🔬 线移动信息检验` 面板(`renderMarketResearch`，`.mr-row` 网格 + CI/显著性着色)，`loadMarket` 后懒加载。**test_core 61 项全绿**(+2：`test_boot_ci_and_wilson`、`test_market_research_line_movement`)。
+  - **验证注意**：market tab 有 60s 自动刷新 + 首load 训练 as_of 模型(~10-60s)，**headless 截图易卡/不settle**(本轮 Chrome 还一度profile-lock卡死)；验证靠 端点 JSON + pytest + 独立内联 HTML 截图(CLAUDE.md 既有套路)。改 clv/market 后**重启 app**；若 dev server 被长训练请求堵住(单线程)会 timeout，重启即恢复。
+  - **续：线移动分桶 + de-vig 敏感性（2026-06-27 续三，用户「1、2 都推进」）**
+    - `market_research.py` 重构为 `_records`(逐场原子记录)+`_agg`(汇总带 CI/显著性)共用核：`line_movement`(总体)、`segments`(分桶)、`devig_sensitivity`(三口径)。
+    - **分桶发现(真信号,n=58)**：① 强弱档——信息**集中在有明显热门的场**(大热≥60% n=34 ✓ / 中等 50–60% n=12 ✓)，**势均力敌场无信息**(接近<50% n=12，mean+0.0pp CI 跨0)；② 移动幅度——**大幅移动(≥2.5pp,n=29)含强信息**(+3.3pp,72%正确,CI 不含0)，**小幅移动(n=29)纯噪声**(+0.1pp,不显著)。即"移动幅度本身是信号"。
+    - **de-vig 敏感性**：proportional/odds_ratio/shin 三口径结论**几乎一致**(朝实际均+1.7pp、CI 下界均>0、均判含信息)→ 结论**稳健、非 Shin 口径假象**。
+    - **stage 分桶**:淘汰赛尚未开打,group/knockout 现退化为单桶,**暂不做**(已在 docstring/note 标注待样本)。
+    - 接入:`/api/market_research`(build 已含 segments/devig_sensitivity,无需改 app.py);前端 `renderMarketResearch` 加 `segBlock`(强弱/移动两组小表)+`sensBlock`(三口径表),`.mrseg` 网格。**test_core 61 项**(扩 `test_market_research_line_movement`:分桶 3+2 桶、子桶 n 之和=总、三口径同样本量)。
+    - 验证:端点 JSON + pytest 全绿;Chrome headless 本轮一直卡死(profile-lock/不settle),UI 截图跳过,render 为已验证面板的简单扩展、JSON 已逐字核对。
+  - **续：分桶加 RPS/LogLoss 维度 + 闭盘线校准（2026-06-27 续四，用户「继续」）**
+    - **分桶加锐利度维度**：`_agg` 本就含 `logloss_diff`/`closing_sharper`，前端 `segBlock` 每桶现同时显示「移动含信息？」+「闭盘更锐利？(LogLossΔ)」两信号。发现两信号**不完全重叠**(移动信息在 大热/中等/大幅移动；闭盘 LogLoss 更锐利仅 中等 50-60% 显著)——如实呈现。
+    - **闭盘线校准(新,on-theme)**：`calibration()`——把每场 3 个结果的(预测概率,是否发生)摊平分箱(reliability)+ ECE + Wilson CI。**实测 ECE=2.54%**(闭盘线作为概率源**校准良好**,各档预测均≈实际频率,全落 CI 内)。**各 de-vig 口径 ECE：proportional 3.17% > odds_ratio 2.58% > shin 2.54%**——**独立印证 Shin 读盘最准**(与 bt_devig 的 RPS/LogLoss 之外又一证据)。`_closing_points` 只需闭盘(样本比线移动多:198 预测点=66 场×3)。
+    - 接入:`/api/market_research` 自动带 `calibration`;前端 `calibBlock`(reliability 分箱表 + ECE + 口径对比)。CLI `main` 同步打印。**test_core 61 项**(扩测:ECE 合法/分箱 n 之和=预测点/三口径 ECE/每箱实际频率落 Wilson CI)。
+  - **续：模型 vs 闭盘线 校准对比（2026-06-27 续五，用户「继续继续」）**
+    - **需求**：把模型自身校准曲线与闭盘线并排比，看谁的概率更可信。需训练模型 → 放 `/api/market`(clv.evaluate 本就训 as_of 模型)那侧。
+    - **实现**：`clv.evaluate` 收集 `model_pts`/`market_pts`(概率,赛果)，**懒导入** `market_research._ece`(避免循环：mr 顶部 import clv，clv 只运行时反向用 mr) 算两边 reliability+ECE，写 `out["calibration_compare"]={n_points, model{ece,bins}, market{ece,bins}, better}`。前端 `renderMarket` 加 `calCmpHTML`(两边 ECE + 各自分箱 + verdict)。
+    - **实测(66 场样本外、198 预测点)**：**闭盘线 ECE 2.54% < 模型 ECE 3.99% → 市场更校准**。诚实印证"市场是金标准"主线。**关键诚实点(已在 UI 注明)**：模型校准好≠能赢钱(赢钱看 CLV，本届为负)；"校准好但无市场边际"二者不矛盾。注意 CLAUDE.md 旧载"模型训练集 ECE~1%"是**全量训练集**口径，这里是**小样本样本外**，不可直接比。
+    - **test_core 61 项全绿**(校准对比走 evaluate 训练路径，未加慢测；`_ece` 已被 calibration 测试覆盖)。验证靠 `/api/market?fresh=1` 端点 JSON(模型 ECE 0.0399 / 闭盘 0.0254 / better=market)。
+  - **市场研究层至此完整**：de-vig 三口径 → 线移动信息检验 → 强弱/幅度分桶(移动信息+闭盘锐利双信号) → 闭盘线校准+口径 ECE → 模型 vs 闭盘线 校准对比。**全部可证伪、带 CI、诚实结论一致**(市场高效校准、模型无边际、Shin 读盘最准)。
+  - **续：评分卡 + SVG reliability 图（2026-06-27 续六，用户「继续~加油」）**
+    - **评分卡**：`clv.evaluate` 补 LogLoss 累加，`calibration_compare.scorecard` 出**三种正规评分规则(RPS/LogLoss/ECE，越低越好)模型 vs 闭盘线并排 + 逐项胜者**。实测(66 场)：模型 RPS .1584/LL .8688/ECE 3.99% vs 闭盘 .1481/.8346/2.54%——**市场三项全胜**(by 任何正规评分规则市场都更准，最稳健的诚实结论)。
+    - **SVG reliability 图**：前端 `reliabilitySVG(modelBins,marketBins)` 画 x=预测概率/y=实际频率 + 对角线(完美校准)+ 模型(绿)/闭盘线(蓝)两条折线带点；`scoreCard` 评分卡表；`.cal-wrap` 左图右文字分箱。
+    - **接入**：纯前端 `calCmpHTML` 扩展(数据来自 `/api/market` 的 calibration_compare)。**test_core 61 项全绿**(scorecard 走 evaluate 训练路径未加慢测；端点 JSON 验证三项 winner=market)。
+    - **UI 截图成功(终于)**：headless 直开 market tab 仍卡(60s 刷新)，但**独立内联 HTML**(Python 生成、verbatim 抠 `scoreCard`/`reliabilitySVG` 函数 + 真实 cc 数据)截图正常——`/tmp/cal.html` 套路：fresh user-data-dir + `--disable-gpu` + poll 文件 + kill。reliability 两曲线贴对角线、市场略紧，评分卡市场列绿✓。**此法可复用于其它卡死的 market 类 UI 验证。**
+  - **市场研究层完整收尾**：de-vig 三口径 → 线移动信息检验 → 强弱/幅度分桶(双信号) → 闭盘线校准+口径 ECE → 模型 vs 闭盘线 校准对比(评分卡 RPS/LogLoss/ECE + SVG reliability 图)。全部可证伪带 CI，诚实结论彼此印证：**市场高效校准、模型样本外被市场三项全胜、模型无下注边际(CLV 负)、Shin 读盘最准**。
+  - **续：校准-锐度分解 + stage 分桶 + 自动判语（2026-06-27 续七，用户「自主推进循环到完成」）**
+    - **Brier/Murphy 分解**(`market_research._brier_decomp`)：Brier = reliability − resolution + uncertainty。闭盘/模型各算;`clv.calibration_compare.{model,market}.decomp` 并排。**实测**:模型 reliability=0.0031/resolution=0.0499 vs 闭盘 0.0012/0.0576——**市场两维全胜**(校准更好 + 分辨力更高),且差距主要在 **resolution**(模型不是没校准,是"不够敢给极端概率"且给对)。uncertainty=0.2222 两边相同。`_flatten` 抽出展平逻辑供 `_ece`/`_brier_decomp` 共用。
+    - **stage 分桶**(`_stage`,`<2026-06-28`=小组赛)：`segments.by_stage`，淘汰赛 n=0 现退化为单桶、**开打后自动填充**;前端第三个 segBlock。
+    - **自动判语**(`_summary`)：从真实数字拼一句研究判语(线移动含信息/闭盘更锐利/ECE/最佳 de-vig)，**非硬编码、随数据更新**;前端 `.mr-summary` 绿框置顶 + clv 不变。
+    - **接入**：market_research CLI + `/api/market_research`(summary/by_stage/decomp 全自动带)+ `/api/market`(calibration_compare 加 decomp);前端 `decompHTML` 分解表、summary banner、stage segBlock。**test_core 61 项全绿**(扩测:by_stage 3 桶和=总、Brier 分解非负且恒等、summary 结构)。**UI 截图成功**(/tmp/cal2.html 标准内联法:分解表市场列绿✓、reliability 双曲线贴对角线)。
+  - **🏁 市场研究层至此「完成」（自主判定收尾,非偷懒）**：de-vig(prop/OR/Shin)→ 线移动信息检验(+CI)→ 三分桶(强弱/幅度/阶段,移动信息+闭盘锐利双信号)→ 闭盘线校准(ECE+各口径对比)→ 模型vs闭盘 评分卡(RPS/LogLoss/ECE 市场三项全胜)+SVG reliability+Brier 分解(市场两维全胜)→ 自动判语。**全部可证伪、带 CI、有图、结论彼此印证**:市场高效校准、模型样本外被市场全面压制但自身校准也不错、无下注边际(CLV 负)、Shin 读盘最准。**再加属于 padding**——继续只剩真数据门槛项(下方)。全程信息性、零下注链路。
+  - **可继续(仅在真数据到位后,均信息性、不碰下注)**：① 淘汰赛开打 → by_stage 自动有料,可回看;② 真多书盘口 → sharp/soft 跨书背离(无免费源,死胡同未解);③ odds.csv 样本随赛事增长 → 各 bt_*/校准结论稳定性复核。
+  - **环境注意**：本几轮 Chrome headless 持续卡死(profile-lock/market tab 60s 刷新不 settle)，市场类 UI 截图改靠 端点 JSON + 独立内联 HTML 验证；改 clv/market_research 后**重启 app**，dev server 被长训练请求堵会 timeout，重启即恢复。
+
+## 📌 上一次接手（2026-06-25 · 7-agent 产品团队评审 → 落地「比赛解读文案层」）
 - **需求**：用户给 7 个角色（产品/算法/设计/文案/后端/前端/QA）的职责，要团队评审 skill 现状并自动完成优化。
 - **团队评审结论（诚实）**：多数提案 = **已做/死胡同/不合规**——① 算法侧身价/FIFA排名/Elo/分级/负二项/气候 CLAUDE.md 全记录回测否决或数据死胡同（**不准再碰 GLM**），走地秒级 `inplay.py` 已有；② 后端 ESPN 免费源+节流缓存+降级已在，个人应用无海量并发，不引 Sportradar 付费；③ 前端括号抗低端机已做，WebSocket 对个人应用收益<成本；④ **产品的「合规买入/体彩店导航/出票建议」被否决**——本项目个人/教育定位、全站「非投注建议」，加导购=踩 `严禁涉赌` 红线。**唯一真缺口=合规的「比赛解读文案层」**（文案主导+产品/设计/QA 支撑）。
 - **落地 `narrative.py`（纯函数只读层，零碰引擎）**：`match_narrative(home_disp,away_disp,p_home/draw/away,handicap,exp_total)` 把概率翻成球迷语言——`NICK` 球队昵称（桑巴军团/高卢雄鸡/非洲雄狮…）、`_level` 大热/占优/势均/爆冷叙事、接**动态竞彩让球线**（让N/平手倾向）、进球氛围；**合规三铁律**：① `_BANNED` 违规词守卫（稳赚/必中/包赢/推荐下注…，`_clean` 违反即抛；注意不收"投注建议"——是尾注"非投注建议"的子串会误伤）② 每条带「📌 仅为模型概率推演，非投注建议，理性观赛、量力而行」尾注 ③ 只陈述概率事实、不导购彩票。

@@ -36,6 +36,7 @@ import manager as managermod
 import narrative as narrativemod
 import lineups as lineupsmod
 import market
+import market_research
 import schedule
 import teams_zh
 import verify as verifymod
@@ -230,6 +231,7 @@ def _regen_odds_worker():
         _ODDS_JOB["updated"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         _ODDS_JOB["last"] = time.time()   # 节流窗口从"成功完成"起算（与 champ_ci 同口径）
         _MARKET_CACHE.clear()      # 新快照落盘后失效市场缓存，下次 /api/market 用新盘口重建
+        _MR_CACHE.clear()          # 市场研究（线移动）缓存同步失效
         print(f"[odds] 后台快照完成 {_ODDS_JOB['updated']}：{(r.stdout or '').strip().splitlines()[:1]}")
     except Exception as e:  # noqa
         print(f"[odds] 后台快照失败：{e}")
@@ -321,6 +323,23 @@ def api_market():
         _MARKET_CACHE.clear()
         _MARKET_CACHE.update(r)
     return jsonify(_MARKET_CACHE)
+
+
+_MR_CACHE: dict = {}
+
+
+@app.route("/api/market_research")
+def api_market_research():
+    """市场研究（只读、纯分析）：开盘→闭盘线移动信息检验（闭盘是否更锐利 + 移动是否含信息，
+    带 bootstrap/Wilson CI）。不训练模型、不碰 GLM、不涉下注。轻量缓存。"""
+    if request.args.get("fresh") or not _MR_CACHE:
+        try:
+            r = market_research.build(df=DF)
+        except Exception as e:  # noqa
+            return jsonify({"line_movement": {"n": 0}, "error": f"市场研究计算失败：{e}"}), 500
+        _MR_CACHE.clear()
+        _MR_CACHE.update(r)
+    return jsonify(_MR_CACHE)
 
 
 @app.route("/api/teams")
@@ -1086,6 +1105,14 @@ def api_dashboard():
                     teams_zh.disp(e["home"]), teams_zh.disp(e["away"]))
             except Exception:  # noqa  让球摘要失败不影响看板
                 pass
+        # 球迷解读（文案层，只读、合规；compact 省尾注，前端解读区统一展示一次免责）
+        try:
+            row["narrative"] = narrativemod.match_narrative(
+                row["home"], row["away"], e["p_home"], e["p_draw"], e["p_away"],
+                row.get("handicap"),
+                _exp_total(e["matrix"]) if e.get("matrix") else None, compact=True)
+        except Exception:  # noqa  解读失败不影响看板
+            row["narrative"] = None
         upcoming.append(row)
     upcoming.sort(key=lambda x: (x["kickoff"] or "9999-99-99 99:99"))
 

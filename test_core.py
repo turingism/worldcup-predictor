@@ -686,6 +686,97 @@ def test_narrative_compliance_no_banned_words(model):
         assert "非投注建议" in s and "理性观赛" in s          # 合规尾注必带
 
 
+def test_narrative_compact_mode(model):
+    """看板逐行解读用 compact 模式：仍**永不**含违规词，但省去每行重复的尾注
+    （免责由解读区统一展示一次）。守住红线 + 不冗余。"""
+    import narrative, manager, teams_zh
+    for h, a in [("Brazil", "Haiti"), ("Germany", "Ecuador"), ("Argentina", "France")]:
+        r = model.predict(h, a, neutral=True)
+        _, _, _, _, M2 = model.score_matrix(h, a, neutral=True)
+        csl = manager.csl_handicap(manager._margin_pmf(M2), r["p_home"] >= r["p_away"])
+        hc = {"csl_is_handicap": csl["is_handicap"], "csl_line": csl["line"], "jc_verdict": csl["verdict"]}
+        M = r["matrix"]
+        tot = float(sum((i + j) * M[i, j] for i in range(M.shape[0]) for j in range(M.shape[1])))
+        full = narrative.match_narrative(teams_zh.disp(h), teams_zh.disp(a),
+                                         r["p_home"], r["p_draw"], r["p_away"], hc, tot)
+        comp = narrative.match_narrative(teams_zh.disp(h), teams_zh.disp(a),
+                                         r["p_home"], r["p_draw"], r["p_away"], hc, tot, compact=True)
+        for w in narrative._BANNED:
+            assert w not in comp, f"{h} vs {a} compact 解读含违规词 {w}：{comp}"
+        assert narrative.TAIL not in comp           # compact 不带尾注（统一展示一次）
+        assert narrative.TAIL in full               # 默认仍带尾注，旧调用方不受影响
+        assert comp and full.startswith(comp)       # compact 是 full 去尾的前缀
+
+
+def test_devig_methods_normalize_and_correct_bias():
+    """de-vig 三法都归一到 1；shin/odds_ratio 相对 proportional 抬高热门概率
+    （纠正 favorite–longshot 偏差）；clv.implied 走配置口径、签名不变。"""
+    import numpy as np
+    import devig, clv
+    for o1, ox, o2 in [(1.50, 4.20, 7.00), (2.30, 3.40, 3.20), (1.20, 7.0, 15.0)]:
+        pp = devig.proportional(o1, ox, o2)
+        po = devig.odds_ratio(o1, ox, o2)
+        ps = devig.shin(o1, ox, o2)
+        for p in (pp, po, ps):
+            assert abs(float(p.sum()) - 1.0) < 1e-6
+        fav = int(np.argmin([o1, ox, o2]))            # 最低赔率=热门
+        assert ps[fav] >= pp[fav] - 1e-9              # shin 不低于 proportional 的热门概率
+        assert po[fav] >= pp[fav] - 1e-9
+    p, margin = clv.implied(2.30, 3.40, 3.20)         # 统一入口签名不变
+    assert abs(float(np.sum(p)) - 1.0) < 1e-6 and margin > 0
+
+
+def test_boot_ci_and_wilson():
+    """bootstrap CI 与 Wilson CI 行为正确（市场研究层的统计基件）。"""
+    import numpy as np
+    import clv, market_research as mr
+    lo, hi = clv.boot_ci(np.full(50, 0.2))        # 常数样本 → CI 收敛到该值
+    assert abs(lo - 0.2) < 1e-6 and abs(hi - 0.2) < 1e-6
+    lo, hi = clv.boot_ci([1.0, 2.0, 3.0, 4.0, 5.0])
+    assert lo <= 3.0 <= hi and lo < hi
+    assert clv.boot_ci([]) == (None, None)
+    wlo, whi = mr._wilson(13, 20)                  # 65%，CI 含点估、在 [0,1]
+    assert 0 <= wlo < 0.65 < whi <= 1
+    assert mr._wilson(0, 0) == (None, None)
+
+
+def test_market_research_line_movement():
+    """线移动信息检验：真实开/闭盘样本能跑出结构正确的报告（CI 为二元区间、比率合法）。"""
+    import market_research as mr
+    r = mr.build()
+    lm = r["line_movement"]
+    assert lm["n"] > 0
+    for k in ("rps_diff_ci", "logloss_diff_ci", "move_toward_actual_ci", "right_dir_ci"):
+        assert isinstance(lm[k], list) and len(lm[k]) == 2 and lm[k][0] <= lm[k][1]
+    assert 0.0 <= lm["right_dir_rate"] <= 1.0
+    assert isinstance(lm["closing_sharper"], bool) and isinstance(lm["movement_informative"], bool)
+    # 分桶：强弱档 3 桶 + 移动幅度 2 桶 + 阶段 2 桶，各自子桶样本数之和 = 总数（不重不漏）
+    seg = r["segments"]
+    assert len(seg["by_strength"]) == 3 and len(seg["by_move"]) == 2 and len(seg["by_stage"]) == 2
+    assert sum(s["n"] for s in seg["by_strength"]) == lm["n"]
+    assert sum(s["n"] for s in seg["by_move"]) == lm["n"]
+    assert sum(s["n"] for s in seg["by_stage"]) == lm["n"]   # 小组赛+淘汰赛=全部
+    # 校准 Brier 分解：reliability/resolution/uncertainty 均非负，且 ≈ Brier 恒等
+    dc = r["calibration"]["decomp"]
+    for k in ("brier", "reliability", "resolution", "uncertainty"):
+        assert dc[k] is not None and dc[k] >= -1e-9
+    assert abs(dc["brier"] - (dc["reliability"] - dc["resolution"] + dc["uncertainty"])) < 0.01
+    # 自动判语
+    assert r["summary"]["text"] and isinstance(r["summary"]["flags"], dict)
+    # de-vig 敏感性：三口径都跑出同样本量的结论（口径不改样本，只改概率还原）
+    sens = r["devig_sensitivity"]
+    assert {a["method"] for a in sens} == {"proportional", "odds_ratio", "shin"}
+    assert all(a["n"] == lm["n"] for a in sens)
+    # 校准：ECE 合法、分箱样本数之和=预测点数(3×闭盘场次)、三口径都给出 ECE
+    cal = r["calibration"]
+    assert 0.0 <= cal["ece"] <= 1.0 and cal["n_points"] > 0
+    assert sum(b.get("n", 0) for b in cal["bins"]) == cal["n_points"]
+    assert set(cal["ece_by_method"]) == {"proportional", "odds_ratio", "shin"}
+    for b in cal["bins"]:                              # 每个非空箱 实际频率 CI 合法
+        if b.get("n"):
+            assert b["obs_ci"][0] <= b["obs"] <= b["obs_ci"][1] + 1e-9
+
+
 def test_narrative_clean_guard_raises():
     """守卫函数 _clean 对含违规词的串必抛（防未来改文案漏词）。"""
     import narrative
