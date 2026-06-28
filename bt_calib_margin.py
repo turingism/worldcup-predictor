@@ -67,6 +67,7 @@ def _margin_metrics(recs, hs_key, as_key, label):
     zs = []                          # 标准化残差
     p_draw_pred = a_draw = 0.0
     p_tail_pred = a_tail = 0.0       # |d|>=3
+    sq_resid = model_var = 0.0       # Σ(实际−E)² / ΣVar_model → 离散比（>1=欠离散）
     for r in recs:
         mp = manager._margin_pmf(r["M"])
         for d in ds:
@@ -80,9 +81,11 @@ def _margin_metrics(recs, hs_key, as_key, label):
         # correct-score LL（截断到矩阵范围）
         i, j = min(hs, MAX_GOALS), min(as_, MAX_GOALS)
         cs_ll += -np.log(max(float(r["M"][i, j]), 1e-12))
-        # 标准化残差
+        # 标准化残差 + 离散比累加
         em = sum(k * p for k, p in mp.items())
         ev = sum((k - em) ** 2 * p for k, p in mp.items())
+        sq_resid += (d_act - em) ** 2
+        model_var += ev
         if ev > 1e-9:
             zs.append((d_act - em) / np.sqrt(ev))
         # 平局格 / 尾部
@@ -94,6 +97,9 @@ def _margin_metrics(recs, hs_key, as_key, label):
         "label": label, "n": n,
         "cs_logloss": cs_ll / n,
         "z_mean": float(zs.mean()), "z_var": float(zs.var()),
+        # 离散比 = 实际净胜球方差 / 模型隐含方差（>1=模型方差给太小=欠离散，多严重看超出 1 多少）
+        "dispersion_ratio": float(sq_resid / model_var) if model_var > 1e-9 else None,
+        "mean_model_sd": float(np.sqrt(model_var / n)),
         "draw_pred": p_draw_pred / n, "draw_act": a_draw / n,
         "tail_pred": p_tail_pred / n, "tail_act": a_tail / n,
         "margin_pred": pred, "margin_act": act,
@@ -167,27 +173,47 @@ def _fmt_margin(mm):
     return "\n".join([line, pr + "  (%)", ac + "  (%)", df + "  (pp)"])
 
 
+def _reliability_chart(mm):
+    """ASCII reliability 病灶图：每档净胜球 预测(模型)█ vs 实际▒ 双条 + 偏差标注。"""
+    rows = ["    净胜球档   模型预测% │实际%   偏差地图（█模型 ▒实际，每格≈1%）"]
+    for d in range(-5, 6):
+        pp = mm["margin_pred"][d] * 100
+        ap = mm["margin_act"][d] * 100
+        diff = pp - ap
+        bar_p = "█" * int(round(pp))
+        bar_a = "▒" * int(round(ap))
+        tag = ""
+        if abs(diff) >= 1.5:
+            tag = " ◀ 高估" if diff > 0 else " ◀ 低估"
+        lab = "平局" if d == 0 else (f"主+{d}" if d > 0 else f"客+{-d}")
+        rows.append(f"    d={d:>+2}({lab:<4}) {pp:>5.1f}│{ap:>4.1f}  {bar_p}")
+        rows.append(f"                          {bar_a}{tag}")
+    return "\n".join(rows)
+
+
 def main():
     print("收集 as-of 预测（2014/2018/2022/2026G 世界杯正赛，half_life=730）…")
     recs = collect()
     print(f"样本：{len(recs)} 场。分布：" +
           ", ".join(f"{t}={sum(1 for r in recs if r['tag']==t)}" for t in ("2014","2018","2022","2026G")))
 
-    print("\n" + "=" * 64 + "\n【含加时口径】（results.csv，主口径=我们买的盘）\n" + "=" * 64)
+    print("\n" + "=" * 64 + "\n【净胜球欠离散 · 病灶地图】（含加时口径=我们买的盘）\n" + "=" * 64)
     inc = _margin_metrics(recs, "hs", "as", "含加时")
-    print(f"  correct-score LogLoss = {inc['cs_logloss']:.4f}")
-    print(f"  标准化残差 z: mean={inc['z_mean']:+.3f}  var={inc['z_var']:.3f}  "
-          f"({'欠离散/过度自信' if inc['z_var']>1.1 else ('过离散' if inc['z_var']<0.9 else '离散合理')})")
-    print(f"  平局格(d=0): 预测 {inc['draw_pred']*100:.1f}% vs 实际 {inc['draw_act']*100:.1f}%  "
-          f"({(inc['draw_pred']-inc['draw_act'])*100:+.1f}pp)")
-    print(f"  大比分尾部(|d|>=3): 预测 {inc['tail_pred']*100:.1f}% vs 实际 {inc['tail_act']*100:.1f}%  "
-          f"({(inc['tail_pred']-inc['tail_act'])*100:+.1f}pp)")
-    print("  净胜球分布校准（主-客）:")
-    print(_fmt_margin(inc))
-    # 偏得最狠的档
-    worst = max(range(-6, 7), key=lambda d: abs(inc['margin_pred'][d]-inc['margin_act'][d]))
-    print(f"  → 偏差最大档 d={worst}: 预测 {inc['margin_pred'][worst]*100:.1f}% vs 实际 "
-          f"{inc['margin_act'][worst]*100:.1f}% ({(inc['margin_pred'][worst]-inc['margin_act'][worst])*100:+.1f}pp)")
+    R = inc["dispersion_ratio"]
+    print(f"  ① 离散比 = 实际净胜球方差 / 模型隐含方差 = {R:.3f}"
+          f"（>1=欠离散；模型方差偏小 {(R-1)*100:+.1f}%，实际比模型预测的更分散）")
+    print(f"     标准化残差 z: mean={inc['z_mean']:+.3f} var={inc['z_var']:.3f}（同指标，var(z)≈离散比）；"
+          f"模型平均隐含 SD={inc['mean_model_sd']:.2f} 球")
+    print(f"  ② 最狠区间：")
+    print(f"     · 平局格 d=0：预测 {inc['draw_pred']*100:.1f}% vs 实际 {inc['draw_act']*100:.1f}%"
+          f"（{(inc['draw_pred']-inc['draw_act'])*100:+.1f}pp，模型把概率往平局堆）")
+    print(f"     · 大比分尾 |d|≥3：预测 {inc['tail_pred']*100:.1f}% vs 实际 {inc['tail_act']*100:.1f}%"
+          f"（{(inc['tail_pred']-inc['tail_act'])*100:+.1f}pp，尾巴太瘦）")
+    worst = max(range(-6, 7), key=lambda d: abs(inc['margin_pred'][d] - inc['margin_act'][d]))
+    print(f"     · 单档偏差最大：d={worst}（{(inc['margin_pred'][worst]-inc['margin_act'][worst])*100:+.1f}pp）")
+    print(f"  ③ correct-score LogLoss = {inc['cs_logloss']:.4f}（比分级基线）")
+    print(f"  ④ reliability 病灶图：")
+    print(_reliability_chart(inc))
 
     print("\n  让球 RPS（按档位，站模型判定的强队角度）:")
     print(f"    {'让球线':>7}{'RPS↓':>9}{'模型cover':>11}{'实际cover':>11}{'校准差':>9}")
