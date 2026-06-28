@@ -122,22 +122,9 @@ def bucket_decision(resid):
             "ci_excludes_0": ci_excl0, "unlocked": bool(nb >= GATE_MIN_N and ci_excl0)}
 
 
-def b_gate(odds=None, df=None, method="shin", include_handicap=False):
-    """B/D 转正闸门：逐概率桶样本数 + FLB 偏差 + CI + 是否解锁。
-    include_handicap=True 时把让球闭盘 cover 隐含概率点并入（看让球样本能否帮某些桶达 n≥30）。
-    返回 {buckets:[...], any_unlocked, unlocked_buckets, n_points, n_1x2, n_handicap}。"""
-    if odds is None:
-        odds = pd.read_csv(mr.ODDS_PATH); odds["date"] = pd.to_datetime(odds["date"])
-    if df is None:
-        df = datamod.load_raw()
-    played = datamod.played(df)
-    preds, hits = _flb_points(odds, played, method)
-    n_1x2 = int(len(preds)); n_handi = 0
-    if include_handicap:
-        hp, hh, _, _ = _handicap_flb_points(played, method)
-        n_handi = int(len(hp))
-        preds = np.concatenate([preds, hp]) if n_handi else preds
-        hits = np.concatenate([hits, hh]) if n_handi else hits
+def _bucketize(preds, hits, market):
+    """把一组同质 (隐含概率, 是否发生) 点按 FLB_EDGES 建桶并逐桶判解锁。"""
+    preds, hits = np.asarray(preds, float), np.asarray(hits, float)
     resid = hits - preds                      # FLB：>0=该档实际兑现高于隐含（冷门被低估）
     buckets, unlocked = [], []
     for lo, hi in zip(FLB_EDGES[:-1], FLB_EDGES[1:]):
@@ -146,9 +133,27 @@ def b_gate(odds=None, df=None, method="shin", include_handicap=False):
         buckets.append(b)
         if b["unlocked"]:
             unlocked.append(b)
-    return {"buckets": buckets, "any_unlocked": bool(unlocked),
-            "unlocked_buckets": unlocked, "n_points": int(len(preds)),
-            "n_1x2": n_1x2, "n_handicap": n_handi, "min_n": GATE_MIN_N}
+    return {"market": market, "buckets": buckets, "any_unlocked": bool(unlocked),
+            "unlocked_buckets": unlocked, "n_points": int(len(preds)), "min_n": GATE_MIN_N}
+
+
+def b_gate(odds=None, df=None, method="shin"):
+    """B/D 转正闸门——**按盘种分开建桶**（1X2 与让球 cover 各一套，独立判 n≥30+CI不跨0）。
+    理由：1X2=「谁赢」、cover=「赢几个」，公众偏差(FLB/大热必死)结构不同，混桶会把异质信号
+    平均成假象（数量涨、纯度降）。同质桶才有意义；慢而对 > 快而混。
+    返回 {by_market: {"1x2": {...}, "handicap": {...}}, any_unlocked}。"""
+    if odds is None:
+        odds = pd.read_csv(mr.ODDS_PATH); odds["date"] = pd.to_datetime(odds["date"])
+    if df is None:
+        df = datamod.load_raw()
+    played = datamod.played(df)
+    p1, h1 = _flb_points(odds, played, method)
+    hp, hh, _, _ = _handicap_flb_points(played, method)
+    by = {"1x2": _bucketize(p1, h1, "1x2"),
+          "handicap": _bucketize(hp, hh, "handicap")}
+    return {"by_market": by,
+            "any_unlocked": any(v["any_unlocked"] for v in by.values()),
+            "min_n": GATE_MIN_N}
 
 
 def validate_ac(df=None):
@@ -192,25 +197,24 @@ def main():
           + " · ".join(f"{k}={v['ece']}" for k, v in he.items())
           + f"  → {'shin 最准' if he['shin']['ece'] is not None and he['shin']['ece'] <= min(x['ece'] for x in he.values() if x['ece'] is not None) else '见上'}")
 
-    print("\n" + "=" * 60 + "\n【B/D 转正闸门 · 各概率桶样本清单（1X2 vs +让球）】\n" + "=" * 60)
-    g0 = b_gate(df=df)
-    g1 = b_gate(df=df, include_handicap=True)
-    by_lo = {b["lo"]: b for b in g0["buckets"]}
-    print(f"  1X2 点={g1['n_1x2']}，+让球 cover 点={g1['n_handicap']} → 合计 {g1['n_points']}；"
-          f"解锁门槛：每桶 n≥{g1['min_n']} 且 FLB CI 不跨 0")
-    print(f"    {'隐含概率桶':>14}{'n(1X2)':>8}{'n(+让球)':>10}{'Δ让球':>8}{'达n≥30?':>10}{'FLB+让球':>12}{'解锁?':>7}")
-    for b in g1["buckets"]:
-        lab = f"[{b['lo']:.0%},{b['hi']:.0%})"
-        n0 = by_lo.get(b["lo"], {}).get("n", 0)
-        reach = "✅达标" if b["n"] >= g1["min_n"] else f"差{g1['min_n']-b['n']}"
-        flb = f"{b['flb']:+.4f}" if b["flb"] is not None else "—"
-        unlocked = "✅" if b["unlocked"] else "否"
-        print(f"    {lab:>14}{n0:>8}{b['n']:>10}{b['n']-n0:>+8}{reach:>10}{flb:>12}{unlocked:>7}")
-    print(f"\n  → B/D 解锁状态：{'有桶已解锁' if g1['any_unlocked'] else '全部锁定（样本仍不足，B/D 不渲染）'}")
-    reached = [f"[{b['lo']:.0%},{b['hi']:.0%})" for b in g1["buckets"] if b["n"] >= g1["min_n"]]
-    print(f"  加让球后达 n≥{g1['min_n']} 的桶：{reached or '（仍无）'}"
-          f"（达标只是样本够，解锁仍需 FLB CI 不跨 0）")
-    print("\n  注：A/C 已验、可呈现；B/D 冻结至闸门解锁。零碰 GLM，个人/教育项目非投注建议。")
+    print("\n" + "=" * 60 + "\n【B/D 转正闸门 · 按盘种分开建桶（同质桶才有意义）】\n" + "=" * 60)
+    g = b_gate(df=df)
+    for mk, title in (("1x2", "1X2「谁赢」盘"), ("handicap", "让球 cover「赢几个」盘")):
+        gm = g["by_market"][mk]
+        print(f"\n  ── {title} · {gm['n_points']} 点 · 解锁门槛 n≥{gm['min_n']} 且 FLB CI 不跨 0 ──")
+        print(f"    {'隐含概率桶':>14}{'n':>6}{'FLB(实际−隐含)':>16}{'95%CI':>20}{'达n≥30?':>10}{'解锁?':>7}")
+        for b in gm["buckets"]:
+            lab = f"[{b['lo']:.0%},{b['hi']:.0%})"
+            if b["n"] == 0:
+                print(f"    {lab:>14}{0:>6}{'—':>16}{'—':>20}{'否':>10}{'否':>7}"); continue
+            ci = f"[{b['ci'][0]:+.3f},{b['ci'][1]:+.3f}]" if b["ci"] else "—"
+            reach = "✅" if b["n"] >= gm["min_n"] else f"差{gm['min_n']-b['n']}"
+            print(f"    {lab:>14}{b['n']:>6}{b['flb']:>+16.4f}{ci:>20}{reach:>10}"
+                  f"{('✅' if b['unlocked'] else '否'):>7}")
+        print(f"    → {title} 解锁：{'有桶解锁' if gm['any_unlocked'] else '全锁'}")
+    print(f"\n  → B/D 总状态：{'有桶已解锁' if g['any_unlocked'] else '全部锁定（B/D 不渲染）'}")
+    print("  注：1X2 与让球 cover 各自独立判（不混桶——盘种不同，公众偏差结构不同）。")
+    print("  A/C 已验、可呈现；B/D 冻结至闸门解锁。零碰 GLM，个人/教育项目非投注建议。")
 
 
 if __name__ == "__main__":

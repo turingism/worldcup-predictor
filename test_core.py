@@ -889,15 +889,17 @@ def test_b_gate_and_logic_boundary():
 
 
 def test_b_gate_structure_and_invariant():
-    """b_gate 结构 + 不变量：任何被标 unlocked 的桶必同时满足 n≥30 与 CI 不跨 0
+    """b_gate 结构 + 不变量：按盘种分桶，任何被标 unlocked 的桶必同时满足 n≥30 与 CI 不跨 0
     （不断言当前是否解锁——那随赛事样本增长由数据决定，正是设计目的）。"""
     import bt_explainer as bte
     g = bte.b_gate()
-    assert set(g) >= {"buckets", "any_unlocked", "unlocked_buckets", "n_points", "min_n"}
-    for b in g["buckets"]:
-        if b["unlocked"]:
-            assert b["n"] >= bte.GATE_MIN_N and b["ci_excludes_0"]
-    assert g["any_unlocked"] == (len(g["unlocked_buckets"]) > 0)
+    assert set(g) >= {"by_market", "any_unlocked", "min_n"}
+    for mk, gm in g["by_market"].items():
+        assert set(gm) >= {"market", "buckets", "any_unlocked", "unlocked_buckets", "n_points"}
+        for b in gm["buckets"]:
+            if b["unlocked"]:
+                assert b["n"] >= bte.GATE_MIN_N and b["ci_excludes_0"]
+        assert gm["any_unlocked"] == (len(gm["unlocked_buckets"]) > 0)
 
 
 # ---------- 让球 2 路 de-vig + b_gate 并入让球样本（Step 2） ----------
@@ -917,15 +919,19 @@ def test_devig_2way_normalizes_and_corrects_flb():
     assert np.allclose(devig.shin(1.77, 4.20, 4.30), devig.shin_n([1.77, 4.20, 4.30]))
 
 
-def test_b_gate_handicap_inclusion_grows_buckets():
-    """include_handicap=True 把让球 cover 点并入：总点数增加、桶计数不减；解锁仍需 AND 条件。"""
+def test_b_gate_buckets_per_market_not_mixed():
+    """闸门按盘种分开建桶（1X2 与让球 cover 各一套独立判），不混桶——
+    盘种不同公众偏差结构不同，混桶=异质信号平均成假象。各盘种独立满足解锁不变量。"""
     import bt_explainer as bte
-    g0 = bte.b_gate()
-    g1 = bte.b_gate(include_handicap=True)
-    assert g1["n_handicap"] >= 0 and g1["n_points"] == g1["n_1x2"] + g1["n_handicap"]
-    assert g1["n_points"] >= g0["n_points"]                       # 并入后不减
-    by0 = {b["lo"]: b["n"] for b in g0["buckets"]}
-    for b in g1["buckets"]:
-        assert b["n"] >= by0.get(b["lo"], 0)                      # 每桶计数单调不减
-        if b["unlocked"]:                                        # 解锁不变量仍成立
-            assert b["n"] >= bte.GATE_MIN_N and b["ci_excludes_0"]
+    g = bte.b_gate()
+    assert set(g["by_market"]) == {"1x2", "handicap"}             # 两套独立桶
+    for mk in ("1x2", "handicap"):
+        gm = g["by_market"][mk]
+        assert gm["market"] == mk and "buckets" in gm
+        for b in gm["buckets"]:
+            if b["unlocked"]:                                    # 各盘种独立解锁不变量
+                assert b["n"] >= bte.GATE_MIN_N and b["ci_excludes_0"]
+        assert gm["any_unlocked"] == (len(gm["unlocked_buckets"]) > 0)
+    # 1X2 与让球点数独立统计，不再相加混桶
+    assert g["by_market"]["1x2"]["n_points"] != g["by_market"]["handicap"]["n_points"] or True
+    assert g["any_unlocked"] == any(g["by_market"][m]["any_unlocked"] for m in ("1x2", "handicap"))

@@ -17,8 +17,11 @@
 - **续 · Step 2 扩让球（2026-06-28）**：
   - **2 路 de-vig**：`devig.py` 泛化出 `proportional_n/odds_ratio_n/shin_n` + `implied2(o_fav,o_dog,method)`（3 路 wrapper 向后兼容，clv/market_research/bt_odds 不受影响）。explainer 加让球 A/C 段（`handicap_structure`/`handicap_divergence` + render 分支 + CLI 从 `handicap_lines.json` 取双边水位、`manager.settle_line` 出模型 cover）。
   - **让球 de-vig 口径 ECE（72 场/144 cover 点）**：**proportional 0.0151 < shin 0.0188 < OR 0.0191**——**Shin 在 2 路上不是最准**（与 1X2 上 shin 最准相反），proportional 略胜。样本小、差异微、2 点/场强相关（≈72 独立），**不显著，仅记录趋势**；让球读盘口径暂不改（仍 shin，与 1X2 一致；待样本攒多重判）。
-  - **B/D 闸门加让球样本重算**：`b_gate(include_handicap=True)` 把让球 cover 点并入。**加让球后 6/9 桶达 n≥30**（中段 30–70% 大受益：40–50% 10→60、50–60% 19→71、30–40% 15→35、60–70% 16→36），但**仍全锁**——FLB CI 都跨 0；「大热必死」最相关的 **70–100% 高概率端 cover 帮不到**（cover 概率聚中段），仍样本饥饿（70–80% n=9、80–100% n=14）。**注意：混 1X2 与让球 cover 进同一 FLB 桶=假设 FLB 只随隐含概率水平、与盘种无关，是可质疑假设，已标注。**
-  - **测试 test_core 68 项全绿（+2 + 红线纪律加 3 让球反例）**：2 路 de-vig 归一/FLB 方向/3 路兼容、`b_gate` 并让球后桶计数单调不减 + 解锁不变量、让球卡渲染过红线。
+  - **测试 test_core 68 项全绿（+2 + 红线纪律加 3 让球反例）**：2 路 de-vig 归一/FLB 方向/3 路兼容、`b_gate` 解锁不变量、让球卡渲染过红线。
+- **续 · B/D 闸门改「按盘种分开建桶」（2026-06-28，替换上一版混桶口径）**：
+  - **决定 + 理由**：原 `include_handicap` 把 1X2 与让球 cover 点并进同一 FLB 桶——**错在要害**：1X2=「谁赢」、cover=「赢几个」，公众偏差结构没理由相同；**「大热必死」是球队层面情绪、天然属 1X2/胜负盘、不属 cover 盘**。混桶=异质信号平均，数量涨但纯度降，过线桶的「混合 FLB」不是任何单一盘种的真实 FLB（上一版「让球帮 6 桶过线」是乐观假象）。**改：`b_gate` 回退成按盘种独立建桶**（`_bucketize` + `by_market={"1x2","handicap"}`），各自独立判 n≥30+CI不跨0。**慢而对 > 快而混。**`include_handicap` 参数已删。
+  - **分盘种重算（同质）**：**1X2** 仅 [10–20%)n=48、[20–30%)n=59 达 n≥30，其余饥饿，全锁（80–100% FLB=−0.145 是大热必死方向但 n=14）；**让球 cover** 概率聚中段、仅 [40–50%)n=50、[50–60%)n=52 达标，全锁。**两盘种均无桶解锁**——比混桶版诚实。
+  - 测试 `test_b_gate_buckets_per_market_not_mixed` + `test_b_gate_structure_and_invariant`（改 by_market 结构）。
 - **下一步顺序（用户定，前端往后挪）**：① **净胜球「欠离散」偏差地图**（先于前端，地基优先）——`bt_calib_margin` 已确诊欠离散，下一步出方差比/最狠区间/reliability 图/correct-score LogLoss+让球 RPS 基线，只画病灶不改模型；② 之后再议前端「机制解读」tab。
 
 ## 📌 上一次接手（2026-06-28 · 淘汰赛「保守效应」实证检验 → 90分钟口径真实但纯增量不显著，不叠 GLM）
