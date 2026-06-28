@@ -28,7 +28,13 @@ def test_load_raw_columns():
     assert len(df) > 40000
     played = datamod.played(df)
     assert played["home_score"].notna().all()           # 已赛全部有比分
-    assert len(played) < len(df)                          # 含未赛赛程
+    # played() 应恰好滤掉无比分行：用原始赛程(live=False，保留未赛 NA 行)验语义，
+    # 不依赖 live 合并是否已把赛程填满——赛事推进到赛程末尾时 live 口径可能已无未赛行
+    # (2026-06-28 即如此：赛程止于 6-27 且全部已赛，live 下 played==df 会误伤本断言)。
+    raw = datamod.load_raw(live=False)
+    raw_played = datamod.played(raw)
+    assert raw_played["home_score"].notna().all()
+    assert len(raw_played) < len(raw)                     # 原始赛程含未赛赛程行
 
 
 # ---------- 模型预测 ----------
