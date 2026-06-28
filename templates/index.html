@@ -745,15 +745,15 @@ async function exReadCard(btn, homeEn, awayEn, slug){
   }catch(e){ box.innerHTML=`<span class="muted">读盘卡加载失败：${e}</span>`; }
 }
 function renderReadCard(rd, match){
-  let h=`<div style="font-weight:700;margin-bottom:4px">📖 ${match} · 读盘卡（含加时结算）</div>`;
+  let h=`<div style="font-weight:700;margin-bottom:4px">📖 ${match} · 读盘卡（90 分钟结算）</div>`;
   h+=`<div class="rd-warn">${rd.settle_warning}</div>`;
   h+=`<div style="margin:4px 0">规则翻译：${rd.translation}</div>`;
   h+=`<div style="margin:4px 0">${rd.self_check}</div>`;
   h+=`<div class="muted" style="margin:4px 0">口径：${rd.caliber}</div>`;
-  h+=`<div style="margin-top:4px;font-weight:600">最终比分(含加时) → 谁 cover：</div><table class="rd-tbl">`;
+  h+=`<div style="margin-top:4px;font-weight:600">90 分钟比分 → 谁 cover：</div><table class="rd-tbl">`;
   rd.cover_table.forEach(r=>{ h+=`<tr><td>${r.label}</td><td>${r.verdict}</td></tr>`; });
   h+=`</table>`;
-  h+=`<div style="margin:4px 0">${rd.fav_label} cover 概率：模型 ${_exPP(rd.model_fav_cover)} vs 市场 ${_exPP(rd.market_fav_cover)}（${rd.is_knockout?'淘汰赛模型偏常规时间、仅供参考':'小组赛口径一致'}）</div>`;
+  h+=`<div style="margin:4px 0">${rd.fav_label} cover 概率：模型 ${_exPP(rd.model_fav_cover)} vs 市场 ${_exPP(rd.market_fav_cover)}（${rd.is_knockout?'淘汰赛：加时点球不影响本盘、口径基本一致':'小组赛：口径基本一致'}）</div>`;
   h+=`<div class="rd-prior">⚠ ${rd.prior_note}</div>`;
   h+=`<div class="muted" style="font-size:10.5px;margin-top:4px">描述性认知，非投注建议，不含买/跳指令。</div>`;
   return h;
@@ -1373,7 +1373,7 @@ function dayLabel(date){
 function upRow(u){
   const hm=(u.kickoff||'').slice(11);
   const slug=((u.home_en||'')+'_'+(u.away_en||'')).replace(/[^a-zA-Z0-9]/g,'');
-  const readBtn=u.handicap?`<button class="seebtn" onclick="exReadCard(this,'${(u.home_en||'').replace(/'/g,"")}','${(u.away_en||'').replace(/'/g,"")}','${slug}')" title="读盘卡：本场让球盘按含加时最终比分结算的规则对照（描述性、非投注建议）">📖 读盘</button>`:'';
+  const readBtn=u.handicap?`<button class="seebtn" onclick="exReadCard(this,'${(u.home_en||'').replace(/'/g,"")}','${(u.away_en||'').replace(/'/g,"")}','${slug}')" title="读盘卡：本场让球盘按 90 分钟（含补时、不含加时点球）结算的规则对照（描述性、非投注建议）">📖 读盘</button>`:'';
   return `<div class="uprow">
     <div class="up-t">${hm?`<b>${hm}</b><small>北京</small>`:'<b>待定</b>'}</div>
     <div class="up-vs"><span>${u.home}</span><span class="up-x">vs</span><span>${u.away}</span></div>

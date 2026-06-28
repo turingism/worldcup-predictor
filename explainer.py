@@ -133,29 +133,31 @@ def handicap_divergence(model_fav_cover, market_fav_cover):
 
 
 def handicap_reading(hA, hC, is_knockout, fav_name, dog_name):
-    """读盘卡：纯规则翻译 + 【含加时结算】确定性对照（零预测、零方向、不出买哪边）。
-    全用实际队名（不用强队/弱队，避免看反）。复用 hA(2路Shin去水)/hC(模型cover+CLV先验)。"""
+    """读盘卡：纯规则翻译 + 【90 分钟结算】确定性对照（零预测、零方向、不出买哪边）。
+    全用实际队名（不用强队/弱队，避免看反）。复用 hA(2路Shin去水)/hC(模型cover+CLV先验)。
+    口径：竞彩按 90 分钟（含补时、不含加时与点球）结算；模型为常规时间分布，二者基本一致。"""
     line = float(hA["line"])
     is_int = abs(line - round(line)) < 1e-9
     fav_lbl = f"{fav_name}(-{line:g})"      # 被看好方让球：墨西哥(-1.5)
     dog_lbl = f"{dog_name}(+{line:g})"      # 受让方：南非(+1.5)
-    warn = "⚠ 本盘按【含加时及点球的最终比分】结算，不是 90 分钟比分。" + (
-        "本场为淘汰赛：90 分钟战平、加时分胜负的场次，cover 结果可能与上半程直觉相反；"
-        "且本模型 cover 概率是**常规时间口径、未计入加时进球**，与本盘含加时结算口径有 gap，仅供参考。"
-        "→ 看淘汰赛让球盘时，以盘口写明的结算口径为准，别用 90 分钟比分套这张表的 cover 结论。"
+    warn = "⚠ 本盘按【90 分钟（含补时、不含加时与点球）的比分】结算。" + (
+        "本场为淘汰赛、可能打加时甚至点球，但竞彩让球只按 90 分钟结算——"
+        "加时/点球只决定晋级、不影响本盘 cover。模型为常规时间分布，与之口径基本一致（均不含加时点球）。"
         if is_knockout else
-        "本场为小组赛、常规无加时，最终比分即 90 分钟比分，模型与盘口口径一致。")
-    floor_l = int(line)                      # 受让方「最多输几球仍 cover」的阈值
-    dog_keep = ("平或赢都算赢" if floor_l == 0 else f"最多输 {floor_l} 球（或平/赢）都算赢")
+        "本场为小组赛、无加时，竞彩与模型均按 90 分钟，口径基本一致（均不含加时点球）。")
+    floor_l = int(line)                      # 半球盘：受让方「90分钟净胜 ≤floor_l 即 cover」
+    # 受让方「最多输几球仍算赢盘」：整数线=line-1（输到 line 是走盘），半球线=int(line)。
+    keep_n = (int(line) - 1) if is_int else int(line)
+    dog_keep = ("不败（平或胜）就算赢盘" if keep_n <= 0 else f"最多输 {keep_n} 球（或平/胜）都算赢盘")
     if is_int:
-        trans = (f"{fav_name} 让 {line:g} 球：{fav_lbl} 在【最终】净胜 >{line:g} 时赢盘、"
+        trans = (f"{fav_name} 让 {line:g} 球：{fav_lbl} 在【90 分钟】净胜 >{line:g} 时赢盘、"
                  f"净胜 ={line:g} 走盘退本、<{line:g} 输盘；{dog_lbl} 相反。")
         chk = (f"🧭 自检：让球数带「-」的是被看好方，要赢够球数才算赢；带「+」的少输/平/赢都算赢。"
                f"本场：{fav_name}-{line:g}（要赢 >{line:g}、赢 {line:g} 走盘）、{dog_name}+{line:g}（{dog_keep}、输 {line:g} 走盘）。")
     else:
         need = line + 0.5
-        trans = (f"{fav_name} 让 {line:g} 球（半球、无走盘）：{fav_lbl} 在【最终】净胜 ≥{need:g} 时赢盘；"
-                 f"{dog_lbl} 在 {fav_name} 最终净胜 ≤{floor_l}（含平、负）时赢盘。")
+        trans = (f"{fav_name} 让 {line:g} 球（半球、无走盘）：{fav_lbl} 在【90 分钟】净胜 ≥{need:g} 时赢盘；"
+                 f"{dog_lbl} 在 {fav_name} 90 分钟净胜 ≤{floor_l}（含平、负）时赢盘。")
         chk = (f"🧭 自检：让球数带「-」的是被看好方，要赢够球数才算赢；带「+」的少输/平/赢都算赢。"
                f"本场：{fav_name}-{line:g}（要赢 ≥{need:g}）、{dog_name}+{line:g}（{dog_keep}）。")
 
@@ -167,16 +169,16 @@ def handicap_reading(hA, hC, is_knockout, fav_name, dog_name):
     rows = []
     for m in range(int(line) + 2, -3, -1):
         if m == 0:
-            lab = "双方打平（含加时仍平→点球决出晋级，但点球只决定晋级、不决定让球；让球按最终净胜=0 算）"
+            lab = "90 分钟战平（竞彩按净胜 0 结算；加时/点球只决定晋级、不计入本盘）"
         elif m > 0:
-            lab = f"{fav_name} 最终净胜 {m}"
+            lab = f"{fav_name} 90 分钟净胜 {m}"
         else:
-            lab = f"{fav_name} 最终净负 {-m}"
+            lab = f"{fav_name} 90 分钟净负 {-m}"
         rows.append({"margin": m, "label": lab, "verdict": verdict(m)})
     return {"settle_warning": warn, "translation": trans, "self_check": chk,
             "is_knockout": bool(is_knockout), "fav_label": fav_lbl,
-            "caliber": ("淘汰赛·盘口含加时 vs 模型常规时间 → 有 gap" if is_knockout
-                        else "小组赛·无加时 → 口径一致"),
+            "caliber": ("淘汰赛·竞彩与模型均 90 分钟 → 口径基本一致（加时点球只决定晋级、不影响本盘）" if is_knockout
+                        else "小组赛·90 分钟 → 口径基本一致"),
             "cover_table": rows, "model_fav_cover": hC["model_fav_cover"],
             "market_fav_cover": hC["market_fav_cover"], "prior_note": hC["prior_note"]}
 
@@ -238,15 +240,15 @@ def render(card) -> str:
               f"  ⚠ {hC['prior_note']}"]
     rd = card.get("handicap_reading")
     if rd:
-        L += ["", "【读盘卡 · 含加时结算】", f"  {rd['settle_warning']}",
+        L += ["", "【读盘卡 · 90 分钟结算】", f"  {rd['settle_warning']}",
               f"  规则翻译：{rd['translation']}",
               f"  {rd['self_check']}",
               f"  口径：{rd['caliber']}",
-              "  最终比分(含加时) → 谁 cover："]
+              "  90 分钟比分 → 谁 cover："]
         for r in rd["cover_table"]:
             L.append(f"    {r['label']} → {r['verdict']}")
         L += [f"  {rd['fav_label']} cover 概率：模型 {rd['model_fav_cover']:.1%} vs 市场 {rd['market_fav_cover']:.1%}"
-              f"（{('淘汰赛模型偏常规时间、仅供参考' if rd['is_knockout'] else '小组赛口径一致')}）",
+              f"（{('淘汰赛：加时点球不影响本盘、口径基本一致' if rd['is_knockout'] else '小组赛：口径基本一致')}）",
               f"  ⚠ {rd['prior_note']}"]
     L += ["", f"  {card['disclaimer']}"]
     return "\n".join(L)
@@ -280,7 +282,8 @@ def build_card(m, home, away):
             *_, M = m.score_matrix(h, a, neutral=True)
             s = manager.settle_line(manager._margin_pmf(M), rec["fav_is_home"], rec["fav_line"])
             denom = s["win"] + s["lose"]
-            # 含加时结算口径标注：淘汰赛(date>=R32 起始)盘口含加时，而模型是常规时间分布 → 有 gap。
+            # 竞彩按 90 分钟（含补时、不含加时点球）结算，模型为常规时间分布、口径基本一致。
+            # is_ko 仅用于淘汰赛额外提醒（加时/点球只决定晋级、不影响本盘 90 分钟让球结算）。
             is_ko = str(rec.get("date", "")) >= "2026-06-28"
             hc = {"o_fav": rec["fav_spread_odds"], "o_dog": rec["dog_spread_odds"],
                   "fav_line": rec["fav_line"], "is_knockout": is_ko,
