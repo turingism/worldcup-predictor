@@ -808,3 +808,52 @@ def test_narrative_nick_and_frame(model):
 def test_api_predict_has_narrative(client):
     d = client.get("/api/predict?home=Brazil&away=Scotland&neutral=1").get_json()
     assert "narrative" in d and "非投注建议" in d["narrative"]
+
+
+# ---------- 市场机制解释器（explainer，A/C 信息性层；红线 = 只描述不指导下注） ----------
+def test_explainer_redline_guard_is_functional():
+    """红线守卫拦的是『指导下注/弃注行为』这个功能，覆盖行动等价词全谱（非单关键词字面）。"""
+    import explainer
+    # 正例：纯描述性机制文本 + 真实渲染卡 → 必须放行
+    ok_texts = [
+        "市场 Shin 去水真实隐含主胜 55%，模型 41%，KL 0.04，最大分歧在主胜，更可能是模型误差",
+        "抽水 3.6%，水位偏低；赛前线移动客胜 +2.5%",
+        "非投注建议，不含买/跳指令；理性观赛、量力而行",
+    ]
+    for t in ok_texts:
+        assert explainer._assert_clean(t) == t
+    card = explainer.explain_match("A vs B", (0.41, 0.31, 0.28), (1.77, 4.20, 4.30),
+                                   (1.80, 4.10, 4.20), (0.03, 0.07))
+    explainer._assert_clean(explainer.render(card))      # 真实卡渲染必过红线
+    # 反例：一批『指导下注行为』的变体（含评分→行动、信号灯、星级、价值标签）→ 必须全拦
+    banned_variants = [
+        "建议下注主胜", "这场值得下", "可以考虑跟一注", "强烈推荐主胜", "value bet 在客胜",
+        "评分≥7分 → 买入主胜", "信号灯绿灯，上车", "给这场打 5 星级买入", "稳赚不赔",
+        "该买主胜", "正EV，加仓", "性价比买客胜", "跳过此盘", "建议买大球",
+    ]
+    for t in banned_variants:
+        try:
+            explainer._assert_clean(t)
+            assert False, f"红线守卫漏拦行动文本：{t}"
+        except ValueError:
+            pass
+
+
+def test_explainer_orientation_regression():
+    """定向回归：odds 行队序与查询相反时，主/客赔率必须交换（平不变），防 C 段方向错乱复发。"""
+    import explainer
+    # 行 = (Ecuador 主, Germany 客)，o1=4.30(Ecuador) ox=4.20 o2=1.77(Germany)
+    # 查询 = (Germany 主, Ecuador 客) → 应得 (1.77, 4.20, 4.30)
+    c1, cx, c2 = explainer.orient_odds("Ecuador", "Germany", "Germany", "Ecuador", 4.30, 4.20, 1.77)
+    assert (c1, cx, c2) == (1.77, 4.20, 4.30)
+    # 同序不交换
+    s1, sx, s2 = explainer.orient_odds("Germany", "Ecuador", "Germany", "Ecuador", 1.77, 4.20, 4.30)
+    assert (s1, sx, s2) == (1.77, 4.20, 4.30)
+
+
+def test_explainer_divergence_attaches_clv_prior():
+    """红线#3：任何模型 vs 市场分歧地图都必须挂『市场对、模型错』先验注脚。"""
+    import explainer
+    d = explainer.divergence_map((0.41, 0.31, 0.28), (0.55, 0.23, 0.22))
+    assert "CLV" in d["prior_note"] and "模型误差" in d["prior_note"]
+    assert d["largest"]["outcome"] == "主胜"        # |0.41-0.55| 最大
