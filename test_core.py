@@ -857,3 +857,36 @@ def test_explainer_divergence_attaches_clv_prior():
     d = explainer.divergence_map((0.41, 0.31, 0.28), (0.55, 0.23, 0.22))
     assert "CLV" in d["prior_note"] and "模型误差" in d["prior_note"]
     assert d["largest"]["outcome"] == "主胜"        # |0.41-0.55| 最大
+
+
+# ---------- 解释器 B/D 转正闸门（bt_explainer.b_gate；解锁 = n≥30 AND CI不跨0） ----------
+def test_b_gate_and_logic_boundary():
+    """闸门是 AND：n≥30 且 FLB CI 不跨 0 才解锁；任一不满足都【仍锁】（B/D 不渲染）。
+    boot_ci 固定种子=可复现：同值数组 CI 退化在均值（不跨 0）；正负对半 CI 跨 0。"""
+    import numpy as np
+    import bt_explainer as bte
+    assert bte.GATE_MIN_N == 30
+    # ① n=30 且 CI 不跨 0 → 解锁
+    d1 = bte.bucket_decision(np.full(30, 0.5))
+    assert d1["n"] == 30 and d1["ci_excludes_0"] and d1["unlocked"]
+    # ② n=30 但 CI 跨 0（正负对半，均值≈0）→ 仍锁
+    d2 = bte.bucket_decision(np.array([0.5] * 15 + [-0.5] * 15))
+    assert d2["n"] == 30 and not d2["ci_excludes_0"] and not d2["unlocked"]
+    # ③ n<30 但 CI 不跨 0 → 仍锁（证明 n 这一边是必要条件）
+    d3 = bte.bucket_decision(np.full(29, 0.5))
+    assert d3["n"] == 29 and d3["ci_excludes_0"] and not d3["unlocked"]
+    # ④ 空桶 → 锁
+    d4 = bte.bucket_decision(np.array([]))
+    assert d4["n"] == 0 and not d4["unlocked"]
+
+
+def test_b_gate_structure_and_invariant():
+    """b_gate 结构 + 不变量：任何被标 unlocked 的桶必同时满足 n≥30 与 CI 不跨 0
+    （不断言当前是否解锁——那随赛事样本增长由数据决定，正是设计目的）。"""
+    import bt_explainer as bte
+    g = bte.b_gate()
+    assert set(g) >= {"buckets", "any_unlocked", "unlocked_buckets", "n_points", "min_n"}
+    for b in g["buckets"]:
+        if b["unlocked"]:
+            assert b["n"] >= bte.GATE_MIN_N and b["ci_excludes_0"]
+    assert g["any_unlocked"] == (len(g["unlocked_buckets"]) > 0)
