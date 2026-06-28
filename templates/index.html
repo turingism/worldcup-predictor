@@ -354,6 +354,14 @@
     background:#0d1117;border:1px solid #30363d;border-radius:8px;
     padding:10px 12px;margin:4px 0 2px;display:none}
   .up-read.on{display:block}
+  .jc-picks{display:flex;gap:10px;flex-wrap:wrap}
+  .jc-pk{flex:1;min-width:200px;display:flex;flex-direction:column;gap:3px;cursor:pointer;
+    border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;background:var(--panel)}
+  .jc-pk:hover{border-color:var(--line2)}
+  .jc-pk.on{border-color:var(--grn);background:#0d1f14}
+  .jc-pk input{display:none}
+  .jc-pk b{font-size:15px;color:var(--txt)}
+  .jc-pk span{font-size:12px;color:var(--mut)}
   .up-read .rd-tbl{margin:6px 0;border-collapse:collapse;width:100%;font-size:11.5px}
   .up-read .rd-tbl td{padding:3px 8px;border-bottom:1px solid #21262d}
   .up-read .rd-tbl td:last-child{font-weight:600;white-space:nowrap}
@@ -499,6 +507,7 @@
     <div class="tab" data-t="champ">🏆 夺冠概率</div>
     <div class="tab grp-aux" data-t="market">💹 市场对标</div>
     <div class="tab" data-t="explainer">🔍 机制解读</div>
+    <div class="tab" data-t="jcreview">📒 竞彩复盘</div>
     <div class="tab" data-t="xuanxue">🔮 玄学占卜</div>
   </div>
 
@@ -558,6 +567,30 @@
       </div>
     </div>
     <div id="exres"></div>
+  </section>
+
+  <!-- 竞彩复盘（手动录入竞彩让球线 + 我的判断 → 赛后手填90分钟 → 单场三方对账）-->
+  <section id="jcreview" style="display:none">
+    <div class="card">
+      <div class="muted" style="margin-bottom:10px;line-height:1.6">
+        <b>竞彩让球长期复盘</b>：手动录入竞彩让球线 + 你的判断，赛后手填 90 分钟比分，做<b>单场三方（你 / 模型 / 市场）对账</b>。
+        竞彩按 <b>90 分钟（含补时、不含加时点球）</b>结算。<b>这是认清你和市场差距、看懂盘怎么动的复盘工具，不是下注建议</b>；
+        本模型让球长期打不赢市场，攒数据不改变这点。只读旁路，不碰引擎/账本。
+      </div>
+      <div class="row">
+        <div class="fld"><label>主队 / 第一支</label>
+          <input id="jc_home" list="teams" placeholder="点此选择/搜索国家" value="🇿🇦 南非"
+            onfocus="teamFocus(this)" onblur="teamBlur(this)"></div>
+        <div class="fld"><label>客队 / 第二支</label>
+          <input id="jc_away" list="teams" placeholder="点此选择/搜索国家" value="🇨🇦 加拿大"
+            onfocus="teamFocus(this)" onblur="teamBlur(this)"></div>
+        <div class="fld" style="max-width:150px"><label>比赛日期</label>
+          <input id="jc_date" placeholder="YYYY-MM-DD" value="2026-06-29"
+            style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt)"></div>
+        <button class="go" onclick="jcLoad()">读取本场</button>
+      </div>
+    </div>
+    <div id="jcres"></div>
   </section>
 
   <!-- 玄学占卜擂台（自动赛程 + 命中率排行，趣味/文化实验，独立 tab）-->
@@ -699,16 +732,17 @@ function teamBlur(el){ if(!el.value.trim()) el.value=el.dataset.prev||''; }
 
 // tab 切换
 // 各 tab 懒加载标志（verify/看板用 #dashres.dataset.loaded 这一 DOM-state，故意不在此列）
-let bracketLoaded=false, ratingsLoaded=false, marketLoaded=false, champCILoaded=false, managerLoaded=false, xuanxueLoaded=false, champPanelsLoaded=false, explainerLoaded=false;
+let bracketLoaded=false, ratingsLoaded=false, marketLoaded=false, champCILoaded=false, managerLoaded=false, xuanxueLoaded=false, champPanelsLoaded=false, explainerLoaded=false, jcreviewLoaded=false;
 let mgMotivAdj=false;   // 动机降权开关（已出线队进攻 λ×0.90 启发式，默认关，铁律：默认纯模型）
 function toggleMotivAdj(cb){ mgMotivAdj=cb.checked; loadManager(); }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');
-  ['manager','bracket','champ','verify','market','explainer','xuanxue'].forEach(s=>{
+  ['manager','bracket','champ','verify','market','explainer','jcreview','xuanxue'].forEach(s=>{
     $('#'+s).style.display = t.dataset.t===s?'block':'none';
   });
   if(t.dataset.t==='explainer' && !explainerLoaded){ explainerLoaded=true; loadExplainer(); }
+  if(t.dataset.t==='jcreview' && !jcreviewLoaded){ jcreviewLoaded=true; jcInit(); }
   if(t.dataset.t==='manager' && !managerLoaded){ managerLoaded=true; loadFixtures(); }
   if(t.dataset.t==='xuanxue' && !xuanxueLoaded){ xuanxueLoaded=true; loadXuanxue(); }
   if(t.dataset.t==='bracket'){
@@ -808,6 +842,127 @@ function renderExplainer(d){
   h+=`<div class="muted" style="margin-top:12px;font-size:11.5px;border-top:1px solid var(--line);padding-top:8px">`;
   h+=`诱惑形态（FLB/大热必死）按盘种分桶的转正闸门<b>当前全锁</b>（样本不足、CI 跨 0）→ 不渲染。${d.disclaimer}</div></div>`;
   return h;
+}
+
+// ===== 竞彩复盘 tab（手动录入 + 三方对账，复用 /api/jc_review）=====
+let _jcCur=null;   // 当前场上下文 {home_en,away_en,date,preview}
+function jcInit(){ $('#jcres').innerHTML='<div class="card muted">填入两队 + 日期，点「读取本场」开始录入复盘。</div>'; }
+async function jcLoad(){
+  const home=($('#jc_home').value||'').trim(), away=($('#jc_away').value||'').trim(), date=($('#jc_date').value||'').trim();
+  if(!home||!away||!date){ $('#jcres').innerHTML='<div class="card muted">请填两队 + 日期。</div>'; return; }
+  $('#jcres').innerHTML='<div class="card spin">读取模型冻结预测中…</div>';
+  try{
+    const r=await fetch(`/api/jc_review?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&date=${encodeURIComponent(date)}`);
+    const d=await r.json();
+    if(!r.ok||d.error){ $('#jcres').innerHTML=`<div class="card muted">${d.error||'读取失败'}</div>`; return; }
+    _jcCur={home_en:d.model_preview.home_en,away_en:d.model_preview.away_en,date,preview:d.model_preview};
+    $('#jcres').innerHTML=jcFormHTML(d);
+  }catch(e){ $('#jcres').innerHTML=`<div class="card muted">读取失败：${e}</div>`; }
+}
+function jcFormHTML(d){
+  const mp=d.model_preview, ko=mp.is_knockout;
+  let h=`<div class="card"><h3 style="margin:0 0 8px">${mp.home_disp} vs ${mp.away_disp}　<span class="muted" style="font-size:12px;font-weight:400">${_jcCur.date}${ko?' · 淘汰赛':''}</span></h3>`;
+  h+=`<div class="muted" style="font-size:12.5px;margin-bottom:10px">模型冻结预测：三向 ${(mp.p_home*100).toFixed(0)}% / ${(mp.p_draw*100).toFixed(0)}% / ${(mp.p_away*100).toFixed(0)}%　最可能比分 ${mp.pred_score}（录入即按此刻冻结）</div>`;
+  // 录入表单：竞彩让球线
+  h+=`<div class="row" style="margin-top:6px">
+    <div class="fld" style="max-width:200px"><label>谁让球（被看好方）</label>
+      <select id="jc_fav" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt)" onchange="jcSyncBtns()">
+        <option value="home">${mp.home_disp}（主）让球</option>
+        <option value="away" selected>${mp.away_disp}（客）让球</option>
+      </select></div>
+    <div class="fld" style="max-width:120px"><label>让球数</label>
+      <input id="jc_line" value="1" oninput="jcSyncBtns()" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt)"></div>
+    <div class="fld" style="max-width:130px"><label>让球方cover赔率</label>
+      <input id="jc_ofav" value="2.78" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt)"></div>
+    <div class="fld" style="max-width:130px"><label>受让方cover赔率</label>
+      <input id="jc_odog" value="2.23" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt)"></div>
+  </div>`;
+  // 我的判断：队名+方向按钮（消灭二次翻译）
+  h+=`<div style="margin-top:14px"><div style="font-weight:600;margin-bottom:8px">我的判断（这场我看好哪边 / 跳过）</div>
+    <div id="jc_picks" class="jc-picks"></div></div>`;
+  h+=`<div class="fld" style="margin-top:10px"><label>理由（可选，复盘自己看——录当时怎么想的）</label>
+    <input id="jc_note" placeholder="例：三栏接近、读盘卡显示受让方不败就赢，倾向受让"
+      style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt)"></div>`;
+  h+=`<button class="go" style="margin-top:12px" onclick="jcSubmitPrematch()">录入 + 冻结模型 + 生成读盘卡</button></div>`;
+  // 已有记录 → 直接渲染读盘卡 + 对账
+  if(d.record){ h+=jcReadingHTML(d.reading); h+=jcReconcileHTML(d.reconcile, d.record); }
+  setTimeout(jcSyncBtns,0);
+  return h;
+}
+function jcSyncBtns(){
+  const mp=_jcCur.preview, favSel=$('#jc_fav'); if(!favSel) return;
+  const favIsHome=favSel.value==='home';
+  const favName=favIsHome?mp.home_disp:mp.away_disp, dogName=favIsHome?mp.away_disp:mp.home_disp;
+  const line=parseFloat($('#jc_line').value)||0, isInt=Math.abs(line-Math.round(line))<1e-9;
+  const favNeed=isInt?`要赢 ${line+1} 球以上（赢 ${line} 走盘）`:`要赢 ${line+0.5} 球以上`;
+  const dogKeep=isInt?((line-1)<=0?'不败（平或胜）就赢、输 1 走盘':`最多输 ${line-1} 球都赢`):((line)<=0?'不败就赢':`最多输 ${line} 球都赢`);
+  const box=$('#jc_picks'); const cur=box.dataset.pick||'';
+  box.innerHTML=`
+    <label class="jc-pk ${cur==='fav'?'on':''}"><input type="radio" name="jcpk" value="fav" ${cur==='fav'?'checked':''} onchange="jcPk(this)"><b>${favName}(-${line})</b><span>${favNeed}</span></label>
+    <label class="jc-pk ${cur==='dog'?'on':''}"><input type="radio" name="jcpk" value="dog" ${cur==='dog'?'checked':''} onchange="jcPk(this)"><b>${dogName}(+${line})</b><span>${dogKeep}</span></label>
+    <label class="jc-pk ${cur==='skip'?'on':''}"><input type="radio" name="jcpk" value="skip" ${cur==='skip'?'checked':''} onchange="jcPk(this)"><b>跳过</b><span>这场我不下</span></label>`;
+}
+function jcPk(el){ $('#jc_picks').dataset.pick=el.value; document.querySelectorAll('.jc-pk').forEach(x=>x.classList.toggle('on',x.querySelector('input').checked)); }
+async function jcSubmitPrematch(){
+  const pick=($('#jc_picks').dataset.pick)||''; if(!pick){ alert('请先选「我的判断」'); return; }
+  const favIsHome=$('#jc_fav').value==='home';
+  const body={action:'prematch',date:_jcCur.date,home:_jcCur.home_en,away:_jcCur.away_en,
+    fav_is_home:favIsHome,line:parseFloat($('#jc_line').value)||0,
+    o_fav:parseFloat($('#jc_ofav').value),o_dog:parseFloat($('#jc_odog').value),
+    is_knockout:_jcCur.preview.is_knockout,my_pick:pick,my_note:($('#jc_note').value||'').trim()};
+  const r=await fetch('/api/jc_review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  if(!r.ok||d.error){ alert(d.error||'录入失败'); return; }
+  jcLoad();  // 重载：显示读盘卡 + 赛后填分区 + 对账
+}
+function jcReadingHTML(rd){
+  if(!rd) return '';
+  let h=`<div class="card"><div style="font-weight:700;margin-bottom:6px">📖 读盘卡（90 分钟结算）</div>`;
+  h+=`<div class="up-read on" style="margin:0"><div class="rd-warn">${rd.settle_warning}</div>`;
+  h+=`<div style="margin:4px 0">规则翻译：${rd.translation}</div><div style="margin:4px 0">${rd.self_check}</div>`;
+  h+=`<div class="muted" style="margin:4px 0">口径：${rd.caliber}</div>`;
+  h+=`<table class="rd-tbl">`; rd.cover_table.forEach(r=>{ h+=`<tr><td>${r.label}</td><td>${r.verdict}</td></tr>`; }); h+=`</table>`;
+  h+=`<div style="margin:4px 0">${rd.fav_label} cover：模型 ${(rd.model_fav_cover*100).toFixed(1)}% vs 市场 ${(rd.market_fav_cover*100).toFixed(1)}%</div>`;
+  h+=`<div class="rd-prior">⚠ ${rd.prior_note}</div></div></div>`;
+  return h;
+}
+function jcReconcileHTML(rc, rec){
+  const ko=rec.is_knockout;
+  let h=`<div class="card"><div style="font-weight:700;margin-bottom:8px">赛后录入 + 单场三方对账</div>`;
+  if(ko) h+=`<div class="rd-warn" style="margin-bottom:10px">请填【90 分钟】比分（含补时，不是加时后最终比分）——竞彩按 90 分钟结算。</div>`;
+  // 赛后填分
+  const res=rec.result;
+  h+=`<div class="row"><div class="fld" style="max-width:120px"><label>${rec.home_disp} 90′进球</label>
+      <input id="jc_h90" value="${res?res.h90:''}" placeholder="0" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt)"></div>
+    <div class="fld" style="max-width:120px"><label>${rec.away_disp} 90′进球</label>
+      <input id="jc_a90" value="${res?res.a90:''}" placeholder="1" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt)"></div>
+    <button class="go" onclick="jcSubmitResult()">${res?'更新比分 + 重算对账':'结算 + 三方对账'}</button></div>`;
+  if(rc&&rc.status==='settled') h+=jcVerdictHTML(rc);
+  h+=`</div>`;
+  return h;
+}
+function jcVerdictHTML(rc){
+  const pn={fav:rc.fav_name+'(-'+rc.line+')',dog:rc.dog_name+'(+'+rc.line+')'};
+  const pk=v=>v==='skip'?'跳过':(v==='fav'?pn.fav:(v==='dog'?pn.dog:'—'));
+  const vb={hit:'<span style="color:#3fb950;font-weight:700">命中</span>',miss:'<span style="color:#f85149;font-weight:700">未中</span>',na:'<span style="color:#8b949e">不计（跳过）</span>',void:'<span style="color:#8b949e">走盘 void</span>'};
+  let h=`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">`;
+  h+=`<div style="font-size:13px;margin-bottom:8px">90 分钟比分 <b>${rc.score_90}</b> → 实际 cover：<b>${rc.actual_cover==='fav'?pn.fav:(rc.actual_cover==='dog'?pn.dog:'走盘退本')}</b>${rc.void?'（走盘，三方均不计）':''}</div>`;
+  h+=`<table class="rd-tbl"><tr><td></td><td>判断</td><td>结果</td></tr>`;
+  h+=`<tr><td><b>我</b></td><td>${pk(rc.me.pick)}</td><td>${vb[rc.me.verdict]}</td></tr>`;
+  h+=`<tr><td>模型</td><td>${pk(rc.model.pick)}</td><td>${vb[rc.model.verdict]}</td></tr>`;
+  h+=`<tr><td>市场</td><td>${pk(rc.market.pick)}</td><td>${vb[rc.market.verdict]}</td></tr></table>`;
+  if(rc.me.note) h+=`<div class="muted" style="font-size:12px;margin-top:6px">我的理由：${rc.me.note}</div>`;
+  h+=`<div class="rd-prior" style="margin-top:8px">⚠ ${rc.prior_note}</div></div>`;
+  return h;
+}
+async function jcSubmitResult(){
+  const h90=$('#jc_h90').value, a90=$('#jc_a90').value;
+  if(h90===''||a90===''){ alert('请填两队 90 分钟进球'); return; }
+  const r=await fetch('/api/jc_review',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'result',date:_jcCur.date,home:_jcCur.home_en,away:_jcCur.away_en,h90:parseInt(h90),a90:parseInt(a90)})});
+  const d=await r.json();
+  if(!r.ok||d.error){ alert(d.error||'结算失败'); return; }
+  jcLoad();
 }
 
 // 载入球队列表

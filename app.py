@@ -375,6 +375,73 @@ def api_explainer():
     return jsonify(card)
 
 
+@app.route("/api/jc_review", methods=["GET", "POST"])
+def api_jc_review():
+    """竞彩让球长期复盘（手动录入 + 赛后三方对账）。详见 CLAUDE.md「竞彩复盘系统」红线。
+    GET ?home=&away=&date= → 返回该场模型冻结预测（供录入预填）+ 已存记录+对账（若有）。
+    POST action=prematch → 录入（录入那一刻冻结模型、记 frozen_at）。
+    POST action=result   → 赛后手填 90 分钟比分 → 单场三方对账。
+    只让球 cover；赛后比分手填 90 分钟（不复用 results.csv 含加时口径）。零下注指令。"""
+    import jc_review as jc
+    if request.method == "GET":
+        home = request.args.get("home", "").strip()
+        away = request.args.get("away", "").strip()
+        date = request.args.get("date", "").strip()
+        out = {}
+        if home and away:
+            try:
+                h = MODEL.resolve(home); a = MODEL.resolve(away)
+                pr = MODEL.predict(h, a, neutral=True)
+                *_, M = MODEL.score_matrix(h, a, neutral=True)
+                out["model_preview"] = {
+                    "home_en": h, "away_en": a,
+                    "home_disp": teams_zh.disp(h), "away_disp": teams_zh.disp(a),
+                    "p_home": pr["p_home"], "p_draw": pr["p_draw"], "p_away": pr["p_away"],
+                    "pred_score": f"{int(round(pr['xg_home']))}-{int(round(pr['xg_away']))}",
+                    "is_knockout": bool(date >= "2026-06-28") if date else None}
+            except KeyError as e:
+                return jsonify({"error": str(e)}), 400
+        if date and home and away:
+            rec = jc.load_all().get(jc.match_key(date,
+                  MODEL.resolve(home), MODEL.resolve(away)))
+            if rec:
+                out["record"] = rec
+                out["reconcile"] = jc.reconcile(rec)
+                out["reading"] = jc.reading_card(rec)
+        return jsonify(out)
+
+    body = request.get_json(silent=True) or {}
+    act = body.get("action")
+    try:
+        if act == "prematch":
+            h = MODEL.resolve(body["home"]); a = MODEL.resolve(body["away"])
+            *_, M = MODEL.score_matrix(h, a, neutral=True)
+            pr = MODEL.predict(h, a, neutral=True)
+            fav_is_home = bool(body["fav_is_home"]); line = float(body["line"])
+            s = managermod.settle_line(managermod._margin_pmf(M), fav_is_home, line)
+            denom = s["win"] + s["lose"]
+            model_cover = s["win"] / denom if denom > 1e-9 else s["win"]
+            rec = jc.upsert_prematch(
+                body["date"], h, a, teams_zh.disp(h), teams_zh.disp(a),
+                bool(body.get("is_knockout", body["date"] >= "2026-06-28")),
+                fav_is_home, line, float(body["o_fav"]), float(body["o_dog"]),
+                model_cover, {"h": pr["p_home"], "d": pr["p_draw"], "a": pr["p_away"]},
+                f"{int(round(pr['xg_home']))}-{int(round(pr['xg_away']))}",
+                body["my_pick"], body.get("my_note", ""),
+                frozen_at=dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))  # 录入即冻结
+            return jsonify({"ok": True, "record": rec, "reading": jc.reading_card(rec),
+                            "reconcile": jc.reconcile(rec)})
+        if act == "result":
+            h = MODEL.resolve(body["home"]); a = MODEL.resolve(body["away"])
+            rc = jc.enter_result(body["date"], h, a, int(body["h90"]), int(body["a90"]))
+            return jsonify({"ok": True, "reconcile": rc})
+        return jsonify({"error": "未知 action"}), 400
+    except KeyError as e:
+        return jsonify({"error": f"缺字段或未知球队：{e}"}), 400
+    except Exception as e:  # noqa
+        return jsonify({"error": f"操作失败：{e}"}), 500
+
+
 @app.route("/api/predict")
 def api_predict():
     home = request.args.get("home", "").strip()

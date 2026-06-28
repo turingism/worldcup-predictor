@@ -950,3 +950,70 @@ def test_api_explainer_ok(client):
         assert w not in d["render"]                            # 渲染文本永不含行动/劝导词
     r = client.get("/api/explainer?home=Atlantis&away=France")
     assert r.status_code in (400, 404)                         # 未知队不 500
+
+
+# ---------- 竞彩复盘系统（jc_review：三方对账 + schema 无「率」断壁 + 红线） ----------
+def _jc_rec(my_pick="dog", model_fav_cover=0.30, market_fav_cover=0.45, result=None):
+    """构造一条复盘记录（加拿大让1=fav客；模型/市场 fav cover 概率 <0.5 → 都判 dog）。"""
+    return {"key": "k", "home_disp": "南非", "away_disp": "加拿大", "is_knockout": True,
+            "jc": {"fav_is_home": False, "line": 1.0, "fav_name": "加拿大", "dog_name": "南非",
+                   "o_fav": 2.78, "o_dog": 2.23},
+            "model": {"fav_cover": model_fav_cover}, "market": {"fav_cover": market_fav_cover},
+            "my_call": {"pick": my_pick, "note": ""}, "result": result}
+
+
+def test_jc_reconcile_hit_miss_void_na():
+    import jc_review as jc
+    # 南非1-1加拿大(90min) → 加拿大净胜0 < line1 → dog(南非)cover；模型/市场 fav_cover<0.5 也判dog
+    out = jc.reconcile(_jc_rec(my_pick="dog", result={"h90": 1, "a90": 1}))
+    assert out["actual_cover"] == "dog" and not out["void"]
+    assert out["me"]["verdict"] == "hit" and out["model"]["verdict"] == "hit" and out["market"]["verdict"] == "hit"
+    # 我看好 fav(加拿大) → miss
+    out2 = jc.reconcile(_jc_rec(my_pick="fav", result={"h90": 1, "a90": 1}))
+    assert out2["me"]["verdict"] == "miss"
+    # 走盘：南非0-1加拿大 → 加拿大净胜1 = line → push → 三方全 void
+    out3 = jc.reconcile(_jc_rec(my_pick="dog", result={"h90": 0, "a90": 1}))
+    assert out3["void"] and all(out3[w]["verdict"] == "void" for w in ("me", "model", "market"))
+    # 我跳过 → 我这行 na（不计分），模型/市场照常判
+    out4 = jc.reconcile(_jc_rec(my_pick="skip", result={"h90": 1, "a90": 1}))
+    assert out4["me"]["verdict"] == "na"
+    # 无赛果 → pending
+    assert jc.reconcile(_jc_rec(result=None))["status"] == "pending"
+    # 对账输出永远挂 CLV 先验
+    assert "CLV" in out["prior_note"]
+
+
+def test_jc_schema_no_rate_fields_redline():
+    """红线 schema 断壁：复盘数据/输出绝不允许 率/盈亏/ROI/推荐 类字段（防滑向买/跳）。"""
+    import jc_review as jc
+    for bad in ({"my_win_rate": 0.5}, {"胜率": 0.6}, {"roi": 1.2}, {"盈亏": 100},
+                {"x": {"recommend": "buy"}}, {"准确率": 0.4}, {"该买": "fav"}):
+        with pytest.raises(ValueError):
+            jc.assert_no_rate_fields(bad)
+    # 正常对账输出 + 完整记录必须通过断壁
+    jc.assert_no_rate_fields(jc.reconcile(_jc_rec(my_pick="dog", result={"h90": 1, "a90": 1})))
+    jc.assert_no_rate_fields(_jc_rec())
+
+
+def test_jc_cover_outcome_integer_line_push():
+    """整数线走盘：加拿大让1，加拿大90分钟净胜恰1=走盘(push)，净胜2=fav cover，平=dog cover。"""
+    import jc_review as jc
+    assert jc.cover_outcome(0, 1, False, 1.0) == "push"   # 加拿大净胜1 = line
+    assert jc.cover_outcome(0, 2, False, 1.0) == "fav"    # 加拿大净胜2 > line
+    assert jc.cover_outcome(1, 1, False, 1.0) == "dog"    # 平 → 加拿大净胜0 < line
+
+
+def test_api_jc_review_roundtrip(client):
+    """端点闭环：GET 预填(模型冻结) → POST 录入(记 frozen_at) → POST 填分对账(CLV 先验)。"""
+    import os, jc_review as jc
+    g = client.get("/api/jc_review?home=South Africa&away=Canada&date=2026-06-29").get_json()
+    assert g["model_preview"]["is_knockout"] is True
+    p = client.post("/api/jc_review", json={"action": "prematch", "date": "2026-06-29",
+        "home": "South Africa", "away": "Canada", "fav_is_home": False, "line": 1.0,
+        "o_fav": 2.78, "o_dog": 2.23, "my_pick": "dog", "my_note": "t"}).get_json()
+    assert p["ok"] and p["record"]["model"]["frozen_at"]          # 录入即冻结
+    r = client.post("/api/jc_review", json={"action": "result", "date": "2026-06-29",
+        "home": "South Africa", "away": "Canada", "h90": 1, "a90": 1}).get_json()
+    assert r["ok"] and r["reconcile"]["status"] == "settled" and "CLV" in r["reconcile"]["prior_note"]
+    if os.path.exists(jc.STORE):
+        os.remove(jc.STORE)                                       # 清理测试落盘
