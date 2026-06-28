@@ -188,50 +188,54 @@ def render(card) -> str:
     return "\n".join(L)
 
 
-def _cli():
-    import argparse, os, pandas as pd
-    import predict, teams_zh
-    ap = argparse.ArgumentParser()
-    ap.add_argument("home"); ap.add_argument("away")
-    args = ap.parse_args()
-    odds = pd.read_csv(os.path.join(os.path.dirname(__file__), "data", "odds.csv"))
-    odds["overround"] = 1/odds.odds_1 + 1/odds.odds_x + 1/odds.odds_2 - 1
+def build_card(m, home, away):
+    """组装单场机制解读卡（CLI 与 /api/explainer 共用）。读 odds.csv + handicap_lines.json，
+    模型预测来自传入的 m。无赔率 → 返回 None（无可拆解的市场结构）。"""
+    import os, json, pandas as pd
+    import manager, teams_zh
+    base = os.path.dirname(__file__)
+    odds = pd.read_csv(os.path.join(base, "data", "odds.csv"))
+    odds["overround"] = 1 / odds.odds_1 + 1 / odds.odds_x + 1 / odds.odds_2 - 1
     q25, q75 = odds["overround"].quantile([0.25, 0.75])
-    m = predict.get_model(use_cache=True, half_life=730.0, verbose=False)
-    h = m.resolve(args.home); a = m.resolve(args.away)
+    h = m.resolve(home); a = m.resolve(away)
     row = odds[((odds.home_team == h) & (odds.away_team == a)) |
                ((odds.home_team == a) & (odds.away_team == h))]
     if row.empty:
-        print(f"odds.csv 无 {h} vs {a} 的赔率，换一场。"); return
+        return None
     o = row.iloc[0]
     pr = m.predict(h, a, neutral=True)
-    # 定向：盘口须与查询 (h 主, a 客) 同框（odds.csv 行队序可能相反）。
     c1, cx, c2 = orient_odds(o.home_team, o.away_team, h, a, o.odds_1, o.odds_x, o.odds_2)
     has_open = not any(pd.isna(o[c]) for c in ("odds_1_open", "odds_x_open", "odds_2_open"))
     open_odds = None if not has_open else orient_odds(
         o.home_team, o.away_team, h, a, o.odds_1_open, o.odds_x_open, o.odds_2_open)
-    # 让球段（可选）：从 handicap_lines.json 取闭盘双边水位 + 模型 settle_line cover。
     hc = None
     try:
-        import json, manager
-        hl = json.load(open(os.path.join(os.path.dirname(__file__), "data", "handicap_lines.json")))
-        rec = next((v for v in hl.values()
-                    if {v["home"], v["away"]} == {h, a}), None)
+        hl = json.load(open(os.path.join(base, "data", "handicap_lines.json")))
+        rec = next((v for v in hl.values() if {v["home"], v["away"]} == {h, a}), None)
         if rec and rec.get("fav_spread_odds") and rec.get("dog_spread_odds"):
             *_, M = m.score_matrix(h, a, neutral=True)
-            mp = manager._margin_pmf(M)
-            s = manager.settle_line(mp, rec["fav_is_home"], rec["fav_line"])
+            s = manager.settle_line(manager._margin_pmf(M), rec["fav_is_home"], rec["fav_line"])
             denom = s["win"] + s["lose"]
-            model_cover = s["win"] / denom if denom > 1e-9 else s["win"]
-            fav_name = teams_zh.disp(h if rec["fav_is_home"] else a)
             hc = {"o_fav": rec["fav_spread_odds"], "o_dog": rec["dog_spread_odds"],
-                  "fav_line": rec["fav_line"], "fav_name": fav_name, "model_fav_cover": model_cover}
+                  "fav_line": rec["fav_line"],
+                  "fav_name": teams_zh.disp(h if rec["fav_is_home"] else a),
+                  "model_fav_cover": s["win"] / denom if denom > 1e-9 else s["win"]}
     except Exception:  # noqa  让球段缺失不影响 1X2 卡
         hc = None
-    card = explain_match(f"{teams_zh.disp(h)} vs {teams_zh.disp(a)}",
+    return explain_match(f"{teams_zh.disp(h)} vs {teams_zh.disp(a)}",
                          (pr["p_home"], pr["p_draw"], pr["p_away"]),
                          (c1, cx, c2), open_odds, (q25, q75), handicap=hc)
-    print(render(card))
+
+
+def _cli():
+    import argparse
+    import predict
+    ap = argparse.ArgumentParser()
+    ap.add_argument("home"); ap.add_argument("away")
+    args = ap.parse_args()
+    m = predict.get_model(use_cache=True, half_life=730.0, verbose=False)
+    card = build_card(m, args.home, args.away)
+    print(render(card) if card else f"odds.csv 无 {args.home} vs {args.away} 的赔率，换一场。")
 
 
 if __name__ == "__main__":

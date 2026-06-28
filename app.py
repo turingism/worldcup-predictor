@@ -356,6 +356,25 @@ def _exp_total(M) -> float:
     return float(sum((i + j) * M[i, j] for i in range(n) for j in range(n)))
 
 
+@app.route("/api/explainer")
+def api_explainer():
+    """市场机制解读卡（信息性 A/C：A 水位拆解 + C 模型vs市场分歧，分歧强制挂 CLV<0 先验）。
+    描述性认知、非投注建议、零下注指令；B/D 诱惑形态按闸门冻结不渲染。复用 explainer.build_card。"""
+    home = request.args.get("home", "").strip()
+    away = request.args.get("away", "").strip()
+    try:
+        import explainer
+        card = explainer.build_card(MODEL, home, away)
+    except KeyError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:  # noqa  生成失败优雅降级，不 500 崩前端
+        return jsonify({"error": f"解读生成失败：{e}"}), 500
+    if not card:
+        return jsonify({"error": "该场暂无市场赔率（odds.csv 未覆盖），无法拆解市场结构。"}), 404
+    card["render"] = explainer.render(card)      # 附纯文本渲染，便于复用/审计
+    return jsonify(card)
+
+
 @app.route("/api/predict")
 def api_predict():
     home = request.args.get("home", "").strip()

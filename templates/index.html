@@ -489,6 +489,7 @@
     <div class="tab" data-t="bracket">🗺️ 晋级树状图</div>
     <div class="tab" data-t="champ">🏆 夺冠概率</div>
     <div class="tab grp-aux" data-t="market">💹 市场对标</div>
+    <div class="tab" data-t="explainer">🔍 机制解读</div>
     <div class="tab" data-t="xuanxue">🔮 玄学占卜</div>
   </div>
 
@@ -521,6 +522,33 @@
       </div>
     </div>
     <div id="mgres"></div>
+  </section>
+
+  <!-- 市场机制解读（信息性 A/C 卡：A 水位拆解 + C 模型vs市场分歧，强制 CLV 先验；B/D 闸门冻结不渲染）-->
+  <section id="explainer" style="display:none">
+    <div class="card">
+      <div class="row">
+        <div class="fld">
+          <label>主队 / 第一支</label>
+          <input id="ex_home" list="teams" placeholder="点此选择/搜索国家" value="🇩🇪 德国"
+            onfocus="teamFocus(this)" onblur="teamBlur(this)">
+        </div>
+        <button class="swap" type="button" onclick="exSwap()" title="交换主客">⇄</button>
+        <div class="fld">
+          <label>客队 / 第二支</label>
+          <input id="ex_away" list="teams" placeholder="点此选择/搜索国家" value="🇪🇨 厄瓜多尔"
+            onfocus="teamFocus(this)" onblur="teamBlur(this)">
+        </div>
+        <button class="go" onclick="loadExplainer()">解读市场机制</button>
+      </div>
+      <div class="muted" style="margin-top:6px">
+        <b>信息性·描述性认知，非投注建议</b>：A 水位结构（Shin 去水真实隐含概率 + 抽水 + 异常标注）·
+        C 模型 vs 市场分歧地图（每条分歧强制挂「本模型 CLV&lt;0、让球 MAE 打不赢市场 → 分歧更可能是模型误差」先验）·
+        赛前线移动 · 1X2 + 让球。<b>不输出任何买/跳指令</b>；诱惑形态（FLB/大热必死）样本不足、闸门冻结、不渲染。
+        仅覆盖 odds.csv 有赔率的场次。
+      </div>
+    </div>
+    <div id="exres"></div>
   </section>
 
   <!-- 玄学占卜擂台（自动赛程 + 命中率排行，趣味/文化实验，独立 tab）-->
@@ -662,15 +690,16 @@ function teamBlur(el){ if(!el.value.trim()) el.value=el.dataset.prev||''; }
 
 // tab 切换
 // 各 tab 懒加载标志（verify/看板用 #dashres.dataset.loaded 这一 DOM-state，故意不在此列）
-let bracketLoaded=false, ratingsLoaded=false, marketLoaded=false, champCILoaded=false, managerLoaded=false, xuanxueLoaded=false, champPanelsLoaded=false;
+let bracketLoaded=false, ratingsLoaded=false, marketLoaded=false, champCILoaded=false, managerLoaded=false, xuanxueLoaded=false, champPanelsLoaded=false, explainerLoaded=false;
 let mgMotivAdj=false;   // 动机降权开关（已出线队进攻 λ×0.90 启发式，默认关，铁律：默认纯模型）
 function toggleMotivAdj(cb){ mgMotivAdj=cb.checked; loadManager(); }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');
-  ['manager','bracket','champ','verify','market','xuanxue'].forEach(s=>{
+  ['manager','bracket','champ','verify','market','explainer','xuanxue'].forEach(s=>{
     $('#'+s).style.display = t.dataset.t===s?'block':'none';
   });
+  if(t.dataset.t==='explainer' && !explainerLoaded){ explainerLoaded=true; loadExplainer(); }
   if(t.dataset.t==='manager' && !managerLoaded){ managerLoaded=true; loadFixtures(); }
   if(t.dataset.t==='xuanxue' && !xuanxueLoaded){ xuanxueLoaded=true; loadXuanxue(); }
   if(t.dataset.t==='bracket'){
@@ -690,6 +719,57 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   if(t.dataset.t==='champ' && !champCILoaded){ champCILoaded=true; loadChampCI(); }
   if(t.dataset.t==='champ' && !ratingsLoaded){ ratingsLoaded=true; loadRatings(); }  // 实力榜已并入本 tab
 });
+
+// ===== 机制解读 tab（信息性 A/C，复用 /api/explainer）=====
+function exSwap(){ const h=$('#ex_home'),a=$('#ex_away'); const t=h.value; h.value=a.value; a.value=t; loadExplainer(); }
+function _exPP(v){ return (v*100).toFixed(1)+'%'; }
+function _exSP(v){ return (v>=0?'+':'')+(v*100).toFixed(1)+'pp'; }
+async function loadExplainer(){
+  const box=$('#exres'); box.innerHTML='<div class="card spin">解读市场机制中…</div>';
+  const h=encodeURIComponent(($('#ex_home').value||'').trim()), a=encodeURIComponent(($('#ex_away').value||'').trim());
+  try{
+    const r=await fetch(`/api/explainer?home=${h}&away=${a}`); const d=await r.json();
+    if(!r.ok || d.error){ box.innerHTML=`<div class="card muted">${d.error||'解读失败'}</div>`; return; }
+    box.innerHTML=renderExplainer(d);
+  }catch(e){ box.innerHTML=`<div class="card muted">解读失败：${e}</div>`; }
+}
+function _exPrior(note){   // 红线#3 先验注脚，琥珀框醒目
+  return `<div style="margin:6px 0;padding:7px 10px;border-left:3px solid #d29922;background:#1c1606;border-radius:6px;color:#e3b341;font-size:12px">⚠ ${note}</div>`;
+}
+function renderExplainer(d){
+  const A=d.A_water_structure, C=d.C_divergence, mv=d.line_movement, hA=d.A_handicap, hC=d.C_handicap_divergence;
+  let h=`<div class="card"><h3 style="margin:0 0 2px">🔍 ${d.match} · 市场机制解读</h3>`;
+  h+=`<div class="muted" style="margin-bottom:10px">描述性认知，非投注建议</div>`;
+  // A 水位结构
+  h+=`<div style="font-weight:700;margin:4px 0">【A 水位结构】</div>`;
+  h+=`<div style="font-size:13px;line-height:1.7">毛赔率　主 ${A.raw_odds.home.toFixed(2)} / 平 ${A.raw_odds.draw.toFixed(2)} / 客 ${A.raw_odds.away.toFixed(2)}<br>`;
+  h+=`Shin 去水真实隐含　<b>主 ${_exPP(A.implied_shin.home)} / 平 ${_exPP(A.implied_shin.draw)} / 客 ${_exPP(A.implied_shin.away)}</b><br>`;
+  h+=`抽水(overround) ${_exPP(A.overround)}，水位 <b>${A.overround_flag}</b></div>`;
+  // C 分歧地图
+  h+=`<div style="font-weight:700;margin:12px 0 4px">【C 模型 vs 市场分歧】</div>`;
+  h+=`<div style="font-size:13px;line-height:1.7">模型　主 ${_exPP(C.model['主胜'])} / 平 ${_exPP(C.model['平'])} / 客 ${_exPP(C.model['客胜'])}<br>`;
+  h+=`市场　主 ${_exPP(C.market['主胜'])} / 平 ${_exPP(C.market['平'])} / 客 ${_exPP(C.market['客胜'])}<br>`;
+  h+=`KL(模型‖市场) ${C.kl_model_vs_market.toFixed(4)} nats；最大分歧在「<b>${C.largest.outcome}</b>」（模型−市场 ${_exSP(C.largest.diff)}）</div>`;
+  h+=_exPrior(C.prior_note);
+  // 赛前线移动
+  if(mv){ const s=mv.shift;
+    h+=`<div style="font-weight:700;margin:12px 0 4px">【赛前线移动 开→闭】</div>`;
+    h+=`<div style="font-size:13px">隐含概率位移　主 ${_exSP(s['主胜'])} / 平 ${_exSP(s['平'])} / 客 ${_exSP(s['客胜'])}（总变差 ${_exPP(mv.total_variation)}）</div>`;
+  }
+  // 让球 A/C
+  if(hA&&hC){
+    h+=`<div style="font-weight:700;margin:12px 0 4px">【A 让球水位】${hA.fav_name} 让 ${(+hA.line).toString()} 球</div>`;
+    h+=`<div style="font-size:13px;line-height:1.7">双边水位　强队cover ${hA.odds.fav_cover.toFixed(2)} / 弱队受让 ${hA.odds.dog_cover.toFixed(2)}，抽水 ${_exPP(hA.overround)}<br>`;
+    h+=`Shin 去水真实 cover 隐含　<b>强队 ${_exPP(hA.implied_cover_shin.fav)} / 弱队 ${_exPP(hA.implied_cover_shin.dog)}</b></div>`;
+    h+=`<div style="font-weight:700;margin:10px 0 4px">【C 让球分歧】</div>`;
+    h+=`<div style="font-size:13px">强队 cover 概率　模型 ${_exPP(hC.model_fav_cover)} vs 市场 ${_exPP(hC.market_fav_cover)}（模型−市场 ${_exSP(hC.diff)}）</div>`;
+    h+=_exPrior(hC.prior_note);
+  }
+  // B/D 冻结说明
+  h+=`<div class="muted" style="margin-top:12px;font-size:11.5px;border-top:1px solid var(--line);padding-top:8px">`;
+  h+=`诱惑形态（FLB/大热必死）按盘种分桶的转正闸门<b>当前全锁</b>（样本不足、CI 跨 0）→ 不渲染。${d.disclaimer}</div></div>`;
+  return h;
+}
 
 // 载入球队列表
 fetch('/api/teams').then(r=>r.json()).then(ts=>{

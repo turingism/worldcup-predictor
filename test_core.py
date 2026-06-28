@@ -935,3 +935,15 @@ def test_b_gate_buckets_per_market_not_mixed():
     # 1X2 与让球点数独立统计，不再相加混桶
     assert g["by_market"]["1x2"]["n_points"] != g["by_market"]["handicap"]["n_points"] or True
     assert g["any_unlocked"] == any(g["by_market"][m]["any_unlocked"] for m in ("1x2", "handicap"))
+
+
+def test_api_explainer_ok(client):
+    """机制解读端点：有赔率场→完整 A/C 卡 + 强制 CLV 先验，渲染文本零行动词；未知队优雅降级不 500。"""
+    import explainer
+    d = client.get("/api/explainer?home=Germany&away=Ecuador").get_json()
+    assert "A_water_structure" in d and "C_divergence" in d
+    assert "CLV" in d["C_divergence"]["prior_note"]            # 红线#3：分歧必挂先验
+    for w in explainer._BANNED:
+        assert w not in d["render"]                            # 渲染文本永不含行动/劝导词
+    r = client.get("/api/explainer?home=Atlantis&away=France")
+    assert r.status_code in (400, 404)                         # 未知队不 500
