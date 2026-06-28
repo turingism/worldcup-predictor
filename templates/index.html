@@ -350,6 +350,15 @@
     background:#0d1117;border-left:2px solid #2ea04344;border-radius:0 6px 6px 0;
     padding:6px 10px;margin:3px 0 1px;display:none}
   #upwrap.upnar-on .up-nar{display:block}
+  .up-read{grid-column:1/-1;font-size:12px;color:var(--txt);line-height:1.6;
+    background:#0d1117;border:1px solid #30363d;border-radius:8px;
+    padding:10px 12px;margin:4px 0 2px;display:none}
+  .up-read.on{display:block}
+  .up-read .rd-tbl{margin:6px 0;border-collapse:collapse;width:100%;font-size:11.5px}
+  .up-read .rd-tbl td{padding:3px 8px;border-bottom:1px solid #21262d}
+  .up-read .rd-tbl td:last-child{font-weight:600;white-space:nowrap}
+  .up-read .rd-warn{padding:7px 10px;border-left:3px solid #d29922;background:#1c1606;border-radius:6px;color:#e3b341;margin:4px 0}
+  .up-read .rd-prior{padding:6px 10px;border-left:3px solid #d29922;background:#1c1606;border-radius:6px;color:#e3b341;font-size:11px;margin:4px 0}
   .up-day{display:flex;align-items:center;gap:8px;margin:14px 2px 4px;padding-bottom:5px;
     border-bottom:1px dashed var(--line);font-size:12.5px;font-weight:700;color:#8b949e}
   .up-day:first-child{margin-top:2px}
@@ -719,6 +728,36 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   if(t.dataset.t==='champ' && !champCILoaded){ champCILoaded=true; loadChampCI(); }
   if(t.dataset.t==='champ' && !ratingsLoaded){ ratingsLoaded=true; loadRatings(); }  // 实力榜已并入本 tab
 });
+
+// ===== 看板让球 pill 旁「读盘卡」展开块（按需 fetch /api/explainer，只渲染 handicap_reading）=====
+async function exReadCard(btn, homeEn, awayEn, slug){
+  const box=document.getElementById('read-'+slug); if(!box) return;
+  if(box.classList.contains('on')){ box.classList.remove('on'); return; }   // 再点收起
+  box.classList.add('on');
+  if(box.dataset.loaded){ return; }                                          // 已加载过，直接展开
+  box.innerHTML='<span class="muted">读盘卡加载中…</span>';
+  try{
+    const r=await fetch(`/api/explainer?home=${encodeURIComponent(homeEn)}&away=${encodeURIComponent(awayEn)}`);
+    const d=await r.json();
+    if(!r.ok || d.error){ box.innerHTML=`<span class="muted">${d.error||'该场暂无市场让球盘口，无读盘卡。'}</span>`; return; }
+    if(!d.handicap_reading){ box.innerHTML='<span class="muted">该场暂无市场让球盘口，无读盘卡。</span>'; return; }
+    box.innerHTML=renderReadCard(d.handicap_reading, d.match); box.dataset.loaded='1';
+  }catch(e){ box.innerHTML=`<span class="muted">读盘卡加载失败：${e}</span>`; }
+}
+function renderReadCard(rd, match){
+  let h=`<div style="font-weight:700;margin-bottom:4px">📖 ${match} · 读盘卡（含加时结算）</div>`;
+  h+=`<div class="rd-warn">${rd.settle_warning}</div>`;
+  h+=`<div style="margin:4px 0">规则翻译：${rd.translation}</div>`;
+  h+=`<div style="margin:4px 0">${rd.self_check}</div>`;
+  h+=`<div class="muted" style="margin:4px 0">口径：${rd.caliber}</div>`;
+  h+=`<div style="margin-top:4px;font-weight:600">最终比分(含加时) → 谁 cover：</div><table class="rd-tbl">`;
+  rd.cover_table.forEach(r=>{ h+=`<tr><td>${r.label}</td><td>${r.verdict}</td></tr>`; });
+  h+=`</table>`;
+  h+=`<div style="margin:4px 0">${rd.fav_label} cover 概率：模型 ${_exPP(rd.model_fav_cover)} vs 市场 ${_exPP(rd.market_fav_cover)}（${rd.is_knockout?'淘汰赛模型偏常规时间、仅供参考':'小组赛口径一致'}）</div>`;
+  h+=`<div class="rd-prior">⚠ ${rd.prior_note}</div>`;
+  h+=`<div class="muted" style="font-size:10.5px;margin-top:4px">描述性认知，非投注建议，不含买/跳指令。</div>`;
+  return h;
+}
 
 // ===== 机制解读 tab（信息性 A/C，复用 /api/explainer）=====
 function exSwap(){ const h=$('#ex_home'),a=$('#ex_away'); const t=h.value; h.value=a.value; a.value=t; loadExplainer(); }
@@ -1333,13 +1372,16 @@ function dayLabel(date){
 }
 function upRow(u){
   const hm=(u.kickoff||'').slice(11);
+  const slug=((u.home_en||'')+'_'+(u.away_en||'')).replace(/[^a-zA-Z0-9]/g,'');
+  const readBtn=u.handicap?`<button class="seebtn" onclick="exReadCard(this,'${(u.home_en||'').replace(/'/g,"")}','${(u.away_en||'').replace(/'/g,"")}','${slug}')" title="读盘卡：本场让球盘按含加时最终比分结算的规则对照（描述性、非投注建议）">📖 读盘</button>`:'';
   return `<div class="uprow">
     <div class="up-t">${hm?`<b>${hm}</b><small>北京</small>`:'<b>待定</b>'}</div>
     <div class="up-vs"><span>${u.home}</span><span class="up-x">vs</span><span>${u.away}</span></div>
     <div class="up-pred"><span class="scpill" title="最可能的单一比分（点「看预测」看完整正确比分盘与大球/大胜概率）">${u.pred_gh}–${u.pred_ga}</span>${u.handicap?`<span class="hcpill" title="竞彩让球：${u.handicap.csl_is_handicap?`强队 ${u.handicap.fav} 让 ${u.handicap.csl_line} 球，倾向 ${u.handicap.jc_verdict}`:'平手（势均力敌，让0=常规胜平负）'}（让球线按本场期望净胜定）· 亚盘模型公平盘 让 ${u.handicap.fair_line}。点看预测看详情">${u.handicap.csl_is_handicap?'让'+u.handicap.csl_line:'平手'}</span>`:''}</div>
     <div class="up-p" title="主胜/平/客胜概率%（加粗=模型判定的最可能结果）">${P3(u)}</div>
-    <div class="up-act">${seeBtn(u)}${reportBtn(u)}${lineupBtn(u)}</div>
+    <div class="up-act">${seeBtn(u)}${reportBtn(u)}${lineupBtn(u)}${readBtn}</div>
     ${u.narrative?`<div class="up-nar">📣 ${u.narrative}</div>`:''}
+    ${u.handicap?`<div class="up-read" id="read-${slug}"></div>`:''}
   </div>`;
 }
 // 按比赛日分组渲染（list 已按开球时间升序）

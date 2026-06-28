@@ -132,6 +132,55 @@ def handicap_divergence(model_fav_cover, market_fav_cover):
             "diff": float(model_fav_cover - market_fav_cover), "prior_note": CLV_PRIOR}
 
 
+def handicap_reading(hA, hC, is_knockout, fav_name, dog_name):
+    """读盘卡：纯规则翻译 + 【含加时结算】确定性对照（零预测、零方向、不出买哪边）。
+    全用实际队名（不用强队/弱队，避免看反）。复用 hA(2路Shin去水)/hC(模型cover+CLV先验)。"""
+    line = float(hA["line"])
+    is_int = abs(line - round(line)) < 1e-9
+    fav_lbl = f"{fav_name}(-{line:g})"      # 被看好方让球：墨西哥(-1.5)
+    dog_lbl = f"{dog_name}(+{line:g})"      # 受让方：南非(+1.5)
+    warn = "⚠ 本盘按【含加时及点球的最终比分】结算，不是 90 分钟比分。" + (
+        "本场为淘汰赛：90 分钟战平、加时分胜负的场次，cover 结果可能与上半程直觉相反；"
+        "且本模型 cover 概率是**常规时间口径、未计入加时进球**，与本盘含加时结算口径有 gap，仅供参考。"
+        "→ 看淘汰赛让球盘时，以盘口写明的结算口径为准，别用 90 分钟比分套这张表的 cover 结论。"
+        if is_knockout else
+        "本场为小组赛、常规无加时，最终比分即 90 分钟比分，模型与盘口口径一致。")
+    floor_l = int(line)                      # 受让方「最多输几球仍 cover」的阈值
+    dog_keep = ("平或赢都算赢" if floor_l == 0 else f"最多输 {floor_l} 球（或平/赢）都算赢")
+    if is_int:
+        trans = (f"{fav_name} 让 {line:g} 球：{fav_lbl} 在【最终】净胜 >{line:g} 时赢盘、"
+                 f"净胜 ={line:g} 走盘退本、<{line:g} 输盘；{dog_lbl} 相反。")
+        chk = (f"🧭 自检：让球数带「-」的是被看好方，要赢够球数才算赢；带「+」的少输/平/赢都算赢。"
+               f"本场：{fav_name}-{line:g}（要赢 >{line:g}、赢 {line:g} 走盘）、{dog_name}+{line:g}（{dog_keep}、输 {line:g} 走盘）。")
+    else:
+        need = line + 0.5
+        trans = (f"{fav_name} 让 {line:g} 球（半球、无走盘）：{fav_lbl} 在【最终】净胜 ≥{need:g} 时赢盘；"
+                 f"{dog_lbl} 在 {fav_name} 最终净胜 ≤{floor_l}（含平、负）时赢盘。")
+        chk = (f"🧭 自检：让球数带「-」的是被看好方，要赢够球数才算赢；带「+」的少输/平/赢都算赢。"
+               f"本场：{fav_name}-{line:g}（要赢 ≥{need:g}）、{dog_name}+{line:g}（{dog_keep}）。")
+
+    def verdict(m):
+        if is_int and abs(m - line) < 1e-9:
+            return "走盘退本（双方退本金）"
+        return f"{fav_lbl} cover" if m > line else f"{dog_lbl} cover"
+
+    rows = []
+    for m in range(int(line) + 2, -3, -1):
+        if m == 0:
+            lab = "双方打平（含加时仍平→点球决出晋级，但点球只决定晋级、不决定让球；让球按最终净胜=0 算）"
+        elif m > 0:
+            lab = f"{fav_name} 最终净胜 {m}"
+        else:
+            lab = f"{fav_name} 最终净负 {-m}"
+        rows.append({"margin": m, "label": lab, "verdict": verdict(m)})
+    return {"settle_warning": warn, "translation": trans, "self_check": chk,
+            "is_knockout": bool(is_knockout), "fav_label": fav_lbl,
+            "caliber": ("淘汰赛·盘口含加时 vs 模型常规时间 → 有 gap" if is_knockout
+                        else "小组赛·无加时 → 口径一致"),
+            "cover_table": rows, "model_fav_cover": hC["model_fav_cover"],
+            "market_fav_cover": hC["market_fav_cover"], "prior_note": hC["prior_note"]}
+
+
 def explain_match(name, model_probs, close_odds, open_odds=None, margin_baseline=None,
                   handicap=None):
     """组装单场机制解读卡（dict）。所有字段=描述/解释，无任何行动建议。
@@ -149,6 +198,9 @@ def explain_match(name, model_probs, close_odds, open_odds=None, margin_baseline
         hC = handicap_divergence(handicap["model_fav_cover"], hA["implied_cover_shin"]["fav"])
         card["A_handicap"] = hA
         card["C_handicap_divergence"] = hC
+        card["handicap_reading"] = handicap_reading(
+            hA, hC, handicap.get("is_knockout", False),
+            handicap["fav_name"], handicap.get("dog_name", "受让方"))
     _assert_clean(render(card))   # 设计层红线自检
     return card
 
@@ -184,6 +236,18 @@ def render(card) -> str:
               f"  强队 cover 概率：模型 {hC['model_fav_cover']:.1%} vs 市场 {hC['market_fav_cover']:.1%}"
               f"（模型−市场 {hC['diff']:+.1%}）",
               f"  ⚠ {hC['prior_note']}"]
+    rd = card.get("handicap_reading")
+    if rd:
+        L += ["", "【读盘卡 · 含加时结算】", f"  {rd['settle_warning']}",
+              f"  规则翻译：{rd['translation']}",
+              f"  {rd['self_check']}",
+              f"  口径：{rd['caliber']}",
+              "  最终比分(含加时) → 谁 cover："]
+        for r in rd["cover_table"]:
+            L.append(f"    {r['label']} → {r['verdict']}")
+        L += [f"  {rd['fav_label']} cover 概率：模型 {rd['model_fav_cover']:.1%} vs 市场 {rd['market_fav_cover']:.1%}"
+              f"（{('淘汰赛模型偏常规时间、仅供参考' if rd['is_knockout'] else '小组赛口径一致')}）",
+              f"  ⚠ {rd['prior_note']}"]
     L += ["", f"  {card['disclaimer']}"]
     return "\n".join(L)
 
@@ -216,9 +280,12 @@ def build_card(m, home, away):
             *_, M = m.score_matrix(h, a, neutral=True)
             s = manager.settle_line(manager._margin_pmf(M), rec["fav_is_home"], rec["fav_line"])
             denom = s["win"] + s["lose"]
+            # 含加时结算口径标注：淘汰赛(date>=R32 起始)盘口含加时，而模型是常规时间分布 → 有 gap。
+            is_ko = str(rec.get("date", "")) >= "2026-06-28"
             hc = {"o_fav": rec["fav_spread_odds"], "o_dog": rec["dog_spread_odds"],
-                  "fav_line": rec["fav_line"],
+                  "fav_line": rec["fav_line"], "is_knockout": is_ko,
                   "fav_name": teams_zh.disp(h if rec["fav_is_home"] else a),
+                  "dog_name": teams_zh.disp(a if rec["fav_is_home"] else h),
                   "model_fav_cover": s["win"] / denom if denom > 1e-9 else s["win"]}
     except Exception:  # noqa  让球段缺失不影响 1X2 卡
         hc = None
