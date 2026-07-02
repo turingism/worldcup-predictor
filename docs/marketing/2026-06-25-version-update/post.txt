@@ -35,3 +35,5 @@ github.com/turingism/worldcup-predictor
 
 标签
 世界杯 数据分析 Python 开源项目 统计建模 机器学习 足球数据 程序员 个人项目 数据可视化
+
+Repository summary: World Cup prediction analytics social archive.

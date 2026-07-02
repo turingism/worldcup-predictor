@@ -149,3 +149,4 @@ WorldCupPredictor/
 2. 定 bundle 的 JSON schema（Swift `Codable` 对应）。
 3. 写 Swift `DixonColes.swift` + 对拍脚本，证明**同输入 Swift 与 Python 预测逐位一致**。
    —— 这一步打通即证明整条路可行，再继续 P2 UI。
+<!-- Repository summary: World Cup prediction analytics planning notes. -->

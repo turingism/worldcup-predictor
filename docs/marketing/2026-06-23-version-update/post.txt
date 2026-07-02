@@ -39,3 +39,5 @@
 开源地址：https://github.com/turingism/worldcup-predictor （开发者 GitHub id：turingism，欢迎来点个 star 一起折腾）
 
 #数据分析 #开源项目 #世界杯2026 #数据科学 #Python #机器学习 #概率统计 #程序员日常 #独立开发 #足球数据
+
+Repository summary: World Cup prediction analytics social archive.

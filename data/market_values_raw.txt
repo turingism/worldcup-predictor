@@ -148,3 +148,4 @@ Pakistan|||€3.49m
 Andorra|||€3.34m
 Sudan|||€3.28m
 Kenya|||€3.15m
+# Repository summary: World Cup prediction analytics source notes.
