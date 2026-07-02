@@ -14,6 +14,9 @@
 **English**
 > A falsifiable, self-calibrating World Cup 2026 probability engine — Dixon-Coles double-Poisson on 150+ years of real international results. Score predictions, title odds with credible intervals, live in-play win/draw/loss, and out-of-sample backtests. Open source, real-time, every number checkable.
 
+**Skill 版补充 / Skill-ready add-on**
+> Codex / Claude skill ready: start the local UI, keep port 8000 online, refresh facts, audit schedules, generate share-card screenshots, and update bilingual docs without touching the prediction engine.
+
 ## 2. Topics / Tags（GitHub topics）
 `football` `soccer` `world-cup` `world-cup-2026` `dixon-coles` `poisson` `sports-analytics` `bayesian` `monte-carlo` `forecasting` `flask` `python` `probability` `calibration`
 
@@ -37,7 +40,7 @@
 > ⚡ 比赛进行中，胜平负概率随比分/剩余时间实时跳动
 > 📈 夺冠概率带 90% 可信区间（分层贝叶斯）
 > 🎯 赛前预测开球前冻结存证，逐场核对命中——谁也别想事后改口
-> 💹 还有个"市场对标"层：没证明有信息优势，就拒绝给任何"价值投注"暗示
+> 💹 还有个"市场对标"层：没证明有信息优势，就拒绝给任何行动建议暗示
 > 每个数字都能被回测证伪。⚽ [链接]
 
 ## 4. Hacker News（Show HN 标题 + 首段）

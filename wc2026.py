@@ -9,6 +9,8 @@
 - 晋级树固定（R16/QF/SF/决赛）
 """
 from __future__ import annotations
+import json
+import os
 
 # —— 官方分组（队名与数据集一致）——
 GROUPS: dict[str, list[str]] = {
@@ -59,6 +61,23 @@ THIRD_SLOTS: dict[int, set] = {
     87: set("DEIJL"),
 }
 
+_THIRD_TABLE = None
+
+
+def _third_table() -> dict[str, dict[str, str]]:
+    """Load the official best-third allocation table.
+
+    The table has one row for every possible set of 8 third-placed teams.  A
+    constraint solver can find a valid assignment, but not necessarily FIFA's
+    official assignment.
+    """
+    global _THIRD_TABLE
+    if _THIRD_TABLE is None:
+        path = os.path.join(os.path.dirname(__file__), "data", "third_place_table_2026.json")
+        with open(path, encoding="utf-8") as f:
+            _THIRD_TABLE = json.load(f)
+    return _THIRD_TABLE
+
 # —— 淘汰赛晋级树：(本场, 上轮A, 上轮B) ——
 R16 = [(89, 74, 77), (90, 73, 75), (91, 76, 78), (92, 79, 80),
        (93, 83, 84), (94, 81, 82), (95, 86, 88), (96, 85, 87)]
@@ -84,6 +103,11 @@ ROUND_NAMES = {"R32": "1/16 决赛", "R16": "1/8 决赛", "QF": "八强", "SF": 
 
 def assign_thirds(qual_letters):
     """把出线的 8 个第三名小组匹配到 8 个第三槽位（满足候选约束）。返回 {match: 小组字母}。"""
+    key = "".join(sorted(qual_letters))
+    row = _third_table().get(key)
+    if row:
+        return {int(mn): L for mn, L in row.items()}
+
     qual = set(qual_letters)
     slots = sorted(THIRD_SLOTS.items(),
                    key=lambda kv: sum(1 for L in qual if L in kv[1]))  # 最受限优先

@@ -18,6 +18,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import tempfile
 
 import numpy as np
 
@@ -43,11 +44,19 @@ def load_ledger(path: str = LEDGER_PATH) -> dict:
 def save_ledger(preds: dict, path: str = LEDGER_PATH):
     """原子写（先 .tmp 再 replace），坏档不覆盖好档。"""
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump({"updated": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                   "preds": preds}, f, ensure_ascii=False)
-    os.replace(tmp, path)
+    fd, tmp = tempfile.mkstemp(prefix=os.path.basename(path) + ".", suffix=".tmp",
+                               dir=os.path.dirname(path), text=True)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump({"updated": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                       "preds": preds}, f, ensure_ascii=False)
+        os.replace(tmp, path)
+    finally:
+        try:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+        except OSError:
+            pass
 
 
 def _gkey(h: str, a: str) -> str:
@@ -142,6 +151,7 @@ def freeze(sim, now_bj: str | None = None, verbose=False) -> int:
 
     # 淘汰赛：仅对阵已真实确定（drawn=True 且非投影假设）的场次
     proj = sim.project(today=now[:10])
+    valid_ko_keys = set()
     for rd in proj["rounds"]:
         for m in rd["matches"]:
             if not m.get("drawn") or m.get("set"):   # 未抽签 / 已有结果
@@ -149,8 +159,19 @@ def freeze(sim, now_bj: str | None = None, verbose=False) -> int:
             mn = m.get("mn")
             a, b = m["a"], m["b"]
             kickoff = schedule.KO.get(mn, "")
-            upsert(_kkey(a, b), rd["name"], a, b, kickoff, kickoff[:10],
+            key = _kkey(a, b)
+            valid_ko_keys.add(key)
+            upsert(key, rd["name"], a, b, kickoff, kickoff[:10],
                    sim._ko_host(mn, a, b), sim.ko_city.get(mn))
+
+    # 若官方第三名分配/真实出线结果修正，清掉仍未开球的旧淘汰赛冻结项，避免 fixtures 同时显示新旧对阵。
+    for key, ent in list(preds.items()):
+        if ent.get("stage") == "group" or key in valid_ko_keys:
+            continue
+        kickoff = ent.get("kickoff") or ""
+        if kickoff and kickoff > now:
+            preds.pop(key, None)
+            n += 1
 
     if n:
         save_ledger(preds)

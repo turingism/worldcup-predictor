@@ -40,7 +40,8 @@ N_EXPORT_DRAWS = 300      # 导出的后验抽样套数（供 champ_ci 夺冠区
 
 
 def fit(half_life: float = 730.0, draws: int = 1000, tune: int = 1000,
-        chains: int = 2, seed: int = 42, verbose: bool = True) -> dict:
+        chains: int = 2, seed: int = 42, verbose: bool = True,
+        progressbar: bool = False) -> dict:
     """拟合分层贝叶斯模型，返回 {team: {net, net_lo, net_hi, atk, dfc}} 及元信息。"""
     import pymc as pm
     import pytensor.tensor as pt
@@ -71,7 +72,7 @@ def fit(half_life: float = 730.0, draws: int = 1000, tune: int = 1000,
         # 加权泊松对数似然（分数权重 -> 用 Potential）
         pm.Potential("wll", (w * (g * log_mu - pt.exp(log_mu) - pt.gammaln(g + 1.0))).sum())
         idata = pm.sample(draws=draws, tune=tune, chains=chains, cores=chains,
-                          random_seed=seed, target_accept=0.9, progressbar=verbose,
+                          random_seed=seed, target_accept=0.9, progressbar=progressbar,
                           compute_convergence_checks=False)
     if verbose:
         print(f"[bayes] 采样耗时 {time.time() - t0:.1f}s")
@@ -112,9 +113,12 @@ def main():
     ap.add_argument("--draws", type=int, default=1000)
     ap.add_argument("--tune", type=int, default=1000)
     ap.add_argument("--half-life", type=float, default=730.0)
+    ap.add_argument("--progress", action="store_true",
+                    help="显示 PyMC 采样进度条；默认关闭，避免无 matplotlib 环境崩溃")
     args = ap.parse_args()
 
-    res = fit(half_life=args.half_life, draws=args.draws, tune=args.tune)
+    res = fit(half_life=args.half_life, draws=args.draws, tune=args.tune,
+              progressbar=args.progress)
     with open(RATINGS_PATH, "w", encoding="utf-8") as f:
         json.dump(res, f, ensure_ascii=False)
     print(f"[bayes] 已写入 {RATINGS_PATH}（{res['meta']['n_teams']} 队）")

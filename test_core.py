@@ -93,6 +93,25 @@ def test_project_structure(model):
     assert p["champion"]                                  # 有冠军
 
 
+def test_official_third_place_table_germany_paraguay():
+    """回归：B/D/E/F/I/J/K/L 第三名出线时，官方表是 1E vs 3D。"""
+    import wc2026
+    winner = {"E": "Germany", "I": "France", "F": "Netherlands", "A": "Mexico",
+              "D": "United States", "G": "Belgium", "B": "Switzerland",
+              "L": "England", "K": "Portugal", "H": "Spain", "J": "Argentina",
+              "C": "Brazil"}
+    runner = {"A": "South Africa", "B": "Canada", "C": "Morocco", "D": "Australia",
+              "E": "Ivory Coast", "F": "Japan", "G": "Egypt", "H": "Uruguay",
+              "I": "Norway", "J": "Austria", "K": "Colombia", "L": "Croatia"}
+    third = {"B": "Bosnia and Herzegovina", "D": "Paraguay", "E": "Ecuador",
+             "F": "Sweden", "I": "Senegal", "J": "Algeria", "K": "DR Congo",
+             "L": "Ghana"}
+
+    assert wc2026.assign_thirds(["K", "E", "F", "L", "B", "D", "J", "I"])[74] == "D"
+    assert wc2026.resolve_r32(winner, runner, third, ["K", "E", "F", "L", "B", "D", "J", "I"])[74] == (
+        "Germany", "Paraguay")
+
+
 # ---------- API 冒烟 ----------
 @pytest.fixture(scope="module")
 def client():
@@ -150,6 +169,22 @@ def test_verify_outcome_and_rps():
     # 顺序无关 key：淘汰赛同对阵两种顺序应同 key；小组赛保留主客序
     assert verify._kkey("France", "Brazil") == verify._kkey("Brazil", "France")
     assert verify._gkey("Mexico", "South Africa") != verify._gkey("South Africa", "Mexico")
+
+
+def test_save_ledger_concurrent_writes_are_atomic(tmp_path):
+    """并发 freeze 会同时写账本；临时文件名必须唯一，不能互相抢固定 .tmp。"""
+    import concurrent.futures
+    import json
+    import verify
+
+    path = tmp_path / "predictions.json"
+    payloads = [{"K|A|B": {"home": "A", "away": "B", "i": i}} for i in range(12)]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+        list(ex.map(lambda p: verify.save_ledger(p, str(path)), payloads))
+
+    with open(path, encoding="utf-8") as f:
+        d = json.load(f)
+    assert isinstance(d.get("preds"), dict)
 
 
 def test_api_verify_ok(client):

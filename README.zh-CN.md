@@ -34,6 +34,22 @@
 
 ---
 
+## 🤖 Codex / Claude Skill 就绪
+
+这个仓库按「**本地产品 + agent skill**」维护：Codex / Claude 可以启动 Web UI、守住 `8000` 端口、刷新事实数据、核对赛程、生成分享卡截图、同步更新中英文文档，同时不误碰预测引擎。
+
+<p align="center">
+  <img src="./docs/screenshot-dashboard.png" alt="Codex / Claude skill 打开的世界杯比分预测器赛事看板" width="820">
+  <br><sub><em>skill 本地打开的同一个看板：<code>http://127.0.0.1:8000</code>。</em></sub>
+</p>
+
+双语 skill 操作说明：
+
+- [Codex / Claude Skill Guide](./docs/CODEX_SKILL.md)
+- [Codex / Claude Skill 使用说明](./docs/CODEX_SKILL.zh-CN.md)
+
+---
+
 ## 🎯 一句话价值
 
 **输入两支球队 → 给你最可能比分、完整比分概率矩阵、胜平负、期望进球(xG)。**

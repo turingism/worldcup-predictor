@@ -2058,7 +2058,8 @@ function renderFixtures(d){
   const lab=dt=>{const diff=Math.round((new Date(dt)-new Date(today))/864e5);return diff<=0?'今天':(diff===1?'明天':(diff===2?'后天':dt));};
   let html='<div class="card"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="mgsub" style="margin:0">📅 近期对战 · 点任意场次自动填表并生成报告</div><button onclick="loadLineupLedger()" title="对已完赛、登记关键人确认缺阵的场次，补算 纯模型 vs 首发确认版 的预测，用真实赛果检验首发数据有没有让预测更准" style="margin-left:auto;padding:6px 12px;border:1px solid #2ea04366;background:#0d1f14;color:#3fb950;border-radius:7px;cursor:pointer;font-size:12px">📊 首发增益记分卡</button></div>';
   Object.keys(byDay).sort().slice(0,3).forEach(day=>{
-    html+=`<div class="muted" style="margin:10px 0 5px;font-weight:600">${lab(day)} <span style="font-weight:400">${day}</span></div>
+    const label=lab(day), title=(label===day)?day:`${label} <span style="font-weight:400">${day}</span>`;
+    html+=`<div class="muted" style="margin:10px 0 5px;font-weight:600">${title}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px">`;
     byDay[day].forEach(f=>{
       const t=(f.kickoff||'').slice(11);

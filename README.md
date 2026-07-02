@@ -34,6 +34,22 @@ This is a **free, open-source** personal project. If it saved you some hassle or
 
 ---
 
+## 🤖 Codex / Claude Skill Ready
+
+This repo is maintained as a **local product plus an agent skill**: Codex / Claude can start the Web UI, keep port `8000` online, refresh facts, audit schedules, generate share-card screenshots, and update bilingual documentation without touching the prediction engine.
+
+<p align="center">
+  <img src="./docs/screenshot-dashboard.png" alt="Codex / Claude skill opens the local World Cup predictor dashboard" width="820">
+  <br><sub><em>The same dashboard the skill opens locally at <code>http://127.0.0.1:8000</code>.</em></sub>
+</p>
+
+See the bilingual skill operations guide:
+
+- [Codex / Claude Skill Guide](./docs/CODEX_SKILL.md)
+- [Codex / Claude Skill 使用说明](./docs/CODEX_SKILL.zh-CN.md)
+
+---
+
 ## 🎯 Value in one line
 
 **Enter two teams →** most likely scoreline, full score-probability matrix, win/draw/loss, expected goals (xG).
