@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """本届世界杯上下文表（只读衍生层）。
 
 提供三块「综合让球判断」需要的事实/状态数据，全部从真实已踢赛果或模型评级推导：

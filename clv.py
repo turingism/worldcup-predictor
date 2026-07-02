@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """Market benchmarking / CLV (closing-line value) honesty-check layer.
 
 市场对标 / CLV（闭盘线价值）诚实检验层。

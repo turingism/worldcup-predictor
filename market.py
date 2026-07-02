@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """
 国家队身价数据（Transfermarkt）+ 作为实力先验的工具。
 

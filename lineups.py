@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """
 首发名单层（lineups）：从 ESPN 公开 API 拉真实首发 11 人，对照 availability.json 的
 登记关键人做「在场 / 替补 / 缺阵」布尔核对，输出这一场的 per-match xG 乘子。

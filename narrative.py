@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """比赛解读文案层（只读展示）：把模型概率翻成「狂热但理性」的球迷语言。
 
 合规铁律（个人/教育项目，**非投注建议**）：

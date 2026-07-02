@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """
 首发增益记分卡（lineup_ledger）：对已完赛比赛补算「纯 DC 基线」与「首发确认版」两套预测，
 和真实赛果对比，累积统计——加入球员首发数据，到底有没有让预测更准？

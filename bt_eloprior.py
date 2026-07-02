@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """
 实验：Elo 先验「收缩混合」对预测质量的影响（区别于已否决的 use_elo 外生特征）。
 

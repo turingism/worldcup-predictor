@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """de-vig 口径回测：proportional vs odds_ratio vs shin，谁还原的盘口概率最贴真实赛果。
 
 只评估**盘口本身**（不掺模型）：用 data/odds.csv 的闭盘 1X2 赔率，三种 de-vig 各算隐含概率，

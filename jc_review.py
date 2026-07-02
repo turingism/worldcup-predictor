@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """竞彩让球长期复盘系统（手动录入 + 赛后三方对账）——存储 + cover 结算 + 单场对账纯函数。
 
 ╔══════════════════════════════════════════════════════════════════════╗

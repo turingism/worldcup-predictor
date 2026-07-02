@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """下载/更新国际比赛历史数据（martj42/international_results）。"""
 import os
 import urllib.request

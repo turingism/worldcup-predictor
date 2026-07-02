@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """实验回测：进球分布用负二项(NB2, var=μ+α·μ²)替代 Poisson，是否改善 RPS/LogLoss？
 
 动机：训练数据进球 方差/均值≈1.6 (>1)，提示过离散，Poisson 尾部偏窄。

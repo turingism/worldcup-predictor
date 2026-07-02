@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """
 实验：概率校准检验 + 等温回归(Isotonic)后校准能否降低 RPS。
 

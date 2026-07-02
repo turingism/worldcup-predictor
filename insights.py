@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """
 解读层：把『模型 vs 名气(Elo) 偏差』+ 伤病暴露(#1) + 环境暴露(#2) 合成每队诚实叙事。
 

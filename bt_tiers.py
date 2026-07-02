@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """实验回测：赛事强度分级加权是否优于现有"友谊0.5/其余1.0"？
 
 借鉴高盛/Elo 的赛事重要性分级思路：世界杯/洲际杯正赛 > 预选赛 > 友谊赛。

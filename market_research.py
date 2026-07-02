@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """市场研究层（只读、纯分析）——开盘→闭盘线移动的信息检验 + 分桶 + de-vig 敏感性。
 
 定位：研究**博彩市场如何运作**，不是参与下注。全部为概率/信息分析，非投注建议。

@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """Live-results layer: pull finished 2026 World Cup match scores from ESPN's public scoreboard API.
 
 实时赛果层：从 ESPN 公开 scoreboard API 拉取 2026 世界杯正赛已完场比分。

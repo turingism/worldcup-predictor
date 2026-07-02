@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """
 环境上下文层：海拔 + 高温 → 每场每队 xG 乘子。
 

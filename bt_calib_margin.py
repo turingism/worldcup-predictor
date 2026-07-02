@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """净胜球/比分校准 现状测量基线（只量不改，给改法定位偏差来源）。
 
 测什么（样本外 as-of，世界杯正赛）

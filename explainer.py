@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """市场机制解释器（market mechanism explainer）——【信息性·描述性认知】模块。
 
 ╔══════════════════════════════════════════════════════════════════════╗

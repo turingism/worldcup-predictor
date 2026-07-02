@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """
 上下文调整层：关键球员可用性 → 每队 xG 乘子。
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """模型 vs 博彩盘口 对标（借鉴高盛"与 bookmakers' odds 对照"）。
 
 盘口是行业金标准：把博彩 1X2 十进制赔率转成隐含概率（去掉 margin/overround 归一），

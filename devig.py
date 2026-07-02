@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """去 margin（de-vig）方法库——把博彩十进制赔率还原成"真实"概率的三种口径。
 
 为什么需要它（这就是 365/皇冠/伟德/威廉 这些公司的赔率在**算法上**能给的启发）：

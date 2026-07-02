@@ -1,3 +1,4 @@
+<!-- Repository summary: World Cup prediction analytics documentation. -->
 # CLAUDE.md — 世界杯比分预测项目（给未来的 Claude）
 
 > 重启 Claude Code 后读这个文件即可快速接手继续优化。先读本文件，再按需读 `README.md`。

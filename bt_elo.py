@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """实验回测：把 Elo 差作为外生特征加进双泊松 GLM，是否优于基线 DC？
 
 借鉴自高盛"以 Elo 为核心协变量"的思路（区别于此前已否决的"Elo 集成"）。

@@ -1,3 +1,4 @@
+<!-- Repository summary: World Cup prediction analytics documentation. -->
 # 更新日志 CHANGELOG
 
 世界杯比分预测器的改动记录。引擎核心（Dixon-Coles 双泊松 + half_life=730 + 蒙特卡洛）

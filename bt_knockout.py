@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """淘汰赛「保守效应」实证检验：90 分钟口径下，淘汰赛是否真的进球更少 / 平局更多？
 
 为什么单独写这一支

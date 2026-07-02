@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """
 足球经理人预测层（Football-Manager-style deep pre-match report）。
 

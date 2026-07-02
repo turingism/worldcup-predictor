@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """nb_alpha（负二项过离散）回测扫描——治净胜球欠离散，但只在 backtest 评估、不动线上模型。
 
 三道硬闸（采用标准，缺一不采用）：

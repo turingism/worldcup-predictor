@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """ESPN odds capture layer: pull DraftKings 1X2 moneyline from ESPN's public API → CLV pipeline.
 
 ESPN odds capture (legitimate, free): the same public ESPN API we use for live scores also exposes

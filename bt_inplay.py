@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """In-play 实时胜平负的可证伪性校验。
 
 诚实声明（数据可得性）：martj42/ESPN 只给**终场比分**，没有公开免费的国家队

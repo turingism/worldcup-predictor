@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """
 球队英文名 -> (中文名, 国旗 emoji) 映射 + 显示/反查辅助。
 

@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """
 动态 Elo 评级（World Football Elo 风格）+ 评级差 -> 胜平负 概率映射。
 

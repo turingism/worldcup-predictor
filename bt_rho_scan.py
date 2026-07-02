@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """DC ρ 缩放回测扫描——治「平局虚胖」病灶，只缩放(不重估)、只 backtest 评估、不动线上模型。
 
 三把锁（用户设定）：

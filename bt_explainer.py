@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Repository summary: World Cup prediction analytics module.
 """市场机制解释器的【可证伪验证 + B/D 转正闸门】（项目铁律：能验的才呈现）。
 
 验什么

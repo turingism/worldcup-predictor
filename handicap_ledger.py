@@ -1,3 +1,4 @@
+# Repository summary: World Cup prediction analytics module.
 """让球预测命中率擂台（只读分析层）。
 
 复用 `verify.py` 已冻结的赛前比分矩阵（`data/predictions.json`，开球前冻结、含完整 `matrix`），
