@@ -1,6 +1,6 @@
 # Codex / Claude Skill Guide
 
-<p align="right"><strong>English</strong> · <a href="./CODEX_SKILL.zh-CN.md">简体中文</a></p>
+<p align="right"><strong>English</strong> · <a href="./CODEX_SKILL.zh-CN.md">简体中文</a> · <a href="./CODEX_SKILL.zh-TW.md">繁體中文</a></p>
 
 This repository is designed to be operated as a **local product plus an agent skill**:
 

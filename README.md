@@ -1,6 +1,6 @@
 # ⚽ World Cup Score Predictor · 世界杯比分预测器
 
-<p align="right"><strong>English</strong> · <a href="./README.zh-CN.md">简体中文</a></p>
+<p align="right"><strong>English</strong> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./README.zh-TW.md">繁體中文</a></p>
 
 > ## ⚠️ Disclaimer / 免责声明
 > This is a **personal, educational open-source project** for statistical modeling, data analysis, and programming study only. It is **not** betting, investment, or any other advice. The author accepts **no liability** for anyone's use of it or for **any gambling/betting activity directly or indirectly associated with it**. All outputs are probabilistic estimates — **probability is not certainty**; gambling is negative-EV for most people over time and is legally restricted in many jurisdictions. You bear **all** risk and legal responsibility. Provided "as is" without warranty; using it means you have read and accepted this notice.
@@ -43,10 +43,11 @@ This repo is maintained as a **local product plus an agent skill**: Codex / Clau
   <br><sub><em>The same dashboard the skill opens locally at <code>http://127.0.0.1:8000</code>.</em></sub>
 </p>
 
-See the bilingual skill operations guide:
+See the trilingual skill operations guide:
 
 - [Codex / Claude Skill Guide](./docs/CODEX_SKILL.md)
 - [Codex / Claude Skill 使用说明](./docs/CODEX_SKILL.zh-CN.md)
+- [Codex / Claude Skill 使用說明（繁體）](./docs/CODEX_SKILL.zh-TW.md)
 
 ---
 
@@ -76,6 +77,9 @@ Where others say "I think Argentina wins," this gives you **a probability distri
 | 💹 **Market / CLV** | Model vs bookmaker closing line + closing-line-value **falsifiability test**; **no "value/stake" is shown without a proven positive CLV** — an honest check, not a betting nudge. The gate is now an **itemized checklist** that prints the real CLV numbers (sample size / mean CLV / t-value / share that beat the close) and whether each threshold is met — so "why is the value panel locked?" is fully auditable |
 | 🔄 **Update detection** (top-right) | A periodic `git fetch` + `rev-list` compares your local checkout against remote `main` (over the git protocol — **no GitHub API**, so no rate-limit) and tells you how many commits you're behind; 15-min cache, graceful offline degradation. When a new version exists it nudges you to **update with one sentence to Claude** (auto `git pull` + restart) |
 | 📈 **Title 90% credible interval + power ratings** | Hierarchical-Bayes posterior gives title odds a credible interval (parameter uncertainty) **and** the underlying net-strength power ranking — two views of one posterior; **auto-recomputed in the background** after new results |
+| 🔍 **Mechanism explainer** | A read-only, **descriptive** market-mechanism card for any fixture: Shin de-vig true implied probabilities + overround, a model-vs-market divergence map (KL + per-outcome gaps), and pre-match line movement — every divergence **force-carries the "market right, model wrong" prior** (the model's CLV is proven < 0). States cognition only; **emits no buy/skip instruction by construction** (banned-word guard + render self-check) |
+| 📒 **Lottery review** (China Sports Lottery) | A long-run **manual review loop**: enter the real CSL handicap line + your own call before kickoff (the model's prediction freezes at entry), fill the 90-minute score after, and get a **single-match three-way reconciliation** — you / model / market. Built to face the fact that neither you nor the model beats the market long-run; **hard-banned from ever aggregating into betting signals** (schema-level: no ROI / win-rate fields exist) |
+| 📱 **Mobile-first dashboard** | The whole UI holds together at ≤430px: three-column match rows, single-line score text, a **three-segment W/D/L probability bar** per upcoming match, and stacked pop-up layouts — no sideways scrolling on a phone |
 | 🔮 **Mystical divination** (cultural easter egg) | Seven traditional Chinese metaphysics systems each cast a fixture by **faithful, deterministic Gan-Zhi chart-casting** — with an honest leaderboard proving **no system beats a naive baseline**. A culture/algorithm curiosity with **no scientific or predictive basis; not betting advice** |
 
 ---
@@ -151,12 +155,18 @@ python3 simulate.py --sims 5000      # simulate the tournament: title / final / 
 python3 app.py        # open http://127.0.0.1:8000
 ```
 
-**Six tabs — each with a unified icon and split into *core* vs *comparison* groups — turn the whole "prediction window" into a playable, real-time product:**
+**Eight tabs — each with a unified icon and split into *core* vs *comparison* groups — turn the whole "prediction window" into a playable, real-time product:**
 
 #### 📋 Match dashboard (home / entry point)
 - **Three states**: 🔴 Live (ESPN live score + minute + **real-time W/D/L bar**) / 🟡 Upcoming (grouped by match day, with model scoreline + 3-way probabilities) / ✅ Finished (per-match prediction-vs-result checking, bucketed by confidence, upsets tagged — the **verification ledger** lives here).
 - One-tap "**See prediction**" on any match → pop-up **correct-score probability board** (see below), **same venue (host-advantage) basis** as the row's probabilities; or jump straight to that fixture's full **deep report** via the per-match shortcut.
 - Leave it open and it runs itself: a single scheduler pulls live scores and finished results only while the tab is visible (a new finish auto-retrains the model + recomputes the title interval), and bookmaker odds snapshot every 30 min — no clicking required. "**🔄 Refresh facts**" forces an immediate pull. The scheduling is hardened too: an atomic throttle lock on live refresh, a narrowed retrain lock, and an offline-recovery catch-up pull so nothing is missed after a dropout. The whole UI is responsive down to a ≤430px mobile breakpoint (no overflow), with a tokenized palette (a distinct draw color, higher-contrast high-probability heatmap cells).
+- **Every match row is a launch pad**: besides "See prediction" and the deep report, one-tap buttons jump straight into the **mechanism explainer** and the **lottery review** with the fixture pre-filled — no re-typing team names across tabs. Knockout rows and day headers carry a **stage badge** (R16 / QF / …), and the upcoming section cross-links into the live bracket ("where does the winner of this one go?").
+- **Mobile-first**: at ≤430px the dashboard reflows into compact three-column rows with a **three-segment W/D/L probability bar** under each upcoming match (exact percentages on tap), single-line scores, and stacked pop-ups — usable one-handed on a phone at the stadium.
+<p align="center">
+  <img src="./docs/screenshot-mobile.png" alt="Mobile dashboard at 375px: LIVE card with real-time W/D/L bar, upcoming rows with three-segment probability bars, stage badges and one-tap entries" width="300">
+  <br><sub><em>The same dashboard on a phone (375px) — LIVE in-play bar, per-match probability bars, stage badges, and one-tap entries into explainer / review.</em></sub>
+</p>
 - **Top-right update detection**: a background `git fetch` + `rev-list` quietly checks whether your checkout is behind remote `main` (over the git protocol, **not** the rate-limited GitHub API; 15-min cache, offline-safe). When a newer version exists it surfaces a non-intrusive prompt — and you can update with a single sentence to Claude, which runs `git pull` and restarts for you.
 <p align="center"><img src="./docs/screenshot-update.png" alt="Top-right update detection: behind-by-N-commits badge plus a new-version prompt to update with one sentence to Claude" width="760"></p>
 
@@ -165,14 +175,14 @@ Tap "**See prediction**" on any match and you get a **correct-score odds board**
 <p align="center"><img src="./docs/screenshot-scoreboard.png" alt="Correct-score probability board: per-tier scoreline odds with the most likely score highlighted, over-2.5 / either-team-≥3 / BTTS, and the full score-matrix heatmap" width="760"></p>
 
 #### 📣 Match narrative (probabilities, in fan language)
-Pinned to the top of both the score pop-up and the match-analysis report (a green card), the **match narrative** turns the model's raw win-rates into one fan-friendly Chinese line: team nicknames (桑巴军团 / 高卢雄鸡 …), a favorite / even / upset framing, the **dynamic China-Sports-Lottery line** (give-N or level lean), and the expected goal-feast / cagey-game vibe. It is **read-only and never touches the prediction engine** — purely a translation layer over numbers the model already computed. Compliance is built in by construction: a **banned-word guard** rejects any "sure-win / guaranteed / lock"-style wording (the generator never emits them, and a runtime guard throws if one slips through), every line ends with a **"not betting advice, watch responsibly"** tail, and it states probabilities and facts only — no ticket / purchase nudges.
+Pinned to the top of both the score pop-up and the match-analysis report (a green card), the **match narrative** turns the model's raw win-rates into one fan-friendly Chinese line: team nicknames (桑巴军团 / 高卢雄鸡 …), a favorite / even / upset framing, the **dynamic China-Sports-Lottery line** (give-N or level lean, now phrased in fan language too and explicitly labeled "**model-derived line, not the official book**"), and the expected goal-feast / cagey-game vibe. It is **read-only and never touches the prediction engine** — purely a translation layer over numbers the model already computed. Compliance is built in by construction: a **banned-word guard** (a 73-word denylist shared with the mechanism explainer) rejects any "sure-win / guaranteed / lock"-style wording (the generator never emits them, and a runtime guard throws if one slips through), every line ends with a **"not betting advice, watch responsibly"** tail, and it states probabilities and facts only — no ticket / purchase nudges.
 <p align="center">
   <img src="./docs/screenshot-narrative.png" alt="Match narrative card: the model's win-rates rendered as one fan-friendly line, with the dynamic handicap lean and a 'not betting advice' disclaimer" width="760">
   <br><sub><em>The match-narrative card — model probabilities translated into fan language, with the dynamic handicap lean and a built-in "not betting advice, watch responsibly" disclaimer.</em></sub>
 </p>
 
 #### ⚡ In-play W/D/L (the differentiating moat)
-While a match is live, the dashboard's LIVE card shows a real-time W/D/L stacked bar: the pre-match Dixon-Coles expected goals λ are **scaled by remaining time**, convolved with the **current score** into a Poisson "from now to full time" home/draw/away — shifting with every goal and minute. **Read-only engine, strictly isolated, never contaminating the falsifiability of the pre-match prediction.**
+While a match is live, the dashboard's LIVE card shows a real-time W/D/L stacked bar: the pre-match Dixon-Coles expected goals λ are **scaled by remaining time**, convolved with the **current score** into a Poisson "from now to full time" home/draw/away — shifting with every goal and minute. Host-nation matches use the **same host + environment basis as the frozen pre-match prediction** (e.g. USA at home: kickoff p(win) 30.1% neutral → 37.3% host-corrected), so the live bar and the frozen ledger never disagree at t=0. **Read-only engine, strictly isolated, never contaminating the falsifiability of the pre-match prediction.**
 
 #### ⚽ Match analysis (Football Manager deep report)
 Two dropdowns + neutral toggle → an **analyst-style report** for the fixture, in three parts: **process data** (recent form / head-to-head / attack-defence averages, from real history) → **algorithm model** (Dixon-Coles double-Poisson, with the **full score-probability matrix heatmap** — the old single-match view, now folded in) → **conclusions** (1X2 / over-under 1.5·2.5·3.5 / BTTS / total-goals / correct score / Asian handicap / China-Sports-Lottery handicap / half-full-time + a verdict & confidence). The **China-Sports-Lottery handicap line is now set per match** — N = round(the model's expected goal margin), clamped 0–6, instead of the old hardcoded "give 1 goal": lopsided games push it to give 2 / give 3 (e.g. Morocco vs Haiti, expected margin 1.98 → give 2), while even games collapse to level (give 0, i.e. the regular result, e.g. Germany vs Ecuador). Win / draw / loss is then judged against *that* line (win = net > N, draw = net = N, loss = net < N). Qualitative dimensions (formation / lineup / weather) are honestly flagged as *not engine-provided*; the half-full-time line is flagged low-confidence. The report is **deep-linkable straight to a given fixture** (`#manager?h=…&a=…`), which is exactly what the dashboard's per-match "deep report" button and the correct-score pop-up's "→ full match analysis" link use.
@@ -202,6 +212,14 @@ Two dropdowns + neutral toggle → an **analyst-style report** for the fixture, 
   - *An itemized honesty checklist, not a verdict from on high*: the gate is shown as a line-by-line list of the **real CLV numbers** — sample size, mean CLV, t-value, and the share of bets that beat the close — each marked met / not-met against its threshold. So "why is the value panel locked?" has an auditable, evidence-backed answer on screen; this is the anti-"sure-win" honesty layer made transparent.
   - *It may never unlock — and that's the point: it won't lie to you.* Beating a sharp closing line is genuinely hard; if the model has no real edge, it stays honestly locked rather than handing you a scary-looking number that's really just noise.
 <p align="center"><img src="./docs/screenshot-market.png" alt="Market / CLV honesty checklist: per-line CLV numbers (sample size / mean CLV / t-value / share beating the close) with met/not-met against each threshold" width="760"></p>
+
+#### 🔍 Mechanism explainer (descriptive market cognition — never an instruction)
+Enter any fixture (or one-tap from a dashboard row) and get a **read-only market-mechanism card**: **A. water structure** — Shin de-vig true implied probabilities, the bookmaker's overround, and water-level anomaly notes; **C. model-vs-market divergence map** — KL divergence plus per-outcome probability gaps, where **every divergence is force-framed with the "market right, model wrong" prior** (this model's CLV is proven < 0 out-of-sample; a divergence is more likely model error than market mispricing, and the card says so in amber, every time); plus **pre-match line movement** (open → close implied shift) and the same two-way Shin treatment for the handicap line. The "temptation patterns" section (favourite-longshot bias naming) stays **frozen behind a statistical gate** — per-market buckets unlock only at n ≥ 30 with a CI clear of zero, and until then it simply doesn't render. **By construction it cannot emit a buy/skip/value instruction**: a banned-word denylist plus a render-time self-check guard every card (violations throw, and the test suite pins counterexamples for each render branch).
+<p align="center"><img src="./docs/screenshot-explainer.png" alt="Mechanism explainer card: Shin de-vig water structure, model-vs-market divergence with the forced 'market right, model wrong' prior banner, and pre-match line movement" width="760"></p>
+
+#### 📒 Lottery review (a long-run honesty mirror, not a tip sheet)
+A **manual, single-match review loop** for the China Sports Lottery handicap: before kickoff you enter the real CSL line + both cover odds + **your own call** (back the favourite / back the underdog / skip) with an optional reason — and the model's three-way + most-likely-score prediction **freezes at that moment**. After the match you fill in the **90-minute score** (the UI reminds you: CSL settles on 90 minutes — extra time and penalties decide progression, not this line), and the tab reconciles the match **three ways: you / the model / the market**, each right / wrong / void (a pushed line voids everyone; your "skip" takes you out of that row). A derived **handicap reading card** translates the line into plain fan language with real team names ("Canada (−1) must win by 2+; win by exactly 1 pushes") — pure rule translation, zero direction. The whole tab exists to make one fact visible over time: **neither your judgment nor this model beats the market's closing line** — and it is **schema-banned from ever becoming a tip engine**: no ROI, no profit/loss, no win-rate fields exist in its data structure, cross-match aggregation into action signals is refused at the design level, and the test suite asserts those fields never appear.
+<p align="center"><img src="./docs/screenshot-jcreview.png" alt="Lottery review tab: enter the real CSL handicap line and your own call, the model freezes its prediction, and after the 90-minute score a three-way you/model/market reconciliation" width="760"></p>
 
 #### 🔮 Mystical divination (a cultural easter egg — explicitly *not* prediction)
 A playful, **deterministic** layer that casts each fixture through **seven traditional Chinese metaphysics systems**: Plum Blossom (梅花易数), Shooting Covered (射覆), I-Ching 64-hexagram (周易), Liu Yao Na-Jia (六爻纳甲), Qi Men Dun Jia (奇门遁甲), Da Liu Ren (大六壬), and Zi Wei Dou Shu (紫微斗数). Each one performs a **faithful chart-casting** driven purely by the kickoff moment's **Gan-Zhi pillars** (year/day/hour exact, solar-term month by true solar longitude, and venue-local *true solar time* when geolocated): real Yin/Yang escaping + palace rounds for Qi Men, real eight-palace world/response + Na-Jia six-relatives for Liu Yao, real month-general-over-hour plate + four lessons + three transmissions for Da Liu Ren, real star placement + brightness + birth-year four-transformations for Zi Wei, and so on. Team names enter only a thin **role-assignment layer** (who is home/away, and telling apart different fixtures at the same instant) — they **never inject real team strength**.
@@ -338,12 +356,16 @@ worldcup-predictor/
 ├── standings.py   ⚖️ Context tables (read-only): all-team GD table + live group standings + clinch detection (motivation-layer input)
 ├── handicap_ledger.py ⚖️ Handicap hit-rate arena: settle frozen matrices → CSL hit-rate / fair-line calibration / model-vs-market / handicap CLV
 ├── narrative.py   📣 Match narrative layer (fan-friendly copy + banned-word guard, display only)
+├── explainer.py   🔍 Mechanism explainer: Shin de-vig water structure + model-vs-market divergence (forced "market right" prior) + line movement; banned-word guarded
+├── jc_review.py   📒 Lottery review: manual CSL-line entry + frozen model call + 90-minute settle + you/model/market reconciliation (atomic writes; schema-banned from rate/ROI fields)
+├── espn_odds.py   💹 Odds snapshots (ESPN/DraftKings 1X2 + spreads) with proxy/direct retry fallback
 ├── verify.py      🎯 Prediction verification: frozen pre-match ledger + per-match scoring + bins/upsets
 ├── clv.py         💹 Market / CLV honesty check + EV / fractional Kelly (gated)
 ├── bayes.py       PyMC hierarchical-Bayes ratings (supplementary view) + posterior-sample export
 ├── champ_ci.py    📈 Title 90% credible interval (bayes-posterior-driven MC)
+├── env.py         Environment layer: altitude / heat multipliers for host cities (feeds in-play + verify)
 ├── backtest.py    Out-of-sample backtest (RPS / LogLoss / hit-rate); bt_*.py = various A/B backtests
-├── test_core.py   Regression suite (33 checks: prediction sanity / matrix normalization / API smoke / fixture-list parity / …)
+├── test_core.py   Regression suite (84 checks: prediction sanity / matrix normalization / API smoke / red-line guards / concurrency / …)
 ├── app.py         Flask backend (dashboard/predict/simulate/verify/market/CI + background auto-recompute)
 └── templates/index.html   Single-page UI (dashboard + heatmap + bracket + title board + intervals + market)
 ```

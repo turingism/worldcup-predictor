@@ -1,6 +1,6 @@
 # ⚽ Match-day Runbook
 
-<p align="right"><strong>English</strong> · <a href="./RUNBOOK.zh-CN.md">简体中文</a></p>
+<p align="right"><strong>English</strong> · <a href="./RUNBOOK.zh-CN.md">简体中文</a> · <a href="./RUNBOOK.zh-TW.md">繁體中文</a></p>
 
 > A one-page operating guide for running the predictor on a match day. See the main [README](../README.md) for what the project is.
 
@@ -25,9 +25,10 @@ cd ~/worldcup-predictor && python3 app.py        # http://127.0.0.1:8000
 > Keep the **dashboard tab in the foreground** for the auto-pulls to fire. On a long-running match day you can just leave the page open — scores, finishes, the title interval, and odds all roll forward by themselves.
 
 ### 🖱️ Tabs / buttons cheat-sheet
-- **📋 Dashboard** (home): 🔴 live / 🟡 upcoming / ✅ finished. "See prediction" on any match pops the score matrix. The **verification** ledger (pre-match predictions frozen before kickoff vs actuals, per-match scored) lives in the *Finished* section — early on, watch RPS/calibration, not hit-rate.
+- **📋 Dashboard** (home): 🔴 live / 🟡 upcoming / ✅ finished. "See prediction" on any match pops the score matrix; each row's 🔍 / 📒 buttons jump straight to the explainer / JC-review tabs. The **verification** ledger (pre-match predictions frozen before kickoff vs actuals, per-match scored) lives in the *Finished* section — early on, watch RPS/calibration, not hit-rate.
 - **⚽ Match analysis** (Football Manager): pick two teams → analyst-style report (process data → Dixon-Coles matrix + heatmap → 1X2 / over-under / Asian handicap / correct score / confidence). Absorbs the old single-match view.
-- **📖 Read-card / review tools**: market and handicap explanation cards plus the manual 90-minute settlement review loop for learning and calibration notes.
+- **🔍 Mechanism explainer**: per-match market mechanism card (Shin de-vig price structure + model-vs-market divergence, always framed with the "market right, model wrong" CLV prior); descriptive insight only.
+- **📒 JC review**: manually log the JC handicap line plus your own call, enter the 90-minute settlement score after the match → per-match three-way reconciliation (you / model / market), for learning and calibration notes.
 - **🌳 Bracket**: official 2026 projection; edit any score / knockout result as a what-if → bracket + title odds recompute live. **🔄 Refresh facts** here manually pulls ESPN finished results (retrains on new ones).
 - **🏆 Title odds + power ratings**: Monte-Carlo point estimate + Bayesian 90% interval (whisker chart; "↻ recompute" to refresh) + the Bayesian net-strength power ranking.
 - **💹 Market**: model vs closing line + CLV; the value/Kelly panel is **honestly locked by default**.

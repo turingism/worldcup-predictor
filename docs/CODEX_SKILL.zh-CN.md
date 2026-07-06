@@ -1,6 +1,6 @@
 # Codex / Claude Skill 使用说明
 
-<p align="right"><a href="./CODEX_SKILL.md">English</a> · <strong>简体中文</strong></p>
+<p align="right"><a href="./CODEX_SKILL.md">English</a> · <strong>简体中文</strong> · <a href="./CODEX_SKILL.zh-TW.md">繁體中文</a></p>
 
 这个仓库现在按「**本地产品 + agent skill**」来维护：
 
