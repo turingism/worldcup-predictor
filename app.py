@@ -229,6 +229,12 @@ def _regen_odds_worker():
     try:
         r = subprocess.run([sys.executable, os.path.join(_BASE_DIR, "espn_odds.py")],
                            capture_output=True, text=True, cwd=_BASE_DIR, timeout=600)
+        if r.returncode != 0:
+            # 失败：不写 updated/last（节流窗口从"成功完成"起算，失败不占窗口、可立即重试，
+            # 与 _regen_ci_worker 同口径），也不清市场缓存（旧快照仍是最新有效数据）。
+            tail = "\n".join((r.stderr or "").strip().splitlines()[-5:])
+            print(f"[odds] 后台快照失败 returncode={r.returncode}：{tail}")
+            return
         _ODDS_JOB["updated"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         _ODDS_JOB["last"] = time.time()   # 节流窗口从"成功完成"起算（与 champ_ci 同口径）
         _MARKET_CACHE.clear()      # 新快照落盘后失效市场缓存，下次 /api/market 用新盘口重建
@@ -440,11 +446,13 @@ def api_jc_review():
                             "reconcile": jc.reconcile(rec)})
         if act == "result":
             h = MODEL.resolve(body["home"]); a = MODEL.resolve(body["away"])
-            rc = jc.enter_result(body["date"], h, a, int(body["h90"]), int(body["a90"]))
+            rc = jc.enter_result(body["date"], h, a, body["h90"], body["a90"])
             return jsonify({"ok": True, "reconcile": rc})
         return jsonify({"error": "未知 action"}), 400
     except KeyError as e:
         return jsonify({"error": f"缺字段或未知球队：{e}"}), 400
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:  # noqa
         return jsonify({"error": f"操作失败：{e}"}), 500
 
@@ -1029,6 +1037,8 @@ def api_project():
     _localize_bracket(p, keep_en=True)           # 投影需保留英文原名供前端北京/当地切换与深链回填
     p["facts"] = len(_sim().actual_results)      # 已采用的小组赛真实赛果场数
     p["ko_facts"] = len(_sim().actual_ko)        # 已自动套入的淘汰赛真实赛果场数
+    p["champion_basis"] = "single_path_projection"
+    p["projection_note"] = "逐场取最可能胜者串成一条官方晋级树；它不是多次蒙特卡洛夺冠概率榜首。"
     return jsonify(p)
 
 
@@ -1186,8 +1196,9 @@ def api_dashboard():
             row.update(_probs(e))
         try:    # 实时胜平负：赛前 λ 按剩余时间缩放 + 当前比分卷积（只读引擎，不入账本/统计）
             minute = inplaymod.parse_minute(r.get("clock"), r.get("period"))
-            row["wdl"] = inplaymod.win_draw_loss(MODEL, r["home"], r["away"],
-                                                 r["gh"], r["ga"], minute, neutral=True)
+            row["wdl"] = inplaymod.win_draw_loss_host(MODEL, r["home"], r["away"],
+                                                      r["gh"], r["ga"], minute,
+                                                      host=row.get("host"), city=row.get("city"))
             row["minute"] = minute
         except Exception as ex:  # noqa  in-play 失败不致命，live 卡退化为只显示比分
             print(f"[inplay] {r['home']} vs {r['away']} 计算失败：{ex}")

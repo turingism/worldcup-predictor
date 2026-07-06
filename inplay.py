@@ -21,6 +21,8 @@ import re
 import numpy as np
 from scipy.stats import poisson
 
+import env
+
 MAX_REM = 10          # 每队剩余进球枚举上限（11×11 终场组合，足够覆盖）
 FULL = 90.0           # 常规时间（缩放分母）
 
@@ -79,6 +81,26 @@ def win_draw_loss(model, home: str, away: str, gh: int, ga: int, minute: float,
             "t_rem": round(t_rem, 4),
             "lam_h": round(float(lam_h), 3), "lam_a": round(float(lam_a), 3),
             "exp_final_h": round(gh + lh, 2), "exp_final_a": round(ga + la, 2)}
+
+
+def win_draw_loss_host(model, home: str, away: str, gh: int, ga: int, minute: float,
+                       host: str | None = None, city: str | None = None) -> dict:
+    """host+env 口径的 in-play 胜平负（镜像 verify.pair_predict 的朝向逻辑）。
+
+    东道主场次接入主场优势 + 环境乘子，使 live 卡与赛前冻结概率**同口径**；
+    host 语义=英文队名（与账本 e['host'] 一致）。非东道主场次退化为原 neutral 行为。"""
+    mh, ma = env.match_mult(home, away, city)
+    em = (mh, ma) if (mh, ma) != (1.0, 1.0) and city else None
+    if host == home:
+        return win_draw_loss(model, home, away, gh, ga, minute, neutral=False, env_mult=em)
+    if host == away:                       # away 为主 → 反向计算后转置回 home 视角
+        r = win_draw_loss(model, away, home, ga, gh, minute, neutral=False,
+                          env_mult=(em[1], em[0]) if em else None)
+        return {"p_home": r["p_away"], "p_draw": r["p_draw"], "p_away": r["p_home"],
+                "t_rem": r["t_rem"],
+                "lam_h": r["lam_a"], "lam_a": r["lam_h"],
+                "exp_final_h": r["exp_final_a"], "exp_final_a": r["exp_final_h"]}
+    return win_draw_loss(model, home, away, gh, ga, minute, neutral=True, env_mult=em)
 
 
 if __name__ == "__main__":

@@ -132,6 +132,8 @@ def test_api_predict_ok(client):
 def test_api_project_ok(client):
     d = client.post("/api/project", json={}).get_json()
     assert d["champion"] and "ko_facts" in d and len(d["rounds"]) == 5
+    assert d["champion_basis"] == "single_path_projection"
+    assert "不是多次蒙特卡洛夺冠概率榜首" in d["projection_note"]
 
 
 def test_api_ratings_ok(client):
@@ -218,6 +220,31 @@ def test_inplay_endgame_collapses(model):
     import inplay
     w = inplay.win_draw_loss(model, "Germany", "Curaçao", 2, 0, 90, neutral=True)
     assert w["p_home"] > 0.99 and w["t_rem"] == 0.0
+
+
+def test_inplay_host_orientation(model):
+    """走地口径：东道主为 home 时 win_draw_loss_host 应接入主场优势，p_home 高于 neutral。"""
+    import inplay
+    b0 = inplay.win_draw_loss(model, "United States", "Australia", 0, 0, 0, neutral=True)
+    bh = inplay.win_draw_loss_host(model, "United States", "Australia", 0, 0, 0,
+                                   host="United States")
+    assert bh["p_home"] > b0["p_home"]
+
+
+def test_inplay_host_away_transpose(model):
+    """走地口径：host==away 时应=手工反向 neutral=False 计算的逐键转置（home 视角）。"""
+    import inplay
+    A, B = "Australia", "United States"
+    r = inplay.win_draw_loss_host(model, A, B, 0, 1, 30, host=B)
+    rev = inplay.win_draw_loss(model, B, A, 1, 0, 30, neutral=False)
+    assert r["p_home"] == pytest.approx(rev["p_away"])
+    assert r["p_draw"] == pytest.approx(rev["p_draw"])
+    assert r["p_away"] == pytest.approx(rev["p_home"])
+    assert r["lam_h"] == pytest.approx(rev["lam_a"])
+    assert r["lam_a"] == pytest.approx(rev["lam_h"])
+    assert r["exp_final_h"] == pytest.approx(rev["exp_final_a"])
+    assert r["exp_final_a"] == pytest.approx(rev["exp_final_h"])
+    assert r["t_rem"] == pytest.approx(rev["t_rem"])
 
 
 def test_inplay_isolation_no_ledger_write():
@@ -407,7 +434,7 @@ def test_handicap_conclusion_shape_and_monotone(model):
     # 公平盘 = |net| 最小档
     fair = min(lines, key=lambda s: abs(s["net"]))
     assert abs(fair["line"] - hc["fair_line"]) < 1e-9
-    # 建议上限不亏（net≥0），且每档赢/走/输归一
+    # 模型上限不亏（net≥0），且每档赢/走/输归一
     mf = [s for s in lines if abs(s["line"] - hc["max_fair_line"]) < 1e-9][0]
     assert mf["net"] >= -1e-9
     for s in lines:
@@ -826,6 +853,10 @@ def test_narrative_clean_guard_raises():
     import pytest
     with pytest.raises(ValueError):
         narrative._clean("本场稳赚不赔")
+    with pytest.raises(ValueError):
+        narrative._clean("推荐主胜")           # explainer 并集词「推荐」也必拦（守卫词表升级反例）
+    with pytest.raises(ValueError):
+        narrative._clean("可以买入让球")        # explainer 并集词「买入/可以买」也必拦
     assert narrative._clean("非投注建议，理性观赛") == "非投注建议，理性观赛"   # 合规串放行
 
 
@@ -883,6 +914,27 @@ def test_explainer_redline_guard_is_functional():
             assert False, f"红线守卫漏拦行动文本：{t}"
         except ValueError:
             pass
+
+
+def test_template_handicap_copy_stays_descriptive():
+    """让球展示应保持模型描述口径，不写成行动建议。"""
+    import pathlib
+    html = pathlib.Path("templates/index.html").read_text(encoding="utf-8")
+    assert "建议最多让" not in html
+    assert "让1 →" not in html
+    assert "cslSummary" in html
+    for action_copy in ("永远押", "跟模型背离方下注", "可下注样本", "下注那一刻",
+                        "价值投注 / Kelly 注码", "押注 @赔率"):
+        assert action_copy not in html
+
+
+def test_bracket_copy_distinguishes_projection_from_title_odds():
+    """晋级树冠军是单一路径投影，不应被包装成夺冠概率榜首。"""
+    import pathlib
+    html = pathlib.Path("templates/index.html").read_text(encoding="utf-8")
+    assert "最可能夺冠" not in html
+    assert "单一路径投影冠军" in html
+    assert "可能不同于夺冠概率榜首" in html
 
 
 def test_explainer_orientation_regression():
@@ -1047,8 +1099,166 @@ def test_api_jc_review_roundtrip(client):
         "home": "South Africa", "away": "Canada", "fav_is_home": False, "line": 1.0,
         "o_fav": 2.78, "o_dog": 2.23, "my_pick": "dog", "my_note": "t"}).get_json()
     assert p["ok"] and p["record"]["model"]["frozen_at"]          # 录入即冻结
+    bad = client.post("/api/jc_review", json={"action": "result", "date": "2026-06-29",
+        "home": "South Africa", "away": "Canada", "h90": 1.5, "a90": -1})
+    assert bad.status_code == 400 and "非负整数" in bad.get_json()["error"]
     r = client.post("/api/jc_review", json={"action": "result", "date": "2026-06-29",
         "home": "South Africa", "away": "Canada", "h90": 1, "a90": 1}).get_json()
     assert r["ok"] and r["reconcile"]["status"] == "settled" and "CLV" in r["reconcile"]["prior_note"]
     if os.path.exists(jc.STORE):
         os.remove(jc.STORE)                                       # 清理测试落盘
+
+
+def _jc_upsert(jc, date, home_en, away_en):
+    """按 upsert_prematch 签名构造一条最小录入（口径同 _jc_rec：fav=客队让1）。"""
+    return jc.upsert_prematch(date, home_en, away_en, home_en, away_en, False,
+                              fav_is_home=False, line=1.0, o_fav=2.78, o_dog=2.23,
+                              model_fav_cover=0.30, model_1x2={"H": 0.3, "D": 0.3, "A": 0.4},
+                              pred_score="1-1", my_pick="dog")
+
+
+def test_jc_save_all_atomic_no_tmp_residue(tmp_path, monkeypatch):
+    """_save_all 原子写（verify.save_ledger 同款）：写完无 .tmp 残留、落盘可完整 json.load。
+    load_all/_save_all 均在调用时读模块全局 STORE，monkeypatch 有效。"""
+    import json
+    import jc_review as jc
+    monkeypatch.setattr(jc, "STORE", str(tmp_path / "jc.json"))
+    rec = _jc_upsert(jc, "2026-06-29", "South Africa", "Canada")
+    assert rec["key"] == "2026-06-29_South Africa_Canada"
+    assert not list(tmp_path.glob("*.tmp")), "原子写后不得有 .tmp 残留"
+    with open(tmp_path / "jc.json", encoding="utf-8") as f:
+        d = json.load(f)                                          # 坏档写法会在这里炸
+    assert rec["key"] in d and d[rec["key"]]["jc"]["line"] == 1.0
+
+
+def test_jc_concurrent_upserts_no_lost_update(tmp_path, monkeypatch):
+    """进程内写锁：12 线程 barrier 对齐并发 upsert 不同 key，不得互吞更新（丢档）。"""
+    import threading
+    import jc_review as jc
+    monkeypatch.setattr(jc, "STORE", str(tmp_path / "jc.json"))
+    n = 12
+    barrier = threading.Barrier(n)
+    errors = []
+
+    def worker(i):
+        try:
+            barrier.wait()
+            _jc_upsert(jc, f"2026-06-{15 + i:02d}", f"Team{i}", f"Rival{i}")
+        except Exception as e:                                    # noqa: BLE001（测试收集）
+            errors.append(e)
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors, f"并发 upsert 抛错：{errors}"
+    d = jc.load_all()
+    assert len(d) == n, f"丢更新：期望 {n} 条，实得 {len(d)} 条"
+    for i in range(n):
+        assert jc.match_key(f"2026-06-{15 + i:02d}", f"Team{i}", f"Rival{i}") in d
+    assert not list(tmp_path.glob("*.tmp"))
+
+
+# ---------- 后端健壮性三连（2026-07-06）----------
+def test_espn_odds_get_retry_and_fallback(monkeypatch):
+    """espn_odds._get 走 (系统代理, 直连)×2 重试：前 3 次抛 URLError 第 4 次成功→返回 json；
+    4 次全败→抛最后异常（同 live._fetch_json 模式，2026-06-19 修 macOS 代理偶发 503）。"""
+    import urllib.error
+    import espn_odds as eo
+
+    class _Resp:                                  # 模拟 urlopen 返回（context manager + read）
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return b'{"ok": 1}'
+
+    calls = {"n": 0, "openers": []}
+
+    def fake(req, timeout, opener=None):
+        calls["n"] += 1
+        calls["openers"].append(opener)
+        if calls["n"] < 4:
+            raise urllib.error.URLError("Tunnel connection failed: 503")
+        return _Resp()
+
+    monkeypatch.setattr(eo, "_urlopen_raw", fake)
+    assert eo._get("https://example.invalid/x") == {"ok": 1}
+    assert calls["n"] == 4
+    # 前 2 次默认路径（opener=None，系统代理），后 2 次回退直连 opener
+    assert calls["openers"][:2] == [None, None]
+    assert calls["openers"][2] is eo._NOPROXY_OPENER and calls["openers"][3] is eo._NOPROXY_OPENER
+
+    def always_fail(req, timeout, opener=None):
+        raise urllib.error.URLError("down")
+
+    monkeypatch.setattr(eo, "_urlopen_raw", always_fail)
+    with pytest.raises(urllib.error.URLError):
+        eo._get("https://example.invalid/x")
+
+
+def test_regen_odds_worker_nonzero_returncode_no_state_write(monkeypatch):
+    """espn_odds.py 子进程 returncode!=0 时：不写 _ODDS_JOB['updated'/'last']（失败不占节流窗口）、
+    不清 _MARKET_CACHE/_MR_CACHE（旧快照仍有效），finally 复位 running。"""
+    import types
+    import app as appmod
+
+    fake_run = lambda *a, **k: types.SimpleNamespace(  # noqa: E731
+        returncode=1, stdout="", stderr="Traceback ...\nboom: ESPN 拉取失败")
+    monkeypatch.setattr(appmod, "subprocess", types.SimpleNamespace(run=fake_run))
+
+    last0, updated0 = appmod._ODDS_JOB["last"], appmod._ODDS_JOB["updated"]
+    appmod._MARKET_CACHE["__sentinel__"] = "keep"
+    appmod._MR_CACHE["__sentinel__"] = "keep"
+    appmod._ODDS_JOB["running"] = True
+    try:
+        appmod._regen_odds_worker()
+        assert appmod._ODDS_JOB["last"] == last0, "失败不得占节流窗口（last 不写）"
+        assert appmod._ODDS_JOB["updated"] == updated0, "失败不得标记 updated"
+        assert appmod._MARKET_CACHE.get("__sentinel__") == "keep", "失败不得清市场缓存"
+        assert appmod._MR_CACHE.get("__sentinel__") == "keep", "失败不得清市场研究缓存"
+        assert appmod._ODDS_JOB["running"] is False, "finally 必须复位 running"
+    finally:
+        appmod._MARKET_CACHE.pop("__sentinel__", None)
+        appmod._MR_CACHE.pop("__sentinel__", None)
+        appmod._ODDS_JOB["running"] = False
+
+
+def test_ledger_lock_serializes_read_modify_write(tmp_path, monkeypatch):
+    """verify._LEDGER_LOCK 串行化账本「读→改→写」：两线程 barrier 对齐并发跑
+    load_ledger→加条目→save_ledger（freeze/backfill 的锁化骨架；真 freeze 依赖整套 sim、
+    且 load/save 默认路径在 def 时绑定，故用锁化包装等价验证），最终账本=两者并集、零丢失。"""
+    import threading
+    import verify
+
+    path = str(tmp_path / "predictions.json")
+    monkeypatch.setattr(verify, "LEDGER_PATH", path)
+    assert isinstance(verify._LEDGER_LOCK, type(threading.RLock()))   # RLock 保险（同线程可重入）
+    barrier = threading.Barrier(2)
+    errors = []
+
+    def worker(tag):
+        try:
+            barrier.wait()
+            for i in range(20):
+                with verify._LEDGER_LOCK:          # freeze/backfill 内部同款持锁段
+                    preds = verify.load_ledger(path)
+                    preds[f"K|{tag}|{i}"] = {"home": tag, "away": str(i), "retro": False}
+                    verify.save_ledger(preds, path)
+        except Exception as e:  # noqa: BLE001（测试收集）
+            errors.append(e)
+
+    threads = [threading.Thread(target=worker, args=(t,)) for t in ("A", "B")]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors, f"并发写账本抛错：{errors}"
+    final = verify.load_ledger(path)
+    want = {f"K|{t}|{i}" for t in ("A", "B") for i in range(20)}
+    assert set(final) == want, f"丢更新：缺 {want - set(final)}"
+    assert not list(tmp_path.glob("*.tmp"))

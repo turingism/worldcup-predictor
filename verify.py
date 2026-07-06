@@ -19,6 +19,7 @@ import datetime as dt
 import json
 import os
 import tempfile
+import threading
 
 import numpy as np
 
@@ -28,6 +29,9 @@ import env
 LEDGER_PATH = os.path.join(os.path.dirname(__file__), "data", "predictions.json")
 GROUP_END = "2026-06-28"          # 小组赛阶段截止（与 simulate.py 同口径）
 _RETRO_CACHE: dict[str, object] = {}   # as_of 日期 -> 回溯模型（进程内缓存）
+# 账本「读→改→写」进程内锁：/api/dashboard 与 /api/verify 等并发触发 freeze/backfill 时，
+# save_ledger 只保证单次写原子，串行化整个 read-modify-write 才能防丢更新（互不调用，RLock 保险）。
+_LEDGER_LOCK = threading.RLock()
 
 
 # ---------- 账本 ----------
@@ -114,70 +118,71 @@ def pair_predict(model, a: str, b: str, host=None, city=None, use_env=True) -> d
 def freeze(sim, now_bj: str | None = None, verbose=False) -> int:
     """对所有【尚未开球】的本届场次写入/更新预测（开球后永不触碰）。
     小组赛 72 场始终可冻结；淘汰赛仅在对阵真实确定（drawn）后冻结。
-    返回本次写入/更新的条目数。"""
-    import schedule
-    now = now_bj or _now_bj()
-    preds = load_ledger()
-    n = 0
+    返回本次写入/更新的条目数。整段持 _LEDGER_LOCK：读→改→写不被并发 freeze/backfill 交错。"""
+    with _LEDGER_LOCK:
+        import schedule
+        now = now_bj or _now_bj()
+        preds = load_ledger()
+        n = 0
 
-    def upsert(key, stage, h, a, kickoff, date, host, city):
-        nonlocal n
-        if kickoff and kickoff <= now:          # 已开球：冻结，永不再写
-            return
-        try:
-            p = pair_predict(sim.m, h, a, host, city, use_env=getattr(sim, "use_env", True))
-        except KeyError:                         # 队不在模型（样本不足），跳过
-            return
-        old = preds.get(key)
-        ent = {"stage": stage, "home": h, "away": a, "kickoff": kickoff, "date": date,
-               "host": host, "city": city, "retro": False,
-               "frozen_at": now, **p}
-        # 预测内容没变就不动（避免无谓的磁盘写与 frozen_at 抖动）
-        if old and all(old.get(k) == ent[k] for k in
-                       ("gh", "ga", "p_home", "p_draw", "p_away", "home", "away")):
-            return
-        preds[key] = ent
-        n += 1
-
-    # 小组赛：官方赛程全量
-    for ps in sim.fixtures.values():
-        for (h, a) in ps:
-            if (h, a) in sim.actual_results:     # 已完赛（账本里该有赛前条目，没有走回补）
-                continue
-            kickoff = schedule.GROUP.get((h, a), "")
-            upsert(_gkey(h, a), "group", h, a, kickoff,
-                   kickoff[:10] or sim.fixture_date.get((h, a), ""),  # 北京开球日（与 KO 一致，不用场馆当地日）
-                   sim.group_host.get((h, a)), sim.group_city.get((h, a)))
-
-    # 淘汰赛：仅对阵已真实确定（drawn=True 且非投影假设）的场次
-    proj = sim.project(today=now[:10])
-    valid_ko_keys = set()
-    for rd in proj["rounds"]:
-        for m in rd["matches"]:
-            if not m.get("drawn") or m.get("set"):   # 未抽签 / 已有结果
-                continue
-            mn = m.get("mn")
-            a, b = m["a"], m["b"]
-            kickoff = schedule.KO.get(mn, "")
-            key = _kkey(a, b)
-            valid_ko_keys.add(key)
-            upsert(key, rd["name"], a, b, kickoff, kickoff[:10],
-                   sim._ko_host(mn, a, b), sim.ko_city.get(mn))
-
-    # 若官方第三名分配/真实出线结果修正，清掉仍未开球的旧淘汰赛冻结项，避免 fixtures 同时显示新旧对阵。
-    for key, ent in list(preds.items()):
-        if ent.get("stage") == "group" or key in valid_ko_keys:
-            continue
-        kickoff = ent.get("kickoff") or ""
-        if kickoff and kickoff > now:
-            preds.pop(key, None)
+        def upsert(key, stage, h, a, kickoff, date, host, city):
+            nonlocal n
+            if kickoff and kickoff <= now:          # 已开球：冻结，永不再写
+                return
+            try:
+                p = pair_predict(sim.m, h, a, host, city, use_env=getattr(sim, "use_env", True))
+            except KeyError:                         # 队不在模型（样本不足），跳过
+                return
+            old = preds.get(key)
+            ent = {"stage": stage, "home": h, "away": a, "kickoff": kickoff, "date": date,
+                   "host": host, "city": city, "retro": False,
+                   "frozen_at": now, **p}
+            # 预测内容没变就不动（避免无谓的磁盘写与 frozen_at 抖动）
+            if old and all(old.get(k) == ent[k] for k in
+                           ("gh", "ga", "p_home", "p_draw", "p_away", "home", "away")):
+                return
+            preds[key] = ent
             n += 1
 
-    if n:
-        save_ledger(preds)
-        if verbose:
-            print(f"[verify] 冻结/更新 {n} 场赛前预测（账本共 {len(preds)} 条）")
-    return n
+        # 小组赛：官方赛程全量
+        for ps in sim.fixtures.values():
+            for (h, a) in ps:
+                if (h, a) in sim.actual_results:     # 已完赛（账本里该有赛前条目，没有走回补）
+                    continue
+                kickoff = schedule.GROUP.get((h, a), "")
+                upsert(_gkey(h, a), "group", h, a, kickoff,
+                       kickoff[:10] or sim.fixture_date.get((h, a), ""),  # 北京开球日（与 KO 一致，不用场馆当地日）
+                       sim.group_host.get((h, a)), sim.group_city.get((h, a)))
+
+        # 淘汰赛：仅对阵已真实确定（drawn=True 且非投影假设）的场次
+        proj = sim.project(today=now[:10])
+        valid_ko_keys = set()
+        for rd in proj["rounds"]:
+            for m in rd["matches"]:
+                if not m.get("drawn") or m.get("set"):   # 未抽签 / 已有结果
+                    continue
+                mn = m.get("mn")
+                a, b = m["a"], m["b"]
+                kickoff = schedule.KO.get(mn, "")
+                key = _kkey(a, b)
+                valid_ko_keys.add(key)
+                upsert(key, rd["name"], a, b, kickoff, kickoff[:10],
+                       sim._ko_host(mn, a, b), sim.ko_city.get(mn))
+
+        # 若官方第三名分配/真实出线结果修正，清掉仍未开球的旧淘汰赛冻结项，避免 fixtures 同时显示新旧对阵。
+        for key, ent in list(preds.items()):
+            if ent.get("stage") == "group" or key in valid_ko_keys:
+                continue
+            kickoff = ent.get("kickoff") or ""
+            if kickoff and kickoff > now:
+                preds.pop(key, None)
+                n += 1
+
+        if n:
+            save_ledger(preds)
+            if verbose:
+                print(f"[verify] 冻结/更新 {n} 场赛前预测（账本共 {len(preds)} 条）")
+        return n
 
 
 # ---------- 回补：已完赛但账本缺失的场次，用"只含开球前数据"的回溯模型补 ----------
@@ -219,31 +224,34 @@ def _completed(sim, df) -> list[dict]:
 
 
 def backfill(sim, df, verbose=True) -> int:
-    """给账本缺失的已完赛场次补回溯预测（retro=True）。返回补的条数。"""
-    preds = load_ledger()
-    done = _completed(sim, df)
-    half_life = getattr(sim.m, "half_life_days", 730.0)
-    n = 0
-    for c in done:
-        if c["key"] in preds:
-            continue
-        as_of = (dt.date.fromisoformat(c["date"]) - dt.timedelta(days=1)).isoformat()
-        m = _retro_model(df, as_of, half_life, verbose=verbose)
-        try:
-            p = pair_predict(m, c["home"], c["away"], c["host"], c["city"],
-                             use_env=getattr(sim, "use_env", True))
-        except KeyError:
-            continue
-        preds[c["key"]] = {"stage": c["stage"], "home": c["home"], "away": c["away"],
-                           "kickoff": "", "date": c["date"], "host": c["host"],
-                           "city": c["city"], "retro": True, "as_of": as_of,
-                           "frozen_at": _now_bj(), **p}
-        n += 1
-    if n:
-        save_ledger(preds)
-        if verbose:
-            print(f"[verify] 回补 {n} 场已完赛的回溯预测")
-    return n
+    """给账本缺失的已完赛场次补回溯预测（retro=True）。返回补的条数。
+    整段持 _LEDGER_LOCK：并发触发（/api/dashboard 与 /api/verify 同时进来）时串行化，
+    既防丢更新，也防同一场次被两个线程各回溯训练一遍。"""
+    with _LEDGER_LOCK:
+        preds = load_ledger()
+        done = _completed(sim, df)
+        half_life = getattr(sim.m, "half_life_days", 730.0)
+        n = 0
+        for c in done:
+            if c["key"] in preds:
+                continue
+            as_of = (dt.date.fromisoformat(c["date"]) - dt.timedelta(days=1)).isoformat()
+            m = _retro_model(df, as_of, half_life, verbose=verbose)
+            try:
+                p = pair_predict(m, c["home"], c["away"], c["host"], c["city"],
+                                 use_env=getattr(sim, "use_env", True))
+            except KeyError:
+                continue
+            preds[c["key"]] = {"stage": c["stage"], "home": c["home"], "away": c["away"],
+                               "kickoff": "", "date": c["date"], "host": c["host"],
+                               "city": c["city"], "retro": True, "as_of": as_of,
+                               "frozen_at": _now_bj(), **p}
+            n += 1
+        if n:
+            save_ledger(preds)
+            if verbose:
+                print(f"[verify] 回补 {n} 场已完赛的回溯预测")
+        return n
 
 
 # ---------- 评估：预测 vs 实际 ----------

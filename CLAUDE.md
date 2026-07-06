@@ -24,7 +24,30 @@
 - **🔁 重验淘汰赛保守（用数据重判，非凭记忆，重跑 `bt_knockout.py`）**：90 分钟原始保守仍显著（淘汰赛 2.50 vs 小组赛 2.77，p=0.040；平局 +7.4pp，p=0.021；乘子 0.903），**且现在对竞彩 90 分钟盘正相关**；但**剔除球队强度后纯阶段乘子 0.926、CI[0.832,1.031]、p=0.159 仍不显著**。→ **结论不变：不叠进 GLM**；理由口径换了（旧：含加时洗没=错；新：竞彩90分钟相关但纯增量不显著、引擎已建模强度那部分）。**此负结论对口径假设稳健——90 分钟与含加时口径下纯阶段保守均不显著，结论不依赖口径。**
 - **下游交付已是 90 分钟口径**：竞彩 PDF（明写「竞彩=90分钟结算」）、小红书卡（footer「常规时间口径推演」）本就对，无需改（卡另顺手去掉「押」字、tip 改清楚）。
 
-## 📌 最新接手（2026-06-28 · 市场机制解释器 A/C 段交付 + B/D 转正闸门 + 净胜球校准基线）
+## 📌 最新接手（2026-07-06 · 7-agent 评审第四轮 → 落地 6 任务：jc 原子写/后端健壮性三连/走地 host 口径/手机端 430 修复/看板入口闭环/让球球迷语言）
+- **背景**：7-agent 评审第四轮（前三轮见 06-25/06-27 两条）。6 席全部落地，QA 整体 pass_with_issues；**test_core 77→84 项全绿**；按纪律全程未 git commit。
+- **① jc_review 原子写 + 进程内写锁（后端，手动录入数据防整档丢失）**：`jc_review.py` `_save_all` 改 verify.save_ledger 同款原子写（**mkstemp dir=STORE 同目录**防跨设备 replace 失败 → os.fdopen 写入 → os.replace，finally 清理 tmp）；模块级 `_STORE_LOCK=threading.RLock()`，`upsert_prematch`/`enter_result` 整段（load→改→save）持锁。`assert_no_rate_fields` 写盘前断壁保留、**零新增 schema 字段（红线未动）**。+2 测试（原子写无 .tmp 残留、并发 upsert 零丢失）。QA：POST→GET 回读一致、reconcile 正常、data/ 全程 0 个 .tmp。
+- **② 后端健壮性三连**：ⓐ `espn_odds._get` 照抄 live._fetch_json 已验证模式——模块级 `_NOPROXY_OPENER`，(系统代理,直连)×2 重试、全败 raise last；网络调用收敛为 `_urlopen_raw` 供 monkeypatch，签名/返回不变。ⓑ `app._regen_odds_worker` 加 **returncode!=0 分支**：打印 stderr 尾 5 行、不写 updated/last、不清 `_MARKET_CACHE`/`_MR_CACHE` 直接 return（节流窗口从成功完成起算，对齐 `_regen_ci_worker`）。ⓒ `verify.py` 加 `_LEDGER_LOCK`(RLock)，freeze/backfill 整段持锁（两函数互不调用已确认）；save_ledger 未动、API 输出结构零变化。+3 测试。**避坑：load_ledger/save_ledger 的 LEDGER_PATH 默认值在 def 时绑定，monkeypatch 模块变量不影响默认路径**（并发锁测试按规格用退化路径实现）。手动 `python3 espn_odds.py` 跑通（snapshot 6 场/让球 6 场/odds.csv 98 场）。
+- **③ 走地口径修复（in-play 接入 host+env，与赛前冻结概率同口径）**：`inplay.py` 新增 `win_draw_loss_host(model,home,away,gh,ga,minute,host=None,city=None)`——**镜像 verify.pair_predict 朝向逻辑**：em 仅当 city 非空且 match_mult!=(1,1) 才生效；host==home → neutral=False 直算；**host==away → 反向计算后转置回 home 视角**（p_home↔p_away、lam_h↔lam_a、exp_final 交换）；其余 neutral=True 原行为。`app.py` live 循环改传 row 的 host/city。`bt_inplay.py` 加第 3 项自检「t=0 host 一致性」：3 个东道主 fixture（含 Mexico City 高原 env、host==away 转置）L1 差 0.0092–0.0117 全<0.02，原 1)/2) 不回归（t=0 L1=0.0087、RPS 单调降至 90′=0）。抽查 US v AUS：neutral p_home=0.3012 → host 版 0.3725（+7.1pp）。**零碰 model.py/GLM、纯只读不重训**（model.pkl mtime 不变）。+2 测试。
+- **④ 手机端 ≤430px 崩坏修复 + 三段胜平负概率条（templates/index.html）**：430 断点 `.uprow` 改 58px/1fr/auto 三列 + `.up-act` 下沉整宽子行（4 按钮一横行）、`.jcboard` 纵排、`.scoreline` 22px、`.up-vs` min-width:0 + 队名/比分 span nowrap、grp-aux 竖线隐藏；`upRow` 新增 **`.up-bar` 三段胜平负概率条**（复用 --wdl token，430 内显示、桌面 display:none，纯数字零文案不触发红线补测）。**最小连带修复：`.jcbar` 加 display:block——前置 bug：空 inline span 的 width%/height 被忽略，竞彩比分盘概率条任何视口都不可见**。CDP 375px 实测：无横滚、up-bar 三段与 tooltip ±2% 内、92 条比分全单行、弹窗 jccol 纵排最大档条 219px；桌面 1180 五列零回归。**⚠️ 两条规格字面断言未达（判非缺陷，如实记录）**：.uprow 实测高 133px 非<70px、按钮两行非一横行——规格自身要求整宽子行+up-bar 子行结构上到不了 70px，且任务⑤又加 2 按钮（4→6）；改前逐字竖排崩坏（行高数百 px）确认已消除。
+- **⑤ 看板入口闭环 + 淘汰赛阶段标识（templates/index.html，app.py 零改动——dashboard 行已带 stage 字段）**：ⓐ `gotoExplainer`/`gotoJcReview`（仿 gotoManager：click tab + 180ms 预填显示名/北京日期 + 加载，jcLoad 双态天然覆盖录入/回看）；ⓑ 三处入口：uprow 追加「🔍 解读」「📒 复盘」按钮（data-* 防引号注入）、matrixHTML 尾「→ 市场机制解读」、renderManager 报告末链组（**复盘链仅当 d.schedule.kickoff_bj 存在，取 [:10] 北京日与 jc_review key 口径一致**，自选对阵无赛程则不显示）；ⓒ 阶段标识 stageTag 复用 STAGEZH（1/16、1/8 补「决赛」全称，group 不标），日期头+行内徽章，「即将开赛」卡顶加晋级树交叉链；ⓓ explainer 首次懒加载若输入仍为 defaultValue 则用 upcoming[0] 预填。CDP 全链路实测：解读→两队预填+A/C 卡（无盘口优雅降级）、复盘→三字段预填+模型冻结卡。文案零 `_BANNED` 词、**零新增 explainer 渲染分支（不触发红线补测纪律）**。
+- **⑥ narrative 守卫词表并集 + 让球句球迷语言**：`narrative.py` import explainer（无循环），`_BANNED` 改 **tuple(dict.fromkeys(explainer._BANNED + 原 21 词))=恰 73 词**、无重复、TAIL 零自伤（注释加「⚠ 不得加入『投注建议』」警示）。hc 段按 jc_verdict 三分支重写（让负/让平/让胜球迷语言），公共前缀带**「模型定线，非官方盘」**标注，让负分支 n≥2 才带「或小胜不够线」；平手盘改「平手概念线，非官方盘」；head 去「头号选项」黑话、大热/占优补平局%（`_level` 阈值/compact 机制未动）。`_clean` 补「推荐主胜」「可以买入让球」两反例。合规铁测 8 对阵遍历 73 词 + CLI 五对阵全绿；重启后 live API 实测新措辞在、平局数字与三向概率一致。
+- **QA（重启后全链路）**：84 passed；6 视图全 pass（含并发 curl 三端点 200 零 Traceback、live 卡实时胜平负条正常、bt_inplay 三项自检过、CDP 375/1180 双端、解读/复盘跳转、narrative 新措辞上线）。
+- **⚠️ 新增避坑**：① **8000 端口由 launchd agent `com.melvin.worldcup-predictor` 守护**（日志 `~/Library/Logs/worldcup-predictor/`）——kill 后自动重拉，nohup 手起会 Address already in use；**后续运维一律 launchctl 管理，勿 nohup**（本次重拉时间晚于全部源码 mtime 且 API 已出新文案，等效重启成功）。② explainer C 卡与看板 tooltip 概率**朝向可相反**（odds.csv 按盘口朝向记录主队）——既有口径非本轮引入，后续宜在卡内标注朝向。③ 改 index.html 前端断言时注意：规格字面值（行高/按钮行数）可能与规格自身要求的结构冲突，按「防的崩坏是否消除」判定。
+- **本轮否决记录（已裁决，勿重提；理由简记）**：
+  1. **走地 15s 轻量轮询端点**（算法+前端重复提案合并）=缓议：正确性缺口已由任务③覆盖，60s 轮询+30s 缓存对个人观赛够用，M 级复杂度换 45-75s 时效差=低 EV（同「盘口临场加密刻意不做」气质）。
+  2. **多算法隔离 AST import 图守卫**：隔离现状已由提案者自证成立，AST 断言易碎（合法重构即误报），纯守护性排不进用户可感知 6 席。
+  3. **bt_gates 三闸抽共享 + bt_travel 休整/旅途检验**：L 级重构已封档脚本须逐位复现封档数字（DEV RPS 0.2004 等）、风险收益比差；bt_travel 方向不违规（唯一未封档特征），建议未来单开会话按 bt_knockout 方法论做。
+  4. **🔺 espn_odds._hc_key 加日期防重赛串线**：**问题真实**（决赛 7-19 前同对阵重逢会串线），但涉 handicap_lines.json 存量 92 条迁移+三消费方+app.py，与本轮 6 任务并行易踩踏——**列为最高优先级遗留项，R16/QF 间歇期单开会话专项修复**。
+  5. **时区/±2 天容差回归套件 + frozen_at 北京口径**：守护性+零行为变化，排不进 6 席；tol_days 契约测试**随下次动 clv._result 时同 commit 补**。
+  6. **ab 压测基线**：个人单机真实并发≈5，独立压测负 EV；真正有用的并发正确性测试已并入任务①。
+  7. **_live_status 改 stale-while-revalidate**：诊断真实（TTL 过期请求线程同步拉 ESPN 4-5s 尖峰）、有 _market_handicap_one 先例，仅周期性首字节延迟非数据安全级——**后续会话可按提案原文直接落地**。
+  8. **看板增量渲染（指纹跳渲+展开态快照回填）**：「读盘卡展开被 60s 轮询抹掉」是真 UX bug，但改 renderDashboard 整块 innerHTML 生命周期回归面大，本轮 index.html 已两任务大改——**列为下轮前端首选项**。
+  9. **gzip 压缩响应**：方案干净（标准库 10 行、与 no-store 正交），本机使用收益百毫秒级——可随任意后续 app.py 改动顺手加。
+  10. **layoutBracket 签名短路 + will-change**：晋级树是历史 bug 高发区（NaN/全尺寸/缓存旧 JS 三轮事故），短路在 transform/字体回流边界引新失效面，收益仅消后台 4 次多余布局（32 节点非瓶颈）=负 EV。
+  11. **免责声明醒目化（页头徽标+双绿框）**：合规机制健全（TAIL+铁测/73 词/schema 断壁在位、线上零违规），醒目化属锦上添花，且控制 index.html 本轮踩踏面。
+
+## 📌 上一次接手（2026-06-28 · 市场机制解释器 A/C 段交付 + B/D 转正闸门 + 净胜球校准基线）
 - **脉络**：本会话先做淘汰赛保守效应（下条）；用户随后定主线方向——先量净胜球校准基线，再转「市场机制解释器（信息性，非买/跳）」。两者都落地了。
 - **净胜球校准基线 + 病灶地图（`bt_calib_margin.py`，只量不改）**：264 场 WC 正赛 as-of 样本外（2014/18/22/26G，half_life=730）。**确诊欠离散/过度自信**：
   - **离散比 = 实际净胜球方差 / 模型隐含方差 = 1.204**（模型方差偏小 20.4%；var(z)=1.187 同指标；模型平均隐含 SD=1.51 球）。

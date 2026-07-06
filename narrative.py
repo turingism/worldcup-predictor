@@ -9,6 +9,7 @@
 
 纯函数、无网络、无随机：同输入恒定输出，可安全缓存。
 """
+import explainer   # 只取 _BANNED 行动词全谱做并集；explainer 模块级仅依赖 numpy/devig，无循环
 
 # 球队昵称（仅常见强队；未收录的回退为纯国名，不影响功能）
 NICK = {
@@ -21,11 +22,14 @@ NICK = {
     "加纳": "黑色之星", "尼日利亚": "非洲雄鹰", "喀麦隆": "非洲雄狮", "厄瓜多尔": "三色军团",
 }
 
-# 违规/担保/诱导下注词（守卫黑名单）。注意：不收"投注建议/下注建议"——它们是合规尾注
-# "非投注建议"的子串，会误伤；担保/诱导语义已由下列更强的词覆盖。
-_BANNED = ["稳赚", "必中", "包赢", "稳赢", "必胜", "包中", "百分百", "100%", "锁定胜局",
-           "锁定胜利", "推荐下注", "跟单上车", "买它", "稳了", "无脑买", "闭眼买", "梭哈",
-           "全压", "出票建议", "一键买入", "推荐购彩"]
+# 违规/担保/诱导下注词（守卫黑名单）= explainer._BANNED 行动词全谱 ∪ 本层营销/诱导词。
+# 注意：不收"投注建议/下注建议"——它们是合规尾注"非投注建议"的子串，会误伤；
+# ⚠ 两表都**不得加入「投注建议」**——TAIL「非投注建议」会自伤（explainer 同约定）。
+# 担保/诱导语义已由下列更强的词覆盖。
+_BANNED = tuple(dict.fromkeys(list(explainer._BANNED) + [
+    "稳赚", "必中", "包赢", "稳赢", "必胜", "包中", "百分百", "100%", "锁定胜局",
+    "锁定胜利", "推荐下注", "跟单上车", "买它", "稳了", "无脑买", "闭眼买", "梭哈",
+    "全压", "出票建议", "一键买入", "推荐购彩"]))
 
 
 def _clean(s: str) -> str:
@@ -78,24 +82,33 @@ def match_narrative(home_disp: str, away_disp: str, p_home: float, p_draw: float
                 f"平 {round(p_draw*100)}% / {away_disp.split(' ')[-1]} {round(p_away*100)}%），平局风险高。")
     elif lv == "大热":
         head = (f"{_with_nick(fav_disp)} 实力明显占优，模型主导胜率约 {round(fav_p*100)}%（大热门），"
-                f"{_plain(dog_disp)} 想全身而退不易——但足球场上冷门从不缺席。")
+                f"{_plain(dog_disp)} 想全身而退不易（平局约 {round(p_draw*100)}%）——但足球场上冷门从不缺席。")
     elif lv == "占优":
         head = (f"{_with_nick(fav_disp)} 略胜一筹，模型给约 {round(fav_p*100)}% 胜率，"
-                f"{_plain(dog_disp)} 仍有一搏之力，平局也在剧本里。")
+                f"{_plain(dog_disp)} 仍有一搏之力，平局（约 {round(p_draw*100)}%）也在剧本里。")
     else:
-        head = (f"{_with_nick(fav_disp)} 与 {_plain(dog_disp)} 谁都没拉开身位，"
-                f"模型对头号选项也只给约 {round(fav_p*100)}%，是道难题。")
+        head = (f"{_with_nick(fav_disp)} 与 {_plain(dog_disp)} 谁都没拉开身位——"
+                f"模型略偏 {_plain(fav_disp)} 也只有约 {round(fav_p*100)}%，"
+                f"平局约 {round(p_draw*100)}%，悬念留到终场哨。")
 
-    # 让球倾向（接本场动态竞彩让球线，合规：只陈述概率倾向，不诱导）
+    # 让球倾向（接本场动态竞彩让球线，合规：只陈述概率倾向，不诱导。
+    # 线由模型期望净胜推导 → 明标「模型定线，非官方盘」，按 jc_verdict 三分支翻成球迷语言）
     hc = ""
     if handicap:
         if handicap.get("csl_is_handicap"):
             n, vd = handicap.get("csl_line"), handicap.get("jc_verdict")
             fav_nm = _plain(fav_disp)
-            hc = (f"竞彩让球本场约为 {fav_nm} 让 {n} 球，模型倾向「{vd}」"
-                  f"（让球后强弱差被拉近，参考为主）。")
+            lead = f"按模型期望净胜推演的让球线约为 {fav_nm} 让 {n} 球（模型定线，非官方盘）。"
+            if vd == "让负":
+                extra = "或小胜不够线" if (n or 0) >= 2 else ""   # n=1 时小胜=踩线，无此情形
+                hc = (lead + f"模型算下来最可能是「让负」：{fav_nm} 净胜打不到 {n} 球——"
+                      f"战平、爆冷{extra}都归这档。")
+            elif vd == "让平":
+                hc = lead + f"模型算下来最可能恰好净胜 {n} 球（让平），正好踩线的小胜是模型剧本的主线。"
+            else:   # 让胜
+                hc = lead + f"模型算下来最可能净胜超过 {n} 球（让胜），{_plain(dog_disp)} 受让 {n} 球仍难挡。"
         else:
-            hc = "双方接近，本场竞彩多为平手盘，按常规胜平负看即可。"
+            hc = "两队实力接近，模型推演不出让球差（平手概念线，非官方盘），胜平负三个方向都真实在场。"
 
     goals = ""
     if exp_total is not None:

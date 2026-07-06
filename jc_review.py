@@ -18,11 +18,17 @@
 from __future__ import annotations
 import json
 import os
+import tempfile
+import threading
 
 import manager
 import explainer
 
 STORE = os.path.join(os.path.dirname(__file__), "data", "jc_review.json")
+
+# 进程内写锁：手动录入与赛后填分都是 load_all→改→_save_all 读改写，
+# 并发请求不加锁会互吞更新（Flask 多线程）。RLock 允许同线程重入。
+_STORE_LOCK = threading.RLock()
 
 # schema 断壁：记录/输出里**绝不允许**出现的字段名子串（滑向买/跳的第一级台阶）。
 _FORBIDDEN_KEYS = ("rate", "率", "roi", "profit", "盈亏", "盈利", "胜率", "命中率",
@@ -59,10 +65,21 @@ def load_all() -> dict:
 
 
 def _save_all(d: dict):
+    """原子写（先 .tmp 再 replace，verify.save_ledger 同款）：手动录入数据坏档不覆盖好档。"""
     assert_no_rate_fields(d)                       # 写盘前断壁
     os.makedirs(os.path.dirname(STORE), exist_ok=True)
-    with open(STORE, "w", encoding="utf-8") as f:
-        json.dump(d, f, ensure_ascii=False, indent=2)
+    fd, tmp = tempfile.mkstemp(prefix=os.path.basename(STORE) + ".", suffix=".tmp",
+                               dir=os.path.dirname(STORE), text=True)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, STORE)
+    finally:
+        try:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+        except OSError:
+            pass
 
 
 # ---------- cover 结算（90 分钟手填比分 + 竞彩整数/半球线 → 谁 cover） ----------
@@ -124,39 +141,56 @@ def upsert_prematch(date, home_en, away_en, home_disp, away_disp, is_knockout,
                     my_pick, my_note="", frozen_at=None):
     """赛前录入（含我的判断 + 模型冻结 cover）。fav=让球方。
     frozen_at=录入那一刻的时间戳（模型在此刻冻结，复盘看「我当时看到的模型」，非赛后回填）。"""
-    d = load_all()
-    k = match_key(date, home_en, away_en)
-    fav_name = home_disp if fav_is_home else away_disp
-    dog_name = away_disp if fav_is_home else home_disp
-    # 市场 fav cover 概率：竞彩让球两栏（fav cover 赔 / dog cover 赔）2 路 Shin 去水。
-    import devig
-    p_mkt, _ = devig.implied2(float(o_fav), float(o_dog), "shin")
-    prev = d.get(k, {})
-    d[k] = {
-        "key": k, "date": date, "home_en": home_en, "away_en": away_en,
-        "home_disp": home_disp, "away_disp": away_disp, "is_knockout": bool(is_knockout),
-        "jc": {"fav_is_home": bool(fav_is_home), "line": float(line),
-               "fav_name": fav_name, "dog_name": dog_name,
-               "o_fav": float(o_fav), "o_dog": float(o_dog)},
-        "model": {"fav_cover": float(model_fav_cover), "p1x2": model_1x2,
-                  "pred_score": pred_score, "frozen_at": frozen_at},
-        "market": {"fav_cover": float(p_mkt[0])},              # 竞彩 Shin 去水 fav cover 概率
-        "my_call": {"pick": my_pick, "note": my_note},        # 'fav'/'dog'/'skip'
-        "result": prev.get("result"),                          # 保留已填赛果
-    }
-    _save_all(d)
-    return d[k]
+    with _STORE_LOCK:                                          # 读改写整段互斥，防并发互吞
+        d = load_all()
+        k = match_key(date, home_en, away_en)
+        fav_name = home_disp if fav_is_home else away_disp
+        dog_name = away_disp if fav_is_home else home_disp
+        # 市场 fav cover 概率：竞彩让球两栏（fav cover 赔 / dog cover 赔）2 路 Shin 去水。
+        import devig
+        p_mkt, _ = devig.implied2(float(o_fav), float(o_dog), "shin")
+        prev = d.get(k, {})
+        d[k] = {
+            "key": k, "date": date, "home_en": home_en, "away_en": away_en,
+            "home_disp": home_disp, "away_disp": away_disp, "is_knockout": bool(is_knockout),
+            "jc": {"fav_is_home": bool(fav_is_home), "line": float(line),
+                   "fav_name": fav_name, "dog_name": dog_name,
+                   "o_fav": float(o_fav), "o_dog": float(o_dog)},
+            "model": {"fav_cover": float(model_fav_cover), "p1x2": model_1x2,
+                      "pred_score": pred_score, "frozen_at": frozen_at},
+            "market": {"fav_cover": float(p_mkt[0])},          # 竞彩 Shin 去水 fav cover 概率
+            "my_call": {"pick": my_pick, "note": my_note},    # 'fav'/'dog'/'skip'
+            "result": prev.get("result"),                      # 保留已填赛果
+        }
+        _save_all(d)
+        return d[k]
 
 
 def enter_result(date, home_en, away_en, h90: int, a90: int):
     """赛后手填 90 分钟比分（不复用 results.csv 含加时口径）。"""
-    d = load_all()
-    k = match_key(date, home_en, away_en)
-    if k not in d:
-        raise KeyError(f"未找到赛前记录 {k}，请先录入。")
-    d[k]["result"] = {"h90": int(h90), "a90": int(a90)}
-    _save_all(d)
-    return reconcile(d[k])
+    def _score(v, side):
+        if isinstance(v, bool):
+            raise ValueError(f"{side} 90 分钟比分必须是非负整数。")
+        if isinstance(v, int):
+            n = v
+        elif isinstance(v, str) and v.strip().isdigit():
+            n = int(v.strip())
+        else:
+            raise ValueError(f"{side} 90 分钟比分必须是非负整数。")
+        if n < 0:
+            raise ValueError(f"{side} 90 分钟比分必须是非负整数。")
+        return n
+
+    h90 = _score(h90, home_en)
+    a90 = _score(a90, away_en)
+    with _STORE_LOCK:                                          # 读改写整段互斥，防并发互吞
+        d = load_all()
+        k = match_key(date, home_en, away_en)
+        if k not in d:
+            raise KeyError(f"未找到赛前记录 {k}，请先录入。")
+        d[k]["result"] = {"h90": h90, "a90": a90}
+        _save_all(d)
+        return reconcile(d[k])
 
 
 def reading_card(rec: dict) -> dict:

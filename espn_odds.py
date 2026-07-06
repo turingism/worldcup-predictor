@@ -37,11 +37,31 @@ HC_LINES_PATH = os.path.join(os.path.dirname(__file__), "data", "handicap_lines.
 HC_SNAP_PATH = os.path.join(os.path.dirname(__file__), "data", "handicap_snapshots.jsonl")
 _CTX = ssl.create_default_context()
 
+# 显式绕过系统代理的 opener。macOS 系统代理节点偶发 503「Tunnel connection failed」，
+# 实测 ESPN 直连可达，故失败后回退直连（照抄 live._fetch_json 的已验证模式，2026-06-19 修）。
+_NOPROXY_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def _urlopen_raw(req, timeout, opener=None):
+    """实际网络调用的单一出口（供测试 monkeypatch）。opener=None 走默认（系统代理）。"""
+    if opener is not None:
+        return opener.open(req, timeout=timeout)
+    return urllib.request.urlopen(req, timeout=timeout, context=_CTX)
+
 
 def _get(url: str, timeout: int = 20) -> dict:
+    """拉 ESPN JSON：先按默认（系统代理）再绕过代理，每种各重试 2 次。
+    系统代理偶发 503 时自动重试 + 回退直连，避免一次抖动就整体失败（同 live._fetch_json）。"""
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=timeout, context=_CTX) as r:
-        return json.loads(r.read().decode("utf-8"))
+    last = None
+    for opener in (None, _NOPROXY_OPENER):              # None=默认(系统代理)；再试直连
+        for _ in range(2):
+            try:
+                with _urlopen_raw(req, timeout, opener) as r:
+                    return json.loads(r.read().decode("utf-8"))
+            except Exception as e:  # noqa  代理 503/超时/瞬断 → 重试或换直连
+                last = e
+    raise last
 
 
 def am2dec(ml) -> float:

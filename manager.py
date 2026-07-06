@@ -221,7 +221,7 @@ def csl_handicap(mp, fav_is_home):
 
 
 def handicap_summary(M, p_home, p_away, home_team, away_team, market=None):
-    """紧凑让球摘要（供看板「看预测」弹窗用）：强队 / 公平盘 / 建议上限 / 竞彩让球倾向。
+    """紧凑让球摘要（供看板「看预测」弹窗用）：强队 / 公平盘 / 模型上限 / 竞彩让球倾向。
     纯从比分矩阵卷积，不碰引擎。M 接受 np.array 或嵌套 list。
     market（可选）= espn_odds 让球盘行 → 附市场实盘 spread 对标。"""
     M = np.asarray(M, dtype=float)
@@ -271,10 +271,10 @@ def _market_compare(hc, context, fav_en, dog_en, model_fav_is_home):
 
 
 def handicap_conclusion(mp, fav_is_home, fav_team, dog_team):
-    """直接给让球结论（不放选择器）：模型公平盘 + 全档位扫描 + 推荐让球档。
+    """直接给让球结论（不放选择器）：模型公平盘 + 全档位扫描 + 模型上限档。
 
     - fair_line：让球后强队净胜率（win−lose）绝对值最小的档 = 模型「五五开盘口」。
-    - max_fair：强队能让且仍不亏（net≥0）的最大档 = 建议盘口上限，超过即偏亏。
+    - max_fair：强队能让且模型侧仍不亏（net≥0）的最大档，超过即模型侧偏亏。
     - lines：每档赢/走盘/输 + 性价比判级，供前端直接铺表。
     """
     scan = []
@@ -535,7 +535,7 @@ def build_report(model, df, home, away, neutral=True, elo=None, lineup=None, con
     p_away = float(np.triu(M, 1).sum())
 
     mk = derived_markets(M, lam_h, lam_a, p_home, p_draw, p_away)
-    # 让球结论（直接给：公平盘 + 全档扫描 + 推荐），队名按强弱归属。
+    # 让球结论（直接给：公平盘 + 全档扫描 + 模型上限），队名按强弱归属。
     fav_en, dog_en = (h_en, a_en) if fav_is_home else (a_en, h_en)
     _mp = _margin_pmf(M)
     mk["handicap"] = handicap_conclusion(_mp, fav_is_home, fav_en, dog_en)

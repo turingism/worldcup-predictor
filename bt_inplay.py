@@ -34,6 +34,13 @@ FIXTURES = [
 ]
 CHECKPOINTS = [0, 15, 30, 45, 60, 75, 90]
 
+# 东道主场次（host+city），检验 win_draw_loss_host@0′ 与赛前 pair_predict 同口径
+HOST_FIXTURES = [
+    ("United States", "Australia", "United States", "Seattle"),   # host==home
+    ("Mexico", "South Africa", "Mexico", "Mexico City"),          # host==home + 高原 env
+    ("Japan", "Canada", "Canada", "Vancouver"),                   # host==away（转置路径）
+]
+
 
 def run(n: int = 600, seed: int = 42):
     from predict import get_model
@@ -83,6 +90,18 @@ def run(n: int = 600, seed: int = 42):
           f"（应≈0，{'✅' if r90 < 0.01 else '❌'}）")
     print("\n  注：这是内部自洽校验（数据生成=模型本身），证明 in-play 卷积随信息增加正确收敛；")
     print("  非真实样本外精度——后者需分钟级进球数据（无免费源）。")
+
+    # 3) t=0 host 一致性：东道主场次 win_draw_loss_host@0′ 应≈赛前 pair_predict(host,city)
+    #   （win_draw_loss 的 MAX_REM 截断与 pair_predict 比分矩阵口径有微差，阈值放 0.02）
+    import verify
+    print("\n== 3) t=0 host 一致性（win_draw_loss_host@0′ vs verify.pair_predict，L1 应 <0.02）==")
+    for home, away, host, city in HOST_FIXTURES:
+        pre = verify.pair_predict(m, home, away, host=host, city=city)
+        ip0 = inplay.win_draw_loss_host(m, home, away, 0, 0, 0, host=host, city=city)
+        l1 = (abs(ip0["p_home"] - pre["p_home"]) + abs(ip0["p_draw"] - pre["p_draw"])
+              + abs(ip0["p_away"] - pre["p_away"]))
+        ok = "✅" if l1 < 0.02 else "❌"
+        print(f"  {home:>13} vs {away:<12} host={host:<13} city={city:<12} L1差={l1:.4f} {ok}")
 
 
 if __name__ == "__main__":
