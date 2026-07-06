@@ -1519,13 +1519,16 @@ function hclVsMarket(vm){
 const seeBtn=r=>`<button class="seebtn" data-h="${r.home_en||''}" data-a="${r.away_en||''}" data-host="${r.host||''}" data-city="${r.city||''}" data-t="${r.home} vs ${r.away}" onclick="seePrediction(this)" title="看完整比分概率矩阵">看预测</button>`;
 // 快捷入口：跳到「对阵分析」并按主/客填表（withLineup=true 额外拉真实首发重算，约赛前 1 小时公布）
 // 统一入口，看板 upRow 的「深度报告」「⚡首发分析」与看预测弹窗的报告链接共用，避免逻辑漂移。
-function gotoManager(h, a, withLineup){
+function gotoManager(h, a, withLineup, neutral){
   const tab=document.querySelector('.tab[data-t="manager"]'); if(tab) tab.click();
+  // neutral==='0' → 东道主主队场次：取消中立场勾选，与看板行/看预测弹窗同口径（修「看板1-1、报告0-1」口径分裂）；缺省仍中立
   setTimeout(()=>{ if($('#mg_home'))$('#mg_home').value=h; if($('#mg_away'))$('#mg_away').value=a;
-    if($('#mg_neutral'))$('#mg_neutral').checked=true; loadManager(withLineup?1:0); }, 180);
+    if($('#mg_neutral'))$('#mg_neutral').checked=(neutral!=='0'); loadManager(withLineup?1:0); }, 180);
 }
-const reportBtn=r=>`<button class="seebtn" data-h="${r.home||''}" data-a="${r.away||''}" onclick="gotoManager(this.dataset.h,this.dataset.a,false)" title="到对阵分析看这场的完整深度报告（过程数据/算法模型/全盘口结论）">深度报告</button>`;
-const lineupBtn=r=>`<button class="seebtn" style="border-color:#1f6feb55;color:#58a6ff" data-h="${r.home||''}" data-a="${r.away||''}" onclick="gotoManager(this.dataset.h,this.dataset.a,true)" title="到对阵分析、拉取真实首发并重算（约赛前 1 小时公布；未公布则降级为赛前估计）">⚡首发分析</button>`;
+// 东道主恰为主队槽位时深度报告走非中立口径（manager 的主场加成只作用于主队槽；host==客队在官方赛程不出现，保底走中立）
+const _mgNeutral=r=>(r.host&&r.host===r.home_en)?'0':'1';
+const reportBtn=r=>`<button class="seebtn" data-h="${r.home||''}" data-a="${r.away||''}" data-n="${_mgNeutral(r)}" onclick="gotoManager(this.dataset.h,this.dataset.a,false,this.dataset.n)" title="到对阵分析看这场的完整深度报告（过程数据/算法模型/全盘口结论）">深度报告</button>`;
+const lineupBtn=r=>`<button class="seebtn" style="border-color:#1f6feb55;color:#58a6ff" data-h="${r.home||''}" data-a="${r.away||''}" data-n="${_mgNeutral(r)}" onclick="gotoManager(this.dataset.h,this.dataset.a,true,this.dataset.n)" title="到对阵分析、拉取真实首发并重算（约赛前 1 小时公布；未公布则降级为赛前估计）">⚡首发分析</button>`;
 // 一键直达「机制解读」：切 tab → 填两队（显示名，API 可 resolve，与手输同码路）→ 解读
 function gotoExplainer(h, a){
   const tab=document.querySelector('.tab[data-t="explainer"]'); if(tab) tab.click();
@@ -1687,7 +1690,7 @@ function matrixHTML(d){
     <h3 style="margin:16px 0 6px;font-size:13px">比分概率矩阵（%，行=${d.home} 进球，列=${d.away} 进球）</h3>
     ${scoreMatrixHTML(d.matrix, top.h, top.a)}
     <div class="muted" style="font-size:11px;margin-top:8px">${d.host?'已计入东道主主场修正，与看板该场概率同口径。':'中立场快算（双方均非本届东道主或非本国出战）。'}</div>
-    <div class="xlink" style="margin-top:10px"><a onclick="closeModal();gotoManager('${d.home}','${d.away}',false)">→ 查看这场的完整对阵分析报告（过程数据 / 算法模型 / 全盘口结论）</a>　·　<a onclick="closeModal();gotoExplainer('${d.home}','${d.away}')">→ 市场机制解读</a></div>`;
+    <div class="xlink" style="margin-top:10px"><a onclick="closeModal();gotoManager('${d.home}','${d.away}',false,'${(!d.neutral&&d.host===d.home)?'0':'1'}')">→ 查看这场的完整对阵分析报告（过程数据 / 算法模型 / 全盘口结论）</a>　·　<a onclick="closeModal();gotoExplainer('${d.home}','${d.away}')">→ 市场机制解读</a></div>`;
 }
 
 // 已结束：预测 vs 实际 + 分桶/冷门统计（原预测验证内容）
