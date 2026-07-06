@@ -1523,7 +1523,7 @@ function gotoManager(h, a, withLineup, neutral){
   const tab=document.querySelector('.tab[data-t="manager"]'); if(tab) tab.click();
   // neutral==='0' → 东道主主队场次：取消中立场勾选，与看板行/看预测弹窗同口径（修「看板1-1、报告0-1」口径分裂）；缺省仍中立
   setTimeout(()=>{ if($('#mg_home'))$('#mg_home').value=h; if($('#mg_away'))$('#mg_away').value=a;
-    if($('#mg_neutral'))$('#mg_neutral').checked=(neutral!=='0'); loadManager(withLineup?1:0); }, 180);
+    if($('#mg_neutral'))$('#mg_neutral').checked=(neutral!=='0'); MG_LASTPAIR=h+'|'+a; loadManager(withLineup?1:0); }, 180);
 }
 // 东道主恰为主队槽位时深度报告走非中立口径（manager 的主场加成只作用于主队槽；host==客队在官方赛程不出现，保底走中立）
 const _mgNeutral=r=>(r.host&&r.host===r.home_en)?'0':'1';
@@ -2080,7 +2080,17 @@ function resChip(r){ const c={W:'#2ea043',D:'#8b949e',L:'#f85149'}[r]||'#8b949e'
   return `<span style="display:inline-block;width:18px;height:18px;line-height:18px;text-align:center;border-radius:4px;background:${c};color:#fff;font-size:11px;font-weight:700;margin-right:2px">${r}</span>`; }
 function confColor(l){ return {'高':'#2ea043','中':'#d29922','低':'#8b949e'}[l]||'#8b949e'; }
 
+// 手输对阵的东道主口径自动识别：两队若匹配本届待赛赛程且东道主在主队槽，自动取消中立场
+// （与看板行/看预测/深度报告同口径）。同一对阵重复查询不覆盖用户手动勾选；非赛程对阵不动默认值。
+let MG_FIXHOST=null, MG_LASTPAIR='';
+function mgAutoNeutral(){
+  const h=$('#mg_home')?$('#mg_home').value.trim():'', a=$('#mg_away')?$('#mg_away').value.trim():'';
+  const pair=h+'|'+a;
+  if(pair===MG_LASTPAIR) return; MG_LASTPAIR=pair;
+  if(MG_FIXHOST && MG_FIXHOST[pair]!==undefined && $('#mg_neutral')) $('#mg_neutral').checked=(MG_FIXHOST[pair]!=='0');
+}
 async function loadManager(lineup){
+  mgAutoNeutral();
   const home=$('#mg_home').value, away=$('#mg_away').value, neutral=$('#mg_neutral').checked?1:0;
   $('#mgres').innerHTML='<div class="card spin">'+(lineup?'⚡ 拉取真实首发名单、按确认阵容重算…':'正在获取过程数据、运行算法模型并生成报告…')+'</div>';
   let d;
@@ -2096,6 +2106,9 @@ async function loadFixtures(){
   box.innerHTML='<div class="card spin">加载近期对战…</div>';
   $('#mgres').innerHTML='<div class="card muted">👆 点击上方任意对战，或在表单输入两队后点「生成报告」。</div>';
   let d; try{ d=await (await fetch('/api/fixtures')).json(); }catch(e){ box.innerHTML=''; return; }
+  // 建「对阵→口径」映射：东道主排主队槽的场次记 '0'（非中立），供手输对阵自动识别（mgAutoNeutral）。
+  // 注意 /api/fixtures 的 host 是显示名（与 f.home 同码），不是英文名——别与 home_en 比。
+  MG_FIXHOST={}; ((d&&d.fixtures)||[]).forEach(f=>{ MG_FIXHOST[f.home+'|'+f.away]=(f.host&&f.host===f.home)?'0':'1'; });
   box.innerHTML=renderFixtures(d);
 }
 function renderFixtures(d){
@@ -2111,7 +2124,7 @@ function renderFixtures(d){
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px">`;
     byDay[day].forEach(f=>{
       const t=(f.kickoff||'').slice(11);
-      html+=`<div onclick="mgPick(this)" data-h="${f.home}" data-a="${f.away}" style="border:1px solid #30363d;border-radius:8px;padding:9px 12px;cursor:pointer;background:#161b22;transition:border-color .15s" onmouseover="this.style.borderColor='#1f6feb'" onmouseout="this.style.borderColor='#30363d'">
+      html+=`<div onclick="mgPick(this)" data-h="${f.home}" data-a="${f.away}" data-n="${(f.host&&f.host===f.home)?'0':'1'}" style="border:1px solid #30363d;border-radius:8px;padding:9px 12px;cursor:pointer;background:#161b22;transition:border-color .15s" onmouseover="this.style.borderColor='#1f6feb'" onmouseout="this.style.borderColor='#30363d'">
         <div style="font-weight:600;margin-bottom:3px">${f.home} <span style="color:#8b949e;font-weight:400">vs</span> ${f.away}</div>
         <div class="muted" style="font-size:11px">🕐 ${t} 北京${f.city?' · '+f.city:''}${f.host?' · '+f.host+'主场':''}</div>
       </div>`;
@@ -2123,7 +2136,9 @@ function renderFixtures(d){
 function mgPick(el){
   $('#mg_home').value=el.getAttribute('data-h');
   $('#mg_away').value=el.getAttribute('data-a');
-  if($('#mg_neutral')) $('#mg_neutral').checked=true;
+  // 与看板「深度报告」同口径：东道主主队场次（data-n='0'）自动非中立，其余中立
+  if($('#mg_neutral')) $('#mg_neutral').checked=(el.getAttribute('data-n')!=='0');
+  MG_LASTPAIR=el.getAttribute('data-h')+'|'+el.getAttribute('data-a');
   loadManager();
   setTimeout(()=>{const r=$('#mgres'); if(r&&r.scrollIntoView) r.scrollIntoView({behavior:'smooth',block:'start'});},80);
 }
