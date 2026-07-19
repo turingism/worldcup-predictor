@@ -26,6 +26,16 @@ import explainer
 
 STORE = os.path.join(os.path.dirname(__file__), "data", "jc_review.json")
 
+
+def store_path(event_key: str = "wc2026") -> str:
+    """P1-③：按赛事取复盘存储路径（与 verify.ledger_path 同构隔离，绝不跨赛事混池）。
+    wc2026 保持既有文件名不变；其余赛事 jc_review_<key>.json。"""
+    if event_key == "wc2026":
+        return STORE
+    import events as eventsmod
+    assert event_key in eventsmod.EVENTS, event_key
+    return os.path.join(os.path.dirname(__file__), "data", f"jc_review_{event_key}.json")
+
 # 进程内写锁：手动录入与赛后填分都是 load_all→改→_save_all 读改写，
 # 并发请求不加锁会互吞更新（Flask 多线程）。RLock 允许同线程重入。
 _STORE_LOCK = threading.RLock()
@@ -56,24 +66,26 @@ def match_key(date: str, home_en: str, away_en: str) -> str:
 
 
 # ---------- 存储 ----------
-def load_all() -> dict:
+def load_all(path: str | None = None) -> dict:
+    path = path or STORE
     try:
-        with open(STORE, encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
 
-def _save_all(d: dict):
+def _save_all(d: dict, path: str | None = None):
     """原子写（先 .tmp 再 replace，verify.save_ledger 同款）：手动录入数据坏档不覆盖好档。"""
+    path = path or STORE
     assert_no_rate_fields(d)                       # 写盘前断壁
-    os.makedirs(os.path.dirname(STORE), exist_ok=True)
-    fd, tmp = tempfile.mkstemp(prefix=os.path.basename(STORE) + ".", suffix=".tmp",
-                               dir=os.path.dirname(STORE), text=True)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=os.path.basename(path) + ".", suffix=".tmp",
+                               dir=os.path.dirname(path), text=True)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(d, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, STORE)
+        os.replace(tmp, path)
     finally:
         try:
             if os.path.exists(tmp):
@@ -138,11 +150,11 @@ def reconcile(rec: dict) -> dict:
 def upsert_prematch(date, home_en, away_en, home_disp, away_disp, is_knockout,
                     fav_is_home, line, o_fav, o_dog,
                     model_fav_cover, model_1x2, pred_score,
-                    my_pick, my_note="", frozen_at=None):
+                    my_pick, my_note="", frozen_at=None, path: str | None = None):
     """赛前录入（含我的判断 + 模型冻结 cover）。fav=让球方。
     frozen_at=录入那一刻的时间戳（模型在此刻冻结，复盘看「我当时看到的模型」，非赛后回填）。"""
     with _STORE_LOCK:                                          # 读改写整段互斥，防并发互吞
-        d = load_all()
+        d = load_all(path)
         k = match_key(date, home_en, away_en)
         fav_name = home_disp if fav_is_home else away_disp
         dog_name = away_disp if fav_is_home else home_disp
@@ -162,11 +174,11 @@ def upsert_prematch(date, home_en, away_en, home_disp, away_disp, is_knockout,
             "my_call": {"pick": my_pick, "note": my_note},    # 'fav'/'dog'/'skip'
             "result": prev.get("result"),                      # 保留已填赛果
         }
-        _save_all(d)
+        _save_all(d, path)
         return d[k]
 
 
-def enter_result(date, home_en, away_en, h90: int, a90: int):
+def enter_result(date, home_en, away_en, h90: int, a90: int, path: str | None = None):
     """赛后手填 90 分钟比分（不复用 results.csv 含加时口径）。"""
     def _score(v, side):
         if isinstance(v, bool):
@@ -184,12 +196,12 @@ def enter_result(date, home_en, away_en, h90: int, a90: int):
     h90 = _score(h90, home_en)
     a90 = _score(a90, away_en)
     with _STORE_LOCK:                                          # 读改写整段互斥，防并发互吞
-        d = load_all()
+        d = load_all(path)
         k = match_key(date, home_en, away_en)
         if k not in d:
             raise KeyError(f"未找到赛前记录 {k}，请先录入。")
         d[k]["result"] = {"h90": h90, "a90": a90}
-        _save_all(d)
+        _save_all(d, path)
         return reconcile(d[k])
 
 

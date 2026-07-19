@@ -27,6 +27,13 @@ import data as datamod
 import env
 
 LEDGER_PATH = os.path.join(os.path.dirname(__file__), "data", "predictions.json")
+
+
+def ledger_path(event_key: str = "wc2026") -> str:
+    """P1-③：按赛事取账本文件路径。文件名来自 events 注册表（互异性已被测试锁死），
+    调用方显式传 path 贯穿——不 monkeypatch 模块常量（默认参数 def 时绑定，patch 无效）。"""
+    import events as eventsmod
+    return os.path.join(os.path.dirname(__file__), "data", eventsmod.EVENTS[event_key]["ledger"])
 GROUP_END = "2026-06-28"          # 小组赛阶段截止（与 simulate.py 同口径）
 _RETRO_CACHE: dict[str, object] = {}   # as_of 日期 -> 回溯模型（进程内缓存）
 # 账本「读→改→写」进程内锁：/api/dashboard 与 /api/verify 等并发触发 freeze/backfill 时，
@@ -115,14 +122,15 @@ def pair_predict(model, a: str, b: str, host=None, city=None, use_env=True) -> d
 
 
 # ---------- 冻结：把所有未开球场次的当前预测写入账本 ----------
-def freeze(sim, now_bj: str | None = None, verbose=False) -> int:
+def freeze(sim, now_bj: str | None = None, verbose=False, path: str | None = None) -> int:
     """对所有【尚未开球】的本届场次写入/更新预测（开球后永不触碰）。
     小组赛 72 场始终可冻结；淘汰赛仅在对阵真实确定（drawn）后冻结。
     返回本次写入/更新的条目数。整段持 _LEDGER_LOCK：读→改→写不被并发 freeze/backfill 交错。"""
     with _LEDGER_LOCK:
         import schedule
+        path = path or LEDGER_PATH
         now = now_bj or _now_bj()
-        preds = load_ledger()
+        preds = load_ledger(path)
         n = 0
 
         def upsert(key, stage, h, a, kickoff, date, host, city):
@@ -179,7 +187,7 @@ def freeze(sim, now_bj: str | None = None, verbose=False) -> int:
                 n += 1
 
         if n:
-            save_ledger(preds)
+            save_ledger(preds, path)
             if verbose:
                 print(f"[verify] 冻结/更新 {n} 场赛前预测（账本共 {len(preds)} 条）")
         return n
@@ -223,12 +231,13 @@ def _completed(sim, df) -> list[dict]:
     return out
 
 
-def backfill(sim, df, verbose=True) -> int:
+def backfill(sim, df, verbose=True, path: str | None = None) -> int:
     """给账本缺失的已完赛场次补回溯预测（retro=True）。返回补的条数。
     整段持 _LEDGER_LOCK：并发触发（/api/dashboard 与 /api/verify 同时进来）时串行化，
     既防丢更新，也防同一场次被两个线程各回溯训练一遍。"""
     with _LEDGER_LOCK:
-        preds = load_ledger()
+        path = path or LEDGER_PATH
+        preds = load_ledger(path)
         done = _completed(sim, df)
         half_life = getattr(sim.m, "half_life_days", 730.0)
         n = 0
@@ -248,7 +257,7 @@ def backfill(sim, df, verbose=True) -> int:
                                "frozen_at": _now_bj(), **p}
             n += 1
         if n:
-            save_ledger(preds)
+            save_ledger(preds, path)
             if verbose:
                 print(f"[verify] 回补 {n} 场已完赛的回溯预测")
         return n
@@ -289,9 +298,10 @@ def _rps(ph, pd_, pa, o: str) -> float:
     return 0.5 * ((c1 - a1) ** 2 + (c2 - a2) ** 2)
 
 
-def evaluate(sim, df) -> dict:
+def evaluate(sim, df, path: str | None = None) -> dict:
+    path = path or LEDGER_PATH
     """已完赛逐场对比 + 汇总统计。不做任何训练/写盘（freeze/backfill 先行）。"""
-    preds = load_ledger()
+    preds = load_ledger(path)
     done = _completed(sim, df)
     rows, miss = [], 0
     for c in done:

@@ -1617,3 +1617,30 @@ def test_espn_url_league_param():
     # 模板占位符完好可 format
     u = live.espn_scoreboard_tmpl("eng.1").format(d1="20250809", d2="20250810")
     assert "dates=20250809-20250810" in u and "{" not in u
+
+
+# ---------- P1-③ 账本按赛事隔离 ----------
+def test_ledger_path_per_event_distinct():
+    import events, verify, jc_review
+    lp = {k: verify.ledger_path(k) for k in events.EVENTS}
+    sp = {k: jc_review.store_path(k) for k in events.EVENTS}
+    # 全赛事路径互异，且 wc2026 恰为既有文件（默认行为不变）
+    assert len(set(lp.values())) == len(lp) and len(set(sp.values())) == len(sp)
+    assert lp["wc2026"] == verify.LEDGER_PATH and sp["wc2026"] == jc_review.STORE
+    import pytest
+    with pytest.raises(KeyError):
+        verify.ledger_path("bogus")
+
+
+def test_ledger_runtime_isolation(tmp_path):
+    """两个 event 账本写入不同文件、互不可见（path 显式贯穿，不依赖模块常量 patch）。"""
+    import verify, jc_review
+    pa, pb = str(tmp_path / "a.json"), str(tmp_path / "b.json")
+    verify.save_ledger({"m1": {"stage": "KO"}}, pa)
+    verify.save_ledger({"m2": {"stage": "Group"}}, pb)
+    assert set(verify.load_ledger(pa)) == {"m1"} and set(verify.load_ledger(pb)) == {"m2"}
+    ja, jb = str(tmp_path / "jca.json"), str(tmp_path / "jcb.json")
+    jc_review._save_all({"k1": {"date": "2026-09-01"}}, ja)
+    jc_review._save_all({"k2": {"date": "2026-09-02"}}, jb)
+    assert set(jc_review.load_all(ja)) == {"k1"} and set(jc_review.load_all(jb)) == {"k2"}
+    assert jc_review.load_all(str(tmp_path / "absent.json")) == {}
