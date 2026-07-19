@@ -493,6 +493,17 @@
   .tzbtn{background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;
     padding:4px 10px;cursor:pointer;font-size:12px}
   .tzbtn.on{background:#1f6feb;color:#fff;border-color:#1f6feb}
+/* P1-④ L0 赛事切换器（样式对齐 docs/ia-mockup.html；徽标纯文字无 emoji） */
+.evbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.ev{display:flex;align-items:center;gap:7px;padding:6px 13px;border-radius:18px;background:#161b22;
+    border:1px solid #30363d;cursor:pointer;font-size:13px;white-space:nowrap;user-select:none}
+.ev.on{border-color:#3fb950;box-shadow:inset 0 -2px 0 #3fb950}
+.ev small{font-size:10.5px;padding:1px 6px;border-radius:4px}
+.ev .b-live{background:#1e3a2a;color:#6ee7a8}
+.ev .b-soon{background:#3a331e;color:#d29922}
+.ev .b-upcoming{background:#1e2a3a;color:#58a6ff}
+.ev .b-archived{background:#2a2a2a;color:#8b949e}
+@media(max-width:520px){.evbar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}}
 </style>
 </head>
 <body>
@@ -516,6 +527,8 @@
 </div>
 
 <div class="wrap">
+  <div class="evbar" id="evbar"></div>
+  <section id="eventview" style="display:none"></section>
   <div class="tabs">
     <div class="tab on" data-t="verify">📋 赛事看板</div>
     <div class="tab" data-t="manager">⚽ 对阵分析</div>
@@ -754,6 +767,9 @@ function toggleMotivAdj(cb){ mgMotivAdj=cb.checked; loadManager(); }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');
+  // P1-④：wc2026 内切 tab 时把 hash 规范为双段形式（replaceState 无跳转、不触发 hashchange；
+  // 所有 click 路径均在脚本整体解析完成后触发，CUR_EVENT 必已初始化）
+  if(CUR_EVENT==='wc2026') history.replaceState(null,'','#wc2026/'+t.dataset.t);
   ['manager','bracket','champ','verify','market','explainer','jcreview','xuanxue'].forEach(s=>{
     $('#'+s).style.display = t.dataset.t===s?'block':'none';
   });
@@ -2581,15 +2597,79 @@ function renderLineupCard(d,H,A){
     </table>`;
 }
 
-// 深链：#bracket / #champ / #manager 直达对应 tab（便于分享与截图）；无 hash 时默认进赛事看板
-// 支持 #manager?h=Argentina&a=France&neutral=1 直达指定对阵报告（便于分享/截图某一场，免对方手填）
+// ===== P1-④ L0 赛事切换器 =====
+// 状态：CUR_EVENT 当前赛事；EVENTS_META 来自 /api/events（状态驱动排序）。
+// 徽标纯文字（内容红线：新增界面不使用 emoji）。
+const EVENT_KEYS = {{ event_keys | tojson }};
+const WC_SECTIONS = ['manager','bracket','champ','verify','market','explainer','jcreview','xuanxue'];
+let CUR_EVENT = 'wc2026', EVENTS_META = null, _evLoadP = null;
+function loadEvents(){
+  return _evLoadP || (_evLoadP = fetch('/api/events').then(r=>r.json())
+    .then(d=>{ EVENTS_META=d; renderEvbar(); })
+    .catch(()=>{ EVENTS_META=null; }));
+}
+function evBadge(e){
+  const lab = {live:'进行中', soon:(e.days_to_start||'?')+' 天后开赛', upcoming:'未开赛', archived:'已归档'};
+  return `<small class="b-${e.status}">${lab[e.status]||e.status}</small>`;
+}
+function renderEvbar(){
+  const bar = $('#evbar'); if(!bar || !EVENTS_META) return;
+  bar.innerHTML = EVENTS_META.map(e =>
+    `<span class="ev${e.key===CUR_EVENT?' on':''}" data-ev="${e.key}" onclick="selectEvent('${e.key}')">${e.name} ${evBadge(e)}</span>`).join('');
+}
+function selectEvent(key, tab, qs){
+  if(!EVENT_KEYS.includes(key)) key = 'wc2026';
+  CUR_EVENT = key;
+  const isWC = key === 'wc2026';
+  const tabs = document.querySelector('.tabs');
+  if(tabs) tabs.style.display = isWC ? '' : 'none';
+  $('#eventview').style.display = isWC ? 'none' : 'block';
+  if(isWC){
+    $('#eventview').innerHTML = '';
+    const t = document.querySelector(`.tab[data-t="${tab||'verify'}"]`) || document.querySelector('.tab[data-t="verify"]');
+    if(t) t.click();
+  } else {
+    WC_SECTIONS.forEach(s=>{ const el=$('#'+s); if(el) el.style.display='none'; });
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));   // activeTab→null，调度器自动停轮询
+    history.replaceState(null,'','#'+key+(tab?'/'+tab:''));
+    renderEventView(key);
+  }
+  renderEvbar();
+}
+async function renderEventView(key){
+  const v = $('#eventview'); if(!v) return;
+  await loadEvents();
+  const meta = (EVENTS_META||[]).find(e=>e.key===key) || {key, name:key, status:'', kind:''};
+  let body;
+  if(meta.wired){
+    body = '<div class="muted">加载中…</div>';
+  } else {
+    // 诚实空态：后端返回 not_wired 占位时不显示空白页，明确说明当前状态与已就绪的底层能力
+    body = `<div class="muted" style="line-height:1.8">本赛事的网页接线尚未完成（后端返回 not_wired 占位）。<br>
+      数据层与预测模型已就绪：${(meta.universe||'').startsWith('club')
+        ? '命令行 <code>python3 clubpredict.py "主队" "客队"</code> 已可出该联赛单场预测（数据来源 football-data.co.uk）'
+        : '命令行 <code>python3 predict.py "主队" "客队"</code> 已可出任意国家队对阵预测（数据来源 martj42 国际赛数据库）'}。<br>
+      网页版接线按路线图推进（联赛看板于 25-26 赛季开赛前上线）。</div>`;
+  }
+  v.innerHTML = `<div class="card"><h3 style="margin:0 0 8px">${meta.name} ${evBadge(meta)}</h3>${body}</div>`;
+}
+
+// 深链：双段 #<event>/<tab>?qs；旧单段深链（#bracket / #manager?h=… 等，外部聊天记录里存量分享链）
+// 永续回填到 #wc2026/<tab>（301 语义，history.replaceState 不产生跳转）；无 hash 默认进赛事看板。
+loadEvents();
 (function(){let raw=location.hash.slice(1), [h,qs]=raw.split('?');
+  let ev='wc2026';
+  if(h && h.includes('/')){ const i=h.indexOf('/'); ev=h.slice(0,i); h=h.slice(i+1); }
+  else if(EVENT_KEYS.includes(h)){ ev=h; h=''; }
+  if(!EVENT_KEYS.includes(ev)) ev='wc2026';
+  if(ev!=='wc2026'){ loadEvents().then(()=>selectEvent(ev, h||'')); return; }
   if(h==='market-demo'){ marketLoaded=true; document.querySelector('.tab[data-t="market"]').click(); setTimeout(loadMarketDemo,60); return; }
   if(h==='ratings') h='champ';     // 实力榜已并入「夺冠概率」tab，旧深链回退到夺冠概率
   if(h==='match') h='manager';     // 单场预测已并入「对阵分析」，旧深链回退到对阵分析
   const t=h&&document.querySelector(`.tab[data-t="${h}"]`);
   if(!t){ loadDashboard(); return; }
   t.click();
+  history.replaceState(null,'','#wc2026/'+h+(qs?'?'+qs:''));   // 旧深链回填为规范双段形式
   if(h==='champ' && qs && new URLSearchParams(qs).get('run')==='1')
     setTimeout(()=>champions(), 300);   // #champ?run=1 直接跑一次模拟出漏斗（分享/截图用）
   if(h==='manager' && qs){         // 解析对阵参数并直接出报告（队名支持中文/英文）

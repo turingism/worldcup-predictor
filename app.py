@@ -155,11 +155,28 @@ def _gzip_response(resp):
 def index():
     # 单页 HTML 内联了全部 JS/CSS。禁缓存：否则浏览器留旧版，改了前端（如括号布局）也不生效——
     # 用户反复看到"点实时比分后布局崩坏"正是旧缓存页在跑旧 layoutBracket。
-    resp = make_response(render_template("index.html", readonly=READONLY))
+    resp = make_response(render_template("index.html", readonly=READONLY,
+                                         event_keys=list(eventsmod.EVENTS)))
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"
     return resp
+
+
+@app.route("/api/events")
+def api_events():
+    """P1-④ L0 切换器数据源：注册表全量赛事（状态驱动排序）。event 无关端点。"""
+    today = dt.date.today()
+    out = []
+    for k in eventsmod.sorted_events(today):
+        e = eventsmod.EVENTS[k]
+        a = dt.date.fromisoformat(e["window"][0])
+        out.append({"key": k, "name": e["name"], "kind": e["kind"], "universe": e["universe"],
+                    "status": eventsmod.status(k, today),
+                    "days_to_start": max(0, (a - today).days),
+                    "tabs_off": e.get("tabs_off", []),
+                    "wired": "*" in (_EVENT_WIRED.get(k) or set()) or k == eventsmod.DEFAULT})
+    return jsonify(out)
 
 
 @app.route("/api/config")
