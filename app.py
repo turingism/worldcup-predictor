@@ -15,6 +15,7 @@ Web 服务：把比分预测 + 夺冠模拟做成网页。
 """
 from __future__ import annotations
 import datetime as dt
+import gzip
 import json
 import os
 import pickle
@@ -100,6 +101,28 @@ def _champ_rows_en(sims, grp, ko_ovr):
         _RAW_CHAMP[key] = TournamentSimulator(MODEL, DF, sims=sims).run(
             known=grp or None, ko_known=ko_ovr or None)
     return _RAW_CHAMP[key]
+
+
+@app.after_request
+def _gzip_response(resp):
+    """gzip 压缩响应（标准库，与 / 路由的 no-store 正交）：JSON/HTML/文本 ≥1KB 且客户端
+    Accept-Encoding 声明 gzip 才压；send_file 直通流/已编码响应不动。失败原样返回。"""
+    try:
+        if (resp.direct_passthrough or resp.status_code != 200
+                or resp.headers.get("Content-Encoding")
+                or "gzip" not in (request.headers.get("Accept-Encoding") or "").lower()):
+            return resp
+        if (resp.content_length or 0) < 1024:
+            return resp
+        ct = resp.headers.get("Content-Type", "")
+        if not any(t in ct for t in ("json", "html", "text", "javascript", "svg")):
+            return resp
+        resp.set_data(gzip.compress(resp.get_data(), 6))   # set_data 自动更新 Content-Length
+        resp.headers["Content-Encoding"] = "gzip"
+        resp.headers.add("Vary", "Accept-Encoding")
+    except Exception:  # noqa  压缩失败不影响响应本体
+        pass
+    return resp
 
 
 @app.route("/")
@@ -540,7 +563,8 @@ def api_manager():
         # 让球盘移动：从开盘→闭盘时间线取开盘线（强弱一致时），让报告显示盘口移动方向。
         if mh:
             try:
-                tl = oddsmod.load_handicap_timeline().get(oddsmod._hc_key(h_en, a_en))
+                tl = oddsmod.hc_lookup(oddsmod.load_handicap_timeline(), h_en, a_en,
+                                       mh.get("date"))   # 带日期防同对阵重逢串旧线
                 if tl and tl.get("open_line") is not None and tl.get("fav_is_home") == mh.get("fav_is_home"):
                     mh = {**mh, "open_line": tl["open_line"]}
             except Exception:  # noqa
@@ -765,11 +789,18 @@ def api_champions():
     key = (sims, tuple(sorted(grp.items())), tuple(sorted(ko_ovr.items())))
     if key not in _CHAMP_CACHE:
         rows = _champ_rows_en(sims, grp, ko_ovr)
+        # 已淘汰标注：真实淘汰赛败者 ∪ 小组未出线（ko=0），且未被用户假设"救活"（champ>0 视为假设晋级）。
+        # 缓存随 _refit_all 清空，与 actual_ko 同步。
+        s = _sim()
+        ko_losers = {t for fs, (_, w) in s.actual_ko.items() for t in fs if t != w}
         _CHAMP_CACHE[key] = [
-            {"team": teams_zh.disp(t), "champ": ch, "final": fi, "sf": sf, "qf": qf, "ko": ko}
+            {"team": teams_zh.disp(t), "champ": ch, "final": fi, "sf": sf, "qf": qf, "ko": ko,
+             "out": ch == 0 and (t in ko_losers or ko == 0)}
             for (t, ch, fi, sf, qf, ko) in rows
         ]
+    s = _sim()
     return jsonify({"sims": sims, "conditioned": len(grp) + len(ko_ovr),
+                    "facts": len(s.actual_results), "ko_facts": len(s.actual_ko),
                     "rows": _CHAMP_CACHE[key]})
 
 
@@ -1138,15 +1169,34 @@ def _market_handicap_one(h_en: str, a_en: str, max_age: float = 600.0):
 _STATUS_CACHE = {"t": 0.0, "data": []}
 
 
+_STATUS_REFRESH_LOCK = threading.Lock()   # 单飞：同一时刻只有一个后台刷新线程
+
+
 def _live_status(max_age: float = 30.0) -> list[dict]:
-    """ESPN 实时状态快照（pre/in/post），进程内缓存 max_age 秒，避免每次看板加载都打 ESPN。"""
+    """ESPN 实时状态快照（pre/in/post），进程内缓存 max_age 秒，避免每次看板加载都打 ESPN。
+    stale-while-revalidate：过期后立刻返回旧快照、后台线程刷新（_market_handicap_one 同款），
+    请求线程不再周期性吃 ESPN 4-5s 首字节尖峰；冷启动（尚无任何快照）保持同步拉。"""
     now = time.time()
-    if not _STATUS_CACHE["data"] or now - _STATUS_CACHE["t"] > max_age:
+    if _STATUS_CACHE["data"] and now - _STATUS_CACHE["t"] <= max_age:
+        return _STATUS_CACHE["data"]
+    if not _STATUS_CACHE["data"]:                     # 冷启动：同步拉（旧行为）
         try:
             _STATUS_CACHE["data"] = livemod.fetch_status()
             _STATUS_CACHE["t"] = now
         except Exception as e:  # noqa  实时源失败不致命：看板退化为只有账本数据
             print(f"[dashboard] ESPN 状态拉取失败：{e}")
+        return _STATUS_CACHE["data"]
+    if _STATUS_REFRESH_LOCK.acquire(blocking=False):  # 过期：回旧数据 + 后台刷新
+        def _worker():
+            try:
+                data = livemod.fetch_status()
+                _STATUS_CACHE["data"] = data
+                _STATUS_CACHE["t"] = time.time()
+            except Exception as e:  # noqa  刷新失败沿用旧快照，下次过期再试
+                print(f"[dashboard] ESPN 状态后台刷新失败（沿用旧快照）：{e}")
+            finally:
+                _STATUS_REFRESH_LOCK.release()
+        threading.Thread(target=_worker, daemon=True).start()
     return _STATUS_CACHE["data"]
 
 

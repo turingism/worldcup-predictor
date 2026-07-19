@@ -193,6 +193,7 @@
   .tie .side .g{font-variant-numeric:tabular-nums;color:var(--mut)}
   .tie .side.w .g{color:var(--grn2)}
   .pen{display:block;text-align:center;color:var(--warn);font-size:10px;padding-bottom:3px}
+  .third-tag{text-align:center;color:var(--mut);font-size:10px;padding:3px 0 1px;border-bottom:1px dashed var(--line)}
   .groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-top:12px}
   .gbox{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px}
   .gbox h4{margin:0 0 6px;font-size:12px;color:var(--acc)}
@@ -1024,11 +1025,11 @@ async function champions(){
   const stg = (lab,v)=>`<div class="stg"><i>${lab} ${(v*100).toFixed(0)}%</i><b style="width:${Math.max(v*100,1).toFixed(0)}%"></b></div>`;
   $('#champres').innerHTML = `<div class="card champ">
     <h3 style="margin-top:0">🏆 2026 夺冠概率（${N.toLocaleString()} 次模拟）</h3>
-    <div class="muted" style="margin-bottom:8px">👆 点击球队展开晋级漏斗（出线→八强→四强→决赛→夺冠）。± 为模拟 95% 区间。</div>
-    ${rows.map((x,i)=>`<div class="r" onclick="this.classList.toggle('open')">
+    <div class="muted" style="margin-bottom:8px">👆 点击球队展开晋级漏斗（出线→八强→四强→决赛→夺冠）。± 为模拟 95% 区间。${d.ko_facts?`已按 ${d.facts} 场小组赛 + ${d.ko_facts} 场淘汰赛<b>真实赛果</b>实时条件化，被淘汰球队夺冠概率归零。`:''}</div>
+    ${rows.map((x,i)=>`<div class="r" onclick="this.classList.toggle('open')"${x.out?' style="opacity:.45"':''}>
       <div class="top">
         <div class="rk">${i+1}</div>
-        <div>${x.team}</div>
+        <div>${x.team}${x.out?' <span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#3a2226;color:#e78f8f">已淘汰</span>':''}</div>
         <div class="barwrap"><div class="cbar" style="width:${(x.champ/mx*100).toFixed(1)}%"></div></div>
         <div class="cv">${pct(x.champ)} <small>±${(ci(x.champ)*100).toFixed(1)}</small></div>
       </div>
@@ -1115,7 +1116,7 @@ async function environmentPanel(){
   }catch(e){ $('#envres').innerHTML=''; }
 }
 
-const RNAME={R32:'1/16 决赛',R16:'1/8 决赛',QF:'八强',SF:'四强',Final:'决赛'};
+const RNAME={R32:'1/16 决赛',R16:'1/8 决赛',QF:'八强',SF:'四强',Third:'季军赛',Final:'决赛'};
 const PLAY={finished:['已结束','b-fin'],live:['进行中','b-live'],upcoming:['未开赛','b-up'],tbd:['未抽签','b-tbd']};
 const md=date=>date?date.slice(5).replace('-','/'):'';   // 2026-06-11 -> 06/11
 let TZMODE='bj';   // 'bj' 北京时间 | 'local' 场馆当地时间
@@ -1161,6 +1162,7 @@ const KO_Y=(()=>{const Y={};let leaf=0;
   (function rec(mn){const k=KO_TREE[mn];
     if(!k){Y[mn]=leaf++;return Y[mn];}
     const a=rec(k[0]),b=rec(k[1]);Y[mn]=(a+b)/2;return Y[mn];})(104);
+  Y[103]=Y[104]+2.5;   // 季军赛：不在晋级树内，渲染进决赛列、悬于决赛下方 2.5 槽
   return Y;})();
 const SLOT_BY_MN=(()=>{const o={};R32SLOTS.forEach((s,i)=>o[73+i]=s);return o;})();
 let SLOT_H=104;                                          // 槽高：初始给足，layoutBracket 按实测框高动态收紧
@@ -1169,27 +1171,32 @@ const bodyH=()=>LABEL_H+16*SLOT_H;                       // R32 16 槽
 const cY=mn=>LABEL_H+((KO_Y[mn]??0)+0.5)*SLOT_H;          // 该场纵向中心 y（按 KO_Y 精确居中）
 
 function bracketHTML(d, title){
-  let cols=d.rounds.map(rd=>{
+  const tieOne=(m,isR32)=>{
+    const aw=m.winner===m.a?'w':'', bw=m.winner===m.b?'w':'';
+    const sl=isR32?(SLOT_BY_MN[m.mn]||['','']):['',''];
+    const sa=isR32?`<span class="slot">${sl[0]}</span>`:'';
+    const sb=isR32?`<span class="slot">${sl[1]}</span>`:'';
+    const ed=m.a_en!==undefined;  // 投影结果可编辑
+    const cls=`tie${ed?' clickable':''}${m.set?' set':''}${m.real?' real':''}`;
+    const eattrs=ed?`onclick="editKO(this)"
+      data-a="${m.a_en}" data-b="${m.b_en}" data-an="${m.a}" data-bn="${m.b}"
+      data-ga="${m.ga}" data-gb="${m.gb}" data-w="${m.winner_en||''}"`:'';
+    const foot=ed?`<div class="tdate">${whenStr(m)} ${statusBadges(m)}</div>`:'';
+    return `<div class="${cls}" data-mn="${m.mn}" style="top:${cY(m.mn)}px" ${eattrs}>
+      ${m.mn===103?'<div class="third-tag">🥉 季军赛</div>':''}
+      <div class="side ${aw}">${sa}<span class="nm">${m.a}</span><span class="g">${m.ga}</span></div>
+      <div class="side ${bw}">${sb}<span class="nm">${m.b}</span><span class="g">${m.gb}</span></div>
+      ${m.pens?'<span class="pen">点球决胜</span>':''}
+      ${foot}
+    </div>`;
+  };
+  // 季军赛不是独立列：并入决赛列、悬于决赛下方（KO_Y[103] 定位）；旧数据无 Third 轮时自动缺省
+  const thirdRd=d.rounds.find(rd=>rd.name==='Third');
+  let cols=d.rounds.filter(rd=>rd.name!=='Third').map(rd=>{
     const isR32=rd.name==='R32';
     const matches=[...rd.matches].sort((x,y)=>(KO_Y[x.mn]??0)-(KO_Y[y.mn]??0));  // 树中序重排
-    const ties=matches.map(m=>{
-      const aw=m.winner===m.a?'w':'', bw=m.winner===m.b?'w':'';
-      const sl=isR32?(SLOT_BY_MN[m.mn]||['','']):['',''];
-      const sa=isR32?`<span class="slot">${sl[0]}</span>`:'';
-      const sb=isR32?`<span class="slot">${sl[1]}</span>`:'';
-      const ed=m.a_en!==undefined;  // 投影结果可编辑
-      const cls=`tie${ed?' clickable':''}${m.set?' set':''}${m.real?' real':''}`;
-      const eattrs=ed?`onclick="editKO(this)"
-        data-a="${m.a_en}" data-b="${m.b_en}" data-an="${m.a}" data-bn="${m.b}"
-        data-ga="${m.ga}" data-gb="${m.gb}" data-w="${m.winner_en||''}"`:'';
-      const foot=ed?`<div class="tdate">${whenStr(m)} ${statusBadges(m)}</div>`:'';
-      return `<div class="${cls}" data-mn="${m.mn}" style="top:${cY(m.mn)}px" ${eattrs}>
-        <div class="side ${aw}">${sa}<span class="nm">${m.a}</span><span class="g">${m.ga}</span></div>
-        <div class="side ${bw}">${sb}<span class="nm">${m.b}</span><span class="g">${m.gb}</span></div>
-        ${m.pens?'<span class="pen">点球决胜</span>':''}
-        ${foot}
-      </div>`;
-    }).join('');
+    let ties=matches.map(m=>tieOne(m,isR32)).join('');
+    if(rd.name==='Final'&&thirdRd) ties+=thirdRd.matches.map(m=>tieOne(m,false)).join('');
     return `<div class="round" data-rd="${rd.name}" style="height:${bodyH()}px"><div class="rlabel">${RNAME[rd.name]||rd.name}</div>${ties}</div>`;
   }).join('');
   cols+=`<div class="round champ-col" style="height:${bodyH()}px"><div class="rlabel">冠军</div>
@@ -1383,7 +1390,7 @@ function saveKO(){
 function clearKO(){ if(koCur) delete OV[koCur.a+'|'+koCur.b]; closeKO(); persistOV(); loadProjection(); }
 
 // —— 📋 赛事看板：正在比赛 / 即将开赛 / 已结束（含预测核对）——
-const STAGEZH={group:'小组赛',R32:'1/16',R16:'1/8',QF:'八强',SF:'四强',Final:'决赛',KO:'淘汰赛'};
+const STAGEZH={group:'小组赛',R32:'1/16',R16:'1/8',QF:'八强',SF:'四强',Third:'季军赛',Final:'决赛',KO:'淘汰赛'};
 // 淘汰赛阶段标签（小组赛不标，保持看板密度；1/16、1/8 补「决赛」全称）
 const stageTag=s=>{ if(!s||s==='group') return ''; const z=STAGEZH[s]||s; return /^1\//.test(z)?z+'决赛':z; };
 // 三向概率串：主/平/客，加粗模型判定 pick
@@ -1402,8 +1409,31 @@ async function loadDashboard(btn){
   try{
     const d=await (await fetch('/api/dashboard'+(btn?'?fresh=1':''))).json();
     renderDashboard(d); host.dataset.loaded='1';
-  }catch(e){ host.innerHTML=`<div class="card err">✗ 看板加载失败：${e}</div>`; }
+  }catch(e){ host.innerHTML=`<div class="card err">✗ 看板加载失败：${e}</div>`; _dashFp=null; }
   if(btn){ btn.textContent=btn.dataset.old; btn.disabled=false; }
+}
+
+// —— 看板增量渲染：60s 轮询若内容没变则跳渲（展开态天然保住）；变了则快照展开态、渲后回填。
+// 保三态：读盘卡（.on + 已载内容）/ 球迷解读开关(upnar) / 「展开后续场次」(upmore)。
+let _dashFp=null;    // 看板正文指纹（live/upcoming/done；#dashstat 独立于正文、每次照常更新）
+function dashSnap(){
+  const s={reads:{}, upnar:!!document.querySelector('#upwrap.upnar-on'),
+           upmore:(($('#upmore')||{}).style||{}).display==='block'};
+  document.querySelectorAll('#dashres [id^="read-"]').forEach(b=>{
+    // 有内容就保（含「暂无盘口」降级文案——它不置 dataset.loaded，只看 loaded 会回填成空盒）
+    if(b.classList.contains('on')||b.dataset.loaded||b.innerHTML)
+      s.reads[b.id]={on:b.classList.contains('on'), loaded:b.dataset.loaded||'', html:b.innerHTML};
+  });
+  return s;
+}
+function dashRestore(s){
+  for(const id in s.reads){ const st=s.reads[id], b=document.getElementById(id); if(!b) continue;
+    if(st.html) b.innerHTML=st.html;
+    if(st.loaded) b.dataset.loaded=st.loaded;
+    if(st.on) b.classList.add('on'); }
+  // 复用既有 toggle（新渲染默认关，调一次=开），保持单一事实来源（按钮态/tip 文案随之正确）
+  if(s.upnar){ const btn=document.querySelector('#upwrap .upnar-btn'); if(btn) toggleUpNar(btn); }
+  if(s.upmore){ const btn=document.querySelector('#dashres .upmore-btn'); if(btn) toggleUpMore(btn); }
 }
 
 let _dashUp0=null;   // 看板最近一场 upcoming 两队（显示名），供 explainer 首次懒加载预填
@@ -1413,6 +1443,10 @@ function renderDashboard(d){
   $('#dashstat').innerHTML=`🔴 正在比赛 <b>${c.live||0}</b> · 🟡 即将开赛 <b>${c.upcoming||0}</b> · ✅ 已结束 <b>${c.done||0}</b>`
     +(d.status_updated?` · <span class="muted">ESPN 同步 ${d.status_updated}</span>`:'')
     +(d.stale_finished?` · <b style="color:#e3b341">⚠️ ${d.stale_finished} 场已完场，点刷新入库</b>`:'');
+  const fp=JSON.stringify([d.live,d.upcoming,d.done]);
+  if(fp===_dashFp && $('#dashres').dataset.loaded){ return; }   // 内容没变：跳渲
+  const snap=dashSnap();
+  _dashFp=fp;
   let h='';
   // —— 正在比赛 ——
   h+=secHead('🔴 正在比赛', d.live.length);
@@ -1425,6 +1459,7 @@ function renderDashboard(d){
   // —— 让球预测命中率擂台（懒加载，复用同一冻结账本）——
   h+=`<div id="hcledger"></div>`;
   $('#dashres').innerHTML=h;
+  dashRestore(snap);
   loadHandicapLedger();
 }
 
@@ -2555,6 +2590,8 @@ function renderLineupCard(d,H,A){
   const t=h&&document.querySelector(`.tab[data-t="${h}"]`);
   if(!t){ loadDashboard(); return; }
   t.click();
+  if(h==='champ' && qs && new URLSearchParams(qs).get('run')==='1')
+    setTimeout(()=>champions(), 300);   // #champ?run=1 直接跑一次模拟出漏斗（分享/截图用）
   if(h==='manager' && qs){         // 解析对阵参数并直接出报告（队名支持中文/英文）
     const p=new URLSearchParams(qs), hh=p.get('h'), aa=p.get('a');
     if(hh||aa) setTimeout(()=>{ if(hh&&$('#mg_home'))$('#mg_home').value=decodeURIComponent(hh);

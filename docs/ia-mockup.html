@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>足球赛事预测器 · 页面分级分层原型（静态 mock）</title>
+<style>
+  :root{--bg:#0d1117;--card:#161b22;--line:#30363d;--txt:#e6edf3;--mut:#8b949e;
+        --grn:#3fb950;--gold:#e3b341;--blue:#58a6ff;--red:#f85149;--chip:#21262d}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding:24px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:20px}  h2{font-size:15px;color:var(--blue);margin:28px 0 10px}
+  .muted{color:var(--mut);font-size:12.5px}
+  .layer{border:1px dashed var(--line);border-radius:10px;padding:14px 16px;margin:10px 0;position:relative}
+  .layer::before{content:attr(data-l);position:absolute;top:-9px;left:14px;background:var(--bg);
+                 padding:0 8px;font-size:11px;color:var(--gold);font-weight:700}
+  /* L0 赛事切换器 */
+  .evbar{display:flex;gap:8px;flex-wrap:wrap}
+  .ev{display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:18px;background:var(--chip);
+      border:1px solid var(--line);cursor:pointer;font-size:13px;white-space:nowrap}
+  .ev.on{border-color:var(--grn);box-shadow:inset 0 -2px 0 var(--grn)}
+  .ev small{font-size:10.5px;padding:1px 6px;border-radius:4px}
+  .b-live{background:#1e3a2a;color:#6ee7a8}  .b-soon{background:#3a331e;color:var(--gold)}
+  .b-season{background:#1e2a3a;color:var(--blue)}  .b-arch{background:#2a2a2a;color:var(--mut)}
+  .evgroup{font-size:11px;color:var(--mut);margin:8px 0 4px}
+  /* L1 tab 装配 */
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+  .tab{padding:5px 12px;border:1px solid var(--line);border-radius:7px;background:var(--card);font-size:12.5px}
+  .tab.on{border-color:var(--grn);color:var(--grn)}
+  .tab.swap{border-color:var(--gold);color:var(--gold)}
+  .tab.off{opacity:.35;text-decoration:line-through}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.cols{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .card h3{margin:0 0 6px;font-size:13.5px}
+  ul{margin:6px 0;padding-left:18px}  li{margin:3px 0}
+  code{background:#21262d;padding:1px 6px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body><div class="wrap">
+<h1>⚽ 足球赛事预测器 · 页面分级分层原型</h1>
+<p class="muted">静态 mock（2026-07-08，配合 docs/MULTI_EVENT_PLAN.md §2）。三层结构：L0 选赛事 → L1 赛事内功能 → L2 单场详情。P1 接线时以此为准。</p>
+
+<div class="layer" data-l="L0 赛事层 · 顶栏切换器（状态驱动排序，自动非手排）">
+  <div class="evgroup">▍进行中 / 即将开赛</div>
+  <div class="evbar">
+    <span class="ev on">🏆 世界杯 2026 <small class="b-live">● LIVE</small></span>
+    <span class="ev">🇪🇺 欧国联 26-27 <small class="b-soon">57 天后</small></span>
+  </div>
+  <div class="evgroup">▍俱乐部赛季（8 月启）</div>
+  <div class="evbar">
+    <span class="ev">🏴󠁧󠁢󠁥󠁮󠁧󠁿 英超 25-26 <small class="b-season">赛季</small></span>
+    <span class="ev">🇪🇸 西甲 <small class="b-season">赛季</small></span>
+    <span class="ev">🇮🇹 意甲 <small class="b-season">赛季</small></span>
+    <span class="ev">🇩🇪 德甲 <small class="b-season">赛季</small></span>
+    <span class="ev">🇫🇷 法甲 <small class="b-season">赛季</small></span>
+    <span class="ev">⭐ 欧冠 <small class="b-season">P4 研究中</small></span>
+  </div>
+  <div class="evgroup">▍未来大赛 / 归档</div>
+  <div class="evbar">
+    <span class="ev">🇸🇦 亚洲杯 2027 <small class="b-soon">2027-01</small></span>
+    <span class="ev">🇲🇦 非洲杯 2027 <small class="b-soon">2027</small></span>
+    <span class="ev">🏴󠁧󠁢󠁥󠁮󠁧󠁿🇮🇪 欧洲杯 2028 <small class="b-soon">2028-06</small></span>
+    <span class="ev">🇦🇷 美洲杯 2028 <small class="b-soon">2028</small></span>
+    <span class="ev" style="opacity:.6">🏆 世界杯 2026 <small class="b-arch">7-19 后归档</small></span>
+  </div>
+  <p class="muted">规则：进行中 &gt; 30 天内开赛 &gt; 赛季中 &gt; 未来 &gt; 归档；URL <code>#&lt;event&gt;/&lt;tab&gt;</code>，旧深链 <code>#bracket</code> → <code>#wc2026/bracket</code> 零破坏。徽标即状态（events.py status()）。</p>
+</div>
+
+<div class="layer" data-l="L1 功能层 · 赛制驱动 tab 装配（不是全量复制）">
+  <div class="cols">
+    <div class="card">
+      <h3>杯赛形态（世界杯 / 欧洲杯 / 亚洲杯…）</h3>
+      <div class="tabs">
+        <span class="tab on">📋 赛事看板</span><span class="tab">⚽ 对阵分析</span>
+        <span class="tab">🌳 晋级树</span><span class="tab">🏆 夺冠概率</span>
+        <span class="tab">💹 市场对标*</span><span class="tab">🔍 机制解读*</span>
+        <span class="tab">📒 竞彩复盘</span><span class="tab">🔮 玄学占卜</span>
+      </div>
+      <p class="muted">与现有世界杯页 1:1——现有结构就是杯赛模板。</p>
+    </div>
+    <div class="card">
+      <h3>联赛形态（五大联赛 / 欧国联联赛阶段）</h3>
+      <div class="tabs">
+        <span class="tab on">📋 赛事看板</span><span class="tab">⚽ 对阵分析</span>
+        <span class="tab swap">📊 积分榜·夺冠赛道</span><span class="tab">🏆 夺冠概率</span>
+        <span class="tab">💹 市场对标</span><span class="tab">🔍 机制解读</span>
+        <span class="tab">📒 竞彩复盘</span><span class="tab off">🔮 玄学占卜</span>
+      </div>
+      <p class="muted">金色=晋级树换积分榜/夺冠赛道（模拟余下轮次的名次分布）；划线=该赛事关闭（registry tabs_off）。</p>
+    </div>
+  </div>
+  <p class="muted">* 市场/解读层由数据可用性开关：无盘口源 → 整 tab 隐藏（不是空态）。验证账本按赛事隔离（<code>predictions_&lt;event&gt;.json</code>），绝不混池算命中率。</p>
+</div>
+
+<div class="layer" data-l="L2 单场层 · 零改动复用">
+  <div class="tabs">
+    <span class="tab">比分矩阵弹窗</span><span class="tab">足球经理人深度报告</span>
+    <span class="tab">读盘卡</span><span class="tab">机制解读卡</span><span class="tab">走地实时胜平负</span>
+  </div>
+  <p class="muted">全部吃 (model, 主队, 客队)，与赛事无关；国家队/俱乐部各自的模型宇宙在 L0 选定时就路由好（intl → model.pkl；club_E0 → model_E0.pkl）。</p>
+</div>
+
+<h2>为什么这样分层（设计依据摘要）</h2>
+<ul class="muted">
+  <li><b>状态驱动而非人工排序</b>：赛事的关注度天然由"正在发生"决定，L0 顺序全自动，世界杯期间永远第一，结束自动归档。</li>
+  <li><b>赛制驱动 tab 而非复制八份</b>：杯赛/联赛只差"晋级树 vs 积分榜"这一个结构位，其余七个 tab 通用——配置装配比复制粘贴少维护 5 套页面。</li>
+  <li><b>数据可用性驱动功能开关</b>：诚实层传统——没有盘口就不渲染市场 tab，而不是摆一个永远空的 tab。</li>
+  <li><b>账本与模型宇宙隔离</b>：跨赛事命中率没有统计意义（基础难度不同），从文件层隔离，杜绝"全站命中率"这种自欺指标。</li>
+</ul>
+</div></body>
+</html>

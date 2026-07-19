@@ -121,18 +121,70 @@ def fetch_handicap_current(start: dt.date | None = None, end: dt.date | None = N
     return out
 
 
-def _hc_key(home: str, away: str) -> str:
-    """让球线存储键：顺序无关（淘汰赛口径），与 verify._kkey 同思路。"""
-    return "|".join(sorted((home, away)))
+def _hc_key(home: str, away: str, date: str | None = None) -> str:
+    """让球线存储键：顺序无关 + 比赛日（ESPN UTC 日）前缀 "YYYY-MM-DD|A|B"。
+    日期防同对阵重逢串线（小组赛对阵在淘汰赛重演时，纯对阵键会把两场混成一条）。
+    date=None 退化为旧版纯对阵键——仅供 hc_lookup 兼容旧数据/合成测试，写入端一律带日期。"""
+    pair = "|".join(sorted((home, away)))
+    return f"{date}|{pair}" if date else pair
+
+
+def _hc_parse_key(key: str) -> tuple[str | None, str]:
+    """拆键 → (date|None, pair)。旧版两段键 date=None。"""
+    parts = key.split("|")
+    return ("|".join(parts[:-2]) or None, "|".join(parts[-2:])) if len(parts) >= 3 \
+        else (None, key)
+
+
+def hc_lookup(store: dict, home: str, away: str, date: str | None = None,
+              tol_days: int = 2) -> dict | None:
+    """按对阵（顺序无关）+ 日期容差在 hc 键 dict 里取值（handicap_lines / timeline 通用）。
+    date 给定：取 |Δ天|≤tol_days 的最近一条（容差吸收 UTC/北京日口径差 ≤1 天；同对阵重逢
+    相隔 ≥ 数天，超容差即另一次相遇 → 返回 None 防串线）；date=None：取该对阵日期最新一条。
+    旧版无日期键视作任意日期可命中（兼容未迁移数据）。"""
+    pair = "|".join(sorted((home, away)))
+    cands = [( _hc_parse_key(k)[0], v) for k, v in store.items()
+             if _hc_parse_key(k)[1] == pair]
+    if not cands:
+        return None
+    if date is None:
+        return max(cands, key=lambda x: x[0] or "")[1]
+    try:
+        want = dt.date.fromisoformat(str(date)[:10])
+    except ValueError:
+        return None
+    best = None
+    for d, v in cands:
+        if d is None:
+            delta = 0                       # 旧键无日期：视作命中
+        else:
+            try:
+                delta = abs((dt.date.fromisoformat(d[:10]) - want).days)
+            except ValueError:
+                continue
+            if delta > tol_days:
+                continue
+        if best is None or delta < best[0]:
+            best = (delta, v)
+    return best[1] if best else None
 
 
 def load_handicap_lines() -> dict:
-    """读 data/handicap_lines.json：{key: 让球闭盘线行}。文件缺失/损坏返回空。"""
+    """读 data/handicap_lines.json：{key: 让球闭盘线行}。文件缺失/损坏返回空。
+    读时把旧版纯对阵键就地规范成带日期键（行内自带 date），调用方拿到的永远是新键口径；
+    磁盘迁移由 backfill 的下一次全量重写完成（读路径保持只读）。"""
     try:
         with open(HC_LINES_PATH, encoding="utf-8") as f:
-            return json.load(f)
+            raw = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
+    out = {}
+    for k, v in raw.items():
+        if isinstance(v, dict) and v.get("home") and v.get("away") and v.get("date"):
+            out[_hc_key(v["home"], v["away"], v["date"])] = v
+        else:
+            out[k] = v
+    return out
 
 
 def backfill_handicap_finished(limit: int = 24, start: dt.date | None = None,
@@ -153,7 +205,8 @@ def backfill_handicap_finished(limit: int = 24, start: dt.date | None = None,
         home, away = _event_teams(ev)
         if not home or not away:
             continue
-        key = _hc_key(home, away)
+        # 带日期键：同对阵在淘汰赛重演时是另一场，不能因小组赛那场已存而跳过
+        key = _hc_key(home, away, (ev.get("date") or "")[:10] or None)
         if key in store:                              # 已有 → 跳过，不再调 summary
             continue
         r = _handicap_from_summary(ev)
@@ -205,7 +258,7 @@ def load_handicap_timeline() -> dict:
                 if not ln:
                     continue
                 s = json.loads(ln)
-                k = _hc_key(s["home"], s["away"])
+                k = _hc_key(s["home"], s["away"], s.get("date"))
                 snaps.setdefault(k, []).append(s)
     except (FileNotFoundError, json.JSONDecodeError):
         pass
@@ -233,11 +286,14 @@ def fetch_handicap_pair(home: str, away: str, start: dt.date | None = None,
     end = end or live.TOURN_END
     sb = _get(SB_URL.format(d1=start.strftime("%Y%m%d"), d2=end.strftime("%Y%m%d")))
     want = frozenset((home, away))
-    for ev in sb.get("events", []):
-        h, a = _event_teams(ev)
-        if frozenset((h, a)) == want:
-            return _handicap_from_summary(ev)
-    return None
+    cands = [ev for ev in sb.get("events", []) if frozenset(_event_teams(ev)) == want]
+    if not cands:
+        return None
+    # 同对阵重逢（小组赛对阵在淘汰赛重演）会命中多个事件：优先未完赛那场（调用方都在问
+    # 即将开赛的盘），全都完赛则取最近一场——取第一个会串回小组赛旧线。
+    live_evs = [ev for ev in cands if _event_state(ev) != "post"]
+    ev = live_evs[0] if live_evs else max(cands, key=lambda e: e.get("date", ""))
+    return _handicap_from_summary(ev)
 
 
 def _event_teams(ev: dict) -> tuple[str, str]:

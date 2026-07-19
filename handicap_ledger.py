@@ -121,9 +121,10 @@ def build(sim, df, market_lines=None, timeline=None):
             brier_sum += (pred_cover - hit_cover) ** 2
 
         # —— 模型 vs 市场闭盘让球线 ——
+        # 日期容差匹配（±2 天吸收账本北京日 vs ESPN UTC 日口径差）：同对阵重逢时各认各场，防串线
         mkt_lean = None
-        hkey = espn_odds._hc_key(e["home"], e["away"])
-        ml = market_lines.get(hkey)
+        _hc_date = e.get("date") or c.get("date")
+        ml = espn_odds.hc_lookup(market_lines, e["home"], e["away"], _hc_date)
         # 模型期望净胜（连续，站强队角度）：Σ k·P(净胜=k)，不受让球档离散化惩罚
         em_home = float(sum(k * p for k, p in mp.items()))   # cast 防 np.float64 渗进 JSON
         exp_margin = em_home if fav_is_home else -em_home
@@ -142,7 +143,7 @@ def build(sim, df, market_lines=None, timeline=None):
             elif dk < dm - 1e-9: vm["closer_market"] += 1
             else: vm["tie"] += 1
             # —— 让球 CLV：模型在开盘相对市场的方向，闭盘是否朝模型移动（开盘线今起累积）——
-            tl = timeline.get(hkey)
+            tl = espn_odds.hc_lookup(timeline, e["home"], e["away"], _hc_date)
             if tl and tl.get("open_line") is not None and tl.get("close_line") is not None \
                     and tl.get("fav_is_home") == fav_is_home:
                 pos = 1 if fair > tl["open_line"] + 1e-9 else (-1 if fair < tl["open_line"] - 1e-9 else 0)

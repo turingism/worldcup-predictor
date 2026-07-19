@@ -250,7 +250,9 @@ class TournamentSimulator:
 
     # ---------- 淘汰赛（逐次模拟） ----------
     def run(self, known=None, ko_known=None):
-        # 条件化在已知赛果（真实自动 + 用户假设）上，使夺冠概率随赛况动态更新
+        # 条件化在已知赛果（真实自动 + 用户假设）上，使夺冠概率随赛况动态更新。
+        # 小组赛真实赛果并入 cond；淘汰赛真实赛果由 _play_bracket.play 按 frozenset
+        # 顺序无关自动套用（ko_known 用户假设优先），已淘汰球队夺冠概率随之归零。
         cond = dict(self.actual_results)
         if known:
             cond.update(known)
@@ -269,7 +271,7 @@ class TournamentSimulator:
                 stat[t]["ko"] += 1
             # 按 2026 官方括号打淘汰赛
             results, _, champ = self._play_bracket(win, run, thr, qual_letters, self.rng,
-                                                   ko_known=ko_known)
+                                                   ko_known=ko_known, use_actual=True)
             for (mn, _, _) in wc2026.R16:  # R16 胜者 = 进八强(8)
                 stat[results[mn]]["qf"] += 1
             for (mn, _, _) in wc2026.QF:   # QF 胜者 = 进四强(4)
@@ -304,12 +306,15 @@ class TournamentSimulator:
         ph, _, pa = self._wdl(a, b, host, city)
         return ph / (ph + pa) if (ph + pa) > 0 else 0.5
 
-    def _play_bracket(self, winner, runner, third, qual_letters, rng, record=False, ko_known=None):
+    def _play_bracket(self, winner, runner, third, qual_letters, rng, record=False, ko_known=None,
+                      use_actual=False):
         """
         按 2026 官方括号打完淘汰赛。
           winner/runner/third: {组字母: 队名}；qual_letters: 出线的 8 个第三所在组
           ko_known: {(a,b): (ga,gb,winner)} 已知/假设淘汰赛结果（这两队相遇时套用）
           record=True 时返回每场比分明细（用于树状图），否则只决胜负（冠军模拟，更快）
+          use_actual=True 时自动套用真实淘汰赛赛果 actual_ko（run() 夺冠概率用；
+          simulate_once 是"随机一届"纯假设，保持 False 不注入现实）
         返回 (results{match:winner}, rounds_detail, champion)
         """
         ko_known = ko_known or {}
@@ -322,6 +327,11 @@ class TournamentSimulator:
                 return w, {"a": a, "b": b, "ga": ka, "gb": kb, "winner": w, "pens": ka == kb}
             if (b, a) in ko_known:        # 顺序相反
                 kb, ka, w = ko_known[(b, a)]
+                return w, {"a": a, "b": b, "ga": ka, "gb": kb, "winner": w, "pens": ka == kb}
+            ak = self.actual_ko.get(frozenset((a, b))) if use_actual else None
+            if ak:                        # 真实淘汰赛赛果（顺序无关，与 _project_match 同口径）
+                scores, w = ak
+                ka, kb = scores[a], scores[b]
                 return w, {"a": a, "b": b, "ga": ka, "gb": kb, "winner": w, "pens": ka == kb}
             host = self._ko_host(mn, a, b)    # 该场次城市若是东道主本国 -> 其占主场
             city = self.ko_city.get(mn)
@@ -341,14 +351,22 @@ class TournamentSimulator:
             results[mn], d = play(a, b, mn)
             det.append(d)
         rounds_detail.append(("R32", det))
+        sf_pairs = {}                      # {mn: (a, b)} 记住半决赛对阵，季军赛=两败者相遇
         for name, rnd in [("R16", wc2026.R16), ("QF", wc2026.QF),
                           ("SF", wc2026.SF), ("Final", [wc2026.FINAL])]:
             det = []
             for (mn, fa, fb) in rnd:
                 a, b = results[fa], results[fb]
+                if name == "SF":
+                    sf_pairs[mn] = (a, b)
                 results[mn], d = play(a, b, mn)
                 det.append(d)
             rounds_detail.append((name, det))
+        if record:                         # 季军赛（103）：不影响冠军，仅树状图明细需要
+            l1, l2 = (next(t for t in sf_pairs[mn] if t != results[mn])
+                      for mn in (101, 102))
+            results[103], d3 = play(l1, l2, 103)
+            rounds_detail.append(("Third", [d3]))
         return results, rounds_detail, results[wc2026.FINAL[0]]
 
     def simulate_once(self, seed=None):
@@ -532,16 +550,25 @@ class TournamentSimulator:
             decided[mn] = dr and d.get("set", False)
             det.append(annotate(d, mn, dr))
         rounds.append({"name": "R32", "matches": det})
+        sf_pairs = {}                      # {mn: (a, b)} 半决赛对阵，季军赛=两败者相遇
         for name, rnd in [("R16", wc2026.R16), ("QF", wc2026.QF),
                           ("SF", wc2026.SF), ("Final", [wc2026.FINAL])]:
             det = []
             for (mn, fa, fb) in rnd:
                 a, b = results[fa], results[fb]
+                if name == "SF":
+                    sf_pairs[mn] = (a, b)
                 results[mn], d = self._project_match(a, b, ko_known, mn)
                 dr = decided.get(fa, False) and decided.get(fb, False)  # 双方上轮都已决出
                 decided[mn] = dr and d.get("set", False)
                 det.append(annotate(d, mn, dr))
             rounds.append({"name": name, "matches": det})
+        # 季军赛（103）：两场半决赛的败者自动相遇；对阵在两场 SF 均决出后才算"已确定"
+        l1, l2 = (next(t for t in sf_pairs[mn] if t != results[mn]) for mn in (101, 102))
+        results[103], d3 = self._project_match(l1, l2, ko_known, 103)
+        dr3 = decided.get(101, False) and decided.get(102, False)
+        decided[103] = dr3 and d3.get("set", False)
+        rounds.append({"name": "Third", "matches": [annotate(d3, 103, dr3)]})
         return {"groups": groups_out, "rounds": rounds,
                 "champion": results[wc2026.FINAL[0]],
                 "qualified_thirds": qual_letters}

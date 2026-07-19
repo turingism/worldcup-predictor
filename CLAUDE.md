@@ -24,7 +24,144 @@
 - **🔁 重验淘汰赛保守（用数据重判，非凭记忆，重跑 `bt_knockout.py`）**：90 分钟原始保守仍显著（淘汰赛 2.50 vs 小组赛 2.77，p=0.040；平局 +7.4pp，p=0.021；乘子 0.903），**且现在对竞彩 90 分钟盘正相关**；但**剔除球队强度后纯阶段乘子 0.926、CI[0.832,1.031]、p=0.159 仍不显著**。→ **结论不变：不叠进 GLM**；理由口径换了（旧：含加时洗没=错；新：竞彩90分钟相关但纯增量不显著、引擎已建模强度那部分）。**此负结论对口径假设稳健——90 分钟与含加时口径下纯阶段保守均不显著，结论不依赖口径。**
 - **下游交付已是 90 分钟口径**：竞彩 PDF（明写「竞彩=90分钟结算」）、小红书卡（footer「常规时间口径推演」）本就对，无需改（卡另顺手去掉「押」字、tip 改清楚）。
 
-## 📌 最新接手（2026-07-06 · 7-agent 评审第四轮 → 落地 6 任务：jc 原子写/后端健壮性三连/走地 host 口径/手机端 430 修复/看板入口闭环/让球球迷语言）
+## 📌 最新接手（2026-07-19 · 决赛日阶段 0 诊断收官：diagnosis/data-sources/backtest 三文档落档，基线 103+1s 绿，只待决赛回补即 P1 动工）
+- **/loop 任务书「联赛拓展屡次失败」归因钉死（`docs/diagnosis.md`，逐层实测非推测）**：数据层通（十联赛 CSV 在位）、计算层通（clubpredict 实跑 39.7/26.4/33.9）、**API 层与前端层零接线=冻结纪律下的计划内未实施**（grep app.py 零 club/events 引用、`?event=` 实测被忽略、index.html 零联赛入口）——不存在孤儿路由/断头代码，P1 照单施工即是修复。
+- **`docs/data-sources.md` + `docs/backtest.md` 落档**：把散在 CLAUDE.md 各期的选型裁决（football-data.co.uk + martj42，任务书候选源逐一落选理由）与回测结论（hl=365 裁决、闭盘全胜模型如实不美化、clubsim 回溯验证）整合成正式文档；未验证项（每日抓取脚本/可靠性曲线/欧冠两回合）如实标注。`docs/progress.md` 开档。
+- **基线**：test_core **103 passed + 1 skipped**（网络项自动跳）——P1 前置条件②满足；前置条件①=决赛（西班牙 vs 阿根廷，北京 7-20 凌晨）赛果回补，17:55 实测仍 upcoming。
+- **下一步**：决赛完赛+回补后按 `docs/P1_WIRING_CHECKLIST.md` 五步动工；接线证明截图存 `docs/evidence/`；任务书 vs 既有裁决的冲突勘误见 diagnosis.md 第五节（数据源不重选、DC 基线已超额）。
+
+## 📌 上一次接手（2026-07-16 五 · P1/P2 接线施工清单落档：docs/P1_WIRING_CHECKLIST.md，解冻当天照单施工）
+- **`docs/P1_WIRING_CHECKLIST.md`**：P1 五步（event 上下文→live/espn 参数化→账本隔离→L0 切换器→nl2026 壳）+ P2 清单 + 红线随身单，每步带当日实测行号锚点（app.py 33 条 route、live.py:23、espn_odds.py:31/33、verify.py:29、index.html:519/:2586）与独立验收标准。要点：①动工前置=决赛赛果回补完成+104 项基线绿；②P1-① `?event=` 默认 wc2026 逐字节不变（golden diff 回归）；③账本隔离走显式 path 贯穿（默认参数 def 时绑定坑已标）；④index.html 双段 hash 路由旧深链必须永续回填（manager?h= 分享链在外部）；⑤晋级树最后动（历史 bug 高发区，103 季军赛卡片回归项已列）。
+- **冻结期离线弹药至此真正打完**（07-16 四轮：季军赛机制/市场对标/季前模拟/映射+注册表/施工清单）。7-18 季军赛、7-19 决赛观测即可；P1 照单动工。
+
+## 📌 上一次接手（2026-07-16 四 · 五大联赛 25-26 季前概率全跑通 + 升班马映射补齐 + 注册表扩到四大联赛）
+- **四大联赛季前首跑（simulate_preseason 通用性验证，各 5000 次，feeder=clubdata.FEEDER）**：西甲 巴萨 48.0%/皇马 37.3%/马竞 11.9%（h2h 口径）；意甲 国米 62.8%/亚特兰大 15.5%/那不勒斯 9.0%；德甲 拜仁 80.1%/勒沃库森 12.9%；法甲 巴黎 83.2% 断层。降级热门基本=升班马+上季保级队，无桑德兰式极端值（升班马二级评级中游时概率温和，佐证 99.2% 是评级极弱+点估偏自信的叠加，非机制 bug）。
+- **升班马名单（25-26 真实，football-data 拼写已与 feeder 帧核对）**：英超 Leeds/Burnley/Sunderland；西甲 Levante/Elche/**Oviedo**；意甲 Sassuolo/Pisa/Cremonese；德甲 FC Koln/Hamburg（直升 2 队，海登海姆附加赛保级）；法甲 Lorient/**Paris FC**/Metz。
+- **`teams_zh.CLUB` +5**：Sunderland 桑德兰/Oviedo 奥维耶多/Pisa 比萨/Hamburg 汉堡/Paris FC 巴黎FC——**8 月新赛季 CSV 落地时映射覆盖测试不再红**（提前拆雷）。
+- **`events.py` 注册表 +4**：laliga2526/seriea2526/bundes2526/ligue12526（espn=esp.1/ita.1/ger.1/fra.1 已实测、账本文件名互异、tabs_off 同 epl2526；窗口=官方赛历近似，同 epl2526 口径）。
+- **test_core 104 全绿**（注册表不变量测试天然覆盖新条目：账本隔离/window 合法性）。
+- **下一步（loop 续作）**：① P1 接线施工清单细化（7-19 后一次落地）；② 季前概率可持久化为 data/club/preseason_<event>.json 供 P2 tab 直读（可选）；③ 7-18 季军赛/7-19 决赛只观测。
+
+## 📌 上一次接手（2026-07-16 三 · clubsim 季前模拟入口：25-26 英超今天就能出夺冠/降级概率（实况模式第一形态））
+- **`clubsim.simulate_preseason(code, promoted, feeder=, tiebreak=)`（纯离线，app 零接线）**：新赛季 0 场已赛、整季=`remaining_pairs` 双循环合成；名单=上季终表 − 末 len(promoted) 位 + 显式升班马（**附加赛胜者无法从终表推导，必须显式传入**；德甲/法甲 16 名附加赛保级不建模，诚实近似同意甲注释）；升班马评级靠 feeder 帧并入（同 simulate_retro 分场景裁决）。配套 `final_table()` 通用终表。名单数守恒断言在位。
+- **25-26 英超季前首跑（5000 次，feeder=E1）**：曼城 42.7% / 阿森纳 27.4% / 利物浦 27.2% 三强断层，纽卡 1.5%、切尔西 0.8%；降级前三=三支升班马（桑德兰 99.2%/利兹 34.3%/伯恩利 30.2%）。**⚠️ 桑德兰 99.2%、期望 22 分显著偏激**——已归档的「DC 点估无参数不确定性→偏自信」短板在季前零信息场景放大（市场约 60-70%），P2 若修走贝叶斯参数不确定性平移，勿动排序/引擎。
+- **test_core 102→104 全绿**（+季前结构测试：名单 20、24-25 降级队出表、冠军归一、期望分开放区间；此前离线 skip 的网络测试本轮通过）。
+- **P2 接线时**：这就是联赛 L1「夺冠概率」tab 的季前后端；开赛后切 `simulate_retro` 同款 as_of 口径（facts 从当季 CSV 增量来，`clubdata._CUR_END` 记得 +1）。
+
+## 📌 上一次接手（2026-07-16 二 · 俱乐部市场对标基线（bt_club_market.py）：五大联赛闭盘全胜模型，P2 市场 tab 诚实文案有据）
+- **背景**：/loop 主线「拓展成 S 级联赛比分预测器」。冻结期（→7-19）纯离线增量：国家队侧早有「模型 vs 闭盘市场三项全胜」实证（bt_explainer），俱乐部侧 B365 开+闭盘原生齐全却从未量化——P2 接市场层前必须先有这个基线。
+- **`bt_club_market.py`（纯回测，零碰 app/GLM）**：每 (联赛×3 cutoff) hl=365 as-of 训练、后 180 天评测，同批场次三方对比（模型/开盘/闭盘，Shin 去水），只计模型可测∧盘口俱全场次（跳过数如实打印）。
+- **结果（n≈2700 场，2023-08/2024-08/2025-01 三窗）**：
+  - **闭盘在全部 5 联赛胜模型**：RPS gap E0 +.0122 / SP1 +.0100 / I1 +.0079 / D1 +.0110 / F1 +.0090，跨联赛 **+.0100**（对照国家队 +.0118——俱乐部模型离市场反而略近）。命中率闭盘 55.2% vs 模型 51.9%。
+  - **闭盘比开盘更锐利**（跨联赛 −.0007，与国家队结论同向）；**例外：意甲开盘微好于闭盘**（.1815 vs .1823），如实记录、勿包装。
+  - **交叉验证**：模型跨联赛 RPS .2014 ≈ bt_club_hl 裁决口径 .2018，两脚本口径互证。
+  - D1 跳场最多（73，18 队制升班马占比高）——feeder 并入单场模型仍是否决状态，跳场如实展示。
+- **用途与红线**：数字只作 P2 市场 tab 的**描述性对标文案**（俱乐部版「认清打不赢市场」），禁止衍生任何 edge/推荐话术——`_BANNED`/无「率」处方红线全赛事一体（PLAN §六）。
+- **下一步（loop 续作）**：7-19 决赛后 P1 接线动工（L0 切换器/?event=/league code 参数化/账本隔离）；7-18 季军赛、7-19 决赛期间只观测不动 app。
+
+## 📌 上一次接手（2026-07-16 · 季军赛（103 号）机制补齐：SF 败者自动相遇，投影/账本/看板/晋级树全链路）
+- **用户报告的真实缺口**：看板/晋级树见不到季军赛——`wc2026.py` 晋级树只有 73-102+104，103 号完全没建模；`verify.freeze` 只冻结投影 rounds 里的场次，且其清理循环会删掉不在投影里的未开球 KO 条目 → 手工补录也会被抹掉，必须从结构层修。季军赛 7-18（北京 7-19 05:00），修复赶在开球前。
+- **改动（四处，零碰 GLM/回测）**：① `wc2026.py`：`THIRD=(103,101,102)`（SF 两败者）+ `KO_DATES[103]="2026-07-18"` + `ROUND_NAMES["Third"]="季军赛"`；② `simulate.project()`：SF 轮记住对阵，赛后两败者自动配成 103（`_project_match` 走既有 actual_ko/ko_known 优先级，7-19 真实赛果会自动套入），rounds 追加 `{"name":"Third"}`（排在 Final 后，前端顺序无关）；`_play_bracket` 仅 record=True（随机一届树状图）时补打 103——run() 夺冠快路径不打（冠军无关，省算力）；③ `verify.freeze`/看板/`_localize_bracket`/让球/解读全是 rounds 泛型遍历，**零改动自动覆盖**（stage="Third" 入账本）；④ 前端 `index.html`：季军赛**不当独立列**、并入决赛列悬于决赛下方（`KO_Y[103]=Y[104]+2.5`），tie 内加「🥉 季军赛」标签（`.third-tag`），`bracketHTML` 抽出 `tieOne` 复用；RNAME/STAGEZH 补 Third；无连线（不在树内，刻意）。
+- **元数据本就齐**：`schedule.KO[103]`（北京 7-19 05:00）/`venues.json ko.103=Miami`/东道主映射早就在，`sim.ko_city` 遍历 schedule.KO 天然覆盖——缺的只是结构层。
+- **验证**：test_core **99→102 全绿**（+3：投影季军赛=SF 败者且不与决赛重叠、simulate_once 含 Third、结构断言；两条旧断言 5 轮→6 轮同步改）；launchctl 重启后实测：投影 Third=法国 vs 英格兰 drawn/upcoming、看板 upcoming 出现季军赛（法 36.3/平 30.7/英 33.0，已冻结进账本、带让球+解读）、决赛=西班牙 vs 阿根廷、夺冠 API 二人转 59.8/40.2 正常；晋级树截图确认季军赛卡片位置/标签/点球决胜徽章正确。
+- **⚠️ 注意**：季军赛对阵**结构上不可能**与此前淘汰赛对阵重复（两败者来自对立半区），`_kkey` 顺序无关键无碰撞风险；与小组赛重逢用的是 `_gkey` 命名空间，也不撞。7-19 完赛后 backfill/评估走 stage="KO" 既有路径。
+
+## 📌 上一次接手（2026-07-09 三 · clubsim 西甲/意甲相互战绩 tiebreak 插拔落地，P3 遗留项清掉）
+- **`clubsim.SeasonSimulator` 加 `tiebreak="gd"|"h2h"`**：gd=原英超口径（向量化路径零改动）；h2h=西甲/意甲口径——同分组内先比相互战绩小循环（积分→净胜），再回落总净胜/总进球/抖动。实现=额外累计 (N,n,n) 相互积分/净胜矩阵（事实 `_base_h2h` + 抽样逐场增量），排名走 `_rank_h2h` 逐模拟 Python 循环（3000×20 队 <1s，无性能问题）。
+- **`LEAGUE_TIEBREAK = {SP1: h2h, I1: h2h}`**，`simulate_retro` 按联赛码自动选（意甲 22-23 起同分附加赛不建模，注释里如实标注为诚实近似）。
+- **量化影响（24-25 半程视角，固定 seed 抽样全同，差异纯来自规则）**：西甲 马竞 26.4→28.2%（h2h 占优受益）、皇马 56.3→55.1、巴萨 16.8→16.3；意甲 国米 80.7→80.2、那不勒斯 6.7→7.3。**边际量级（≤1.8pp），但同分边界个案会翻名次——P3 接西甲前必须在位的正确性件，现已在位。**
+- **test_core 98→99 全绿**（合成 3 队场景：总净胜 A 优/相互战绩 B 优，两口径榜首互换断言）。⚠ 跑全套时遇到一次 10 分钟超时，重跑 108s 全绿——环境网络抖动，非代码问题；再遇先 `-v` 定位勿直接改代码。
+
+## 📌 上一次接手（2026-07-09 二 · clubsim 回溯验证扩到四大联赛 + 次级联赛 feeder 补齐（SP2/I2/D2/F2））
+- **`clubdata.LEAGUES` 补四个 feeder 码**（Spanish Segunda/Serie B/2. Bundesliga/Ligue 2，均标注"仅作赛季模拟 feeder"）+ **规范映射 `clubdata.FEEDER = {E0:E1, SP1:SP2, I1:I2, D1:D2, F1:F2}`**——P2 接线时赛季模拟一律从这里取 feeder，勿手写。
+- **24-25 四联赛回溯验证（半程视角 as_of=2025-01-01，3000 次，带 feeder）——诚实盘点**：
+  - **命中**：德甲拜仁 89.3% ✓（降级 2/2 全中，基尔 94%/波鸿 91%）；法甲巴黎 98.2% ✓（降级 2/3）。
+  - **未命中的两个恰是下半程翻盘冠军**：西甲皇马 56.3% vs 实际巴萨（16.8%，下半程反超=诚实先验，同英超"赛季前曼城 72.7%"性质）；意甲国米 80.7% vs 实际那不勒斯（6.7%）——**偏自信实锤，与已记录"DC 点估无参数不确定性→夺冠概率偏自信"一致**（那不勒斯半程实际领跑却只给 6.7%，强度先验压过榜面事实）。意甲降级 2/3、西甲 1/3（瓦伦西亚半程垫底后换帅神奇保级，模型无法预知，合理失误）。
+  - **结论**：模拟器跨联赛机械层面全通（场次守恒、18/20 队赛制自适应）；**已知短板=夺冠概率偏自信 + 榜面领先者权重不足**，P2 若要修，方向是贝叶斯参数不确定性平移（CI 已有先例）而非动排序/引擎。
+- **test_core 97→98 全绿**（FEEDER 映射结构测试，零网络）。app 健康检查过（ratings API 正常）。
+- ⚠ 西甲相互战绩 tiebreak 仍是"P3 插拔"未做——本次验证用英超口径排序，对概率影响边际，但 P3 接西甲前要落。
+
+## 📌 上一次接手（2026-07-09 · clubpredict.py 俱乐部单场预测 CLI 交付；P2 清单里的 CLI 提前完成）
+- **`clubpredict.py`（纯离线新文件，零碰运行中 app / 国家队主线）**：五大联赛单场比分预测 CLI，predict.py 的俱乐部宇宙对应物。`python3 clubpredict.py "阿森纳" "曼城"`——联赛从两队名自动识别（S5 池，E1 按裁决不进单场）、队名解析链=teams_zh.to_en → 精确 → 大小写 → 唯一子串 → difflib 建议（错拼给"你是想找"）；输出=xG/胜平负/大小球2.5/BTTS/Top7 比分（disp() 中文+旗帜）；`--neutral` 中立场、`--ranking <码>` 实力榜、`--refresh` 强拉进行中赛季、`--league` 跳过自动识别。
+- **每联赛模型缓存**：`data/club/model_<码>.pkl`（已在 gitignore 的目录内），守卫=SCHEMA_VERSION + hl=365 精确匹配 + **pkl 不老于该联赛任一 CSV 的 mtime**（数据更新自动重训——比 predict.py 的守卫多一道时效检查，赛季进行中 CSV 会增量变新）。
+- **跨联赛对阵（欧冠）= 诚实拒绝并退出**（两联赛强度刻度未校准，P4 研究项）——错误信息里明说理由，防"硬拼概率"。
+- **实测**：阿森纳主场 vs 曼城 39.7/26.4/33.9（hl=365，与 07-08 冒烟的 hl=240 版 42/27/32 同量级）；皇马 vs 巴萨 46.7/23.0/30.3；利物浦 vs 拜仁正确拒绝；"Arsnal" 给出 Arsenal 建议。**test_core 95→97 全绿**（解析/联赛识别/缓存守卫/概率归一，数据不可得自动 skip）。skill 文件已同步（俱乐部 Python 片段换成 CLI 用法，P2 清单划掉 CLI）。
+- **注意**：数据"截至 2025-05-25"是数据事实（25-26 季 8 月才开）；新赛季记得 `clubdata._CUR_END` +1 后 `--refresh`。
+
+## 📌 上一次接手（2026-07-08 深夜 · 俱乐部中文映射 144 队收官；决赛前离线弹药打完，loop 暂停待 7-19）
+- **`teams_zh.CLUB`**：五大联赛近 7 季全部 144 支俱乐部中文映射（键=football-data 拼写：Ath Madrid/M'gladbach/Nott'm Forest/Espanol/Ein Frankfurt…），独立于国家队 CN 命名空间（防 Monaco 类撞名，测试断言无交集）；`disp()` 双表查、反查表 `_R` setdefault 合并（国家队优先）。旗帜=联赛归属国（Cardiff 威尔士旗、Monaco 🇲🇨）。测试断言 clubdata 全队名有映射（缺一即红）。
+- clubdata 赔率列统一 float（消 concat FutureWarning）。**test_core 94→95 全绿。**
+- **skill 已升级 v3.0（2026-07-08）**：`~/.claude/skills/worldcup/SKILL.md` 全面改写为「顶级足球赛事预测」操作手册——双宇宙硬约束（国家队 hl=730 / 俱乐部 hl=365）、俱乐部单场 Python 用法（`clubdata.load` + `half_life_days=365`，实测跑通）、clubsim 赛季模拟入口、P0-P4 路线图与 7-19 冻结纪律、launchctl 运维、账本隔离/红线避坑全收录；触发词扩到欧冠/英超/五大联赛/欧洲杯/美洲杯。目录名保留 `worldcup` 不改（防破坏引用）。
+- **多赛事扩展 · 决赛前离线阶段收官盘点（全部落地）**：P0 设计文档+IA 原型 / events.py registry / clubdata.py 数据层（五联赛+E1）/ hl=365 正式裁决 / clubsim.py 赛季模拟器（回溯验证过硬）/ 144 队中文映射。**下一步=P1 接线（7-19 世界杯决赛后）**：L0 切换器进 index.html、API 加 ?event=、live/espn_odds league code 参数化、账本隔离接线、欧国联 26-27 壳——均以 ia-mockup.html 与 MULTI_EVENT_PLAN.md 为准。8 月初英超 25-26 开赛前完成 P2 接线（clubdata._CUR_END 记得 +1）。
+
+## 📌 上一次接手（2026-07-08 晚 · clubsim.py 联赛赛季模拟器建成，24-25 英超回溯验证过硬）
+- **`clubsim.py`（P2 核心：L1 联赛形态的"夺冠概率/积分榜赛道"后端，纯离线旁路）**：`SeasonSimulator`——as_of 前已赛=事实入账、剩余赛程按 DC 比分分布逐场向量化抽样，N 次终局 → 每队冠军/前四/降级(末三)概率 + 期望积分/名次；排序=积分>净胜>进球+微抖动（英超口径，西甲相互战绩 P3 插拔）。`simulate_retro(code, 季始, 季末, as_of, feeder=)` 训练同样 as_of 截断防泄漏。
+- **回溯验证（24-25 英超，5000 次）**：半程视角（25-01-01）**利物浦 86.5% 夺冠（史实 84 分夺冠）、降级概率前三 = 真实降级三队**（南安普顿 99.4%/伊普斯维奇 70.9%/莱斯特 61.6%）；赛季前视角曼城 72.7% 为诚实先验（四连冠背景，联赛未打不可能预知利物浦）。已知偏差：DC 点估无参数不确定性 → 夺冠概率偏自信（贝叶斯 CI 可平移，P2 可选）。
+- **E1 裁决细化为分场景**：单场预测不并入（准度闸门）；**赛季模拟必须 feeder="E1" 并入**——跳过升班马整队 38 场会扭曲全表，覆盖 > 微小准度差。PLAN §3 已同步。
+- **test_core 93→94 全绿**（clubsim 不变量：场次守恒 380、冠军概率归一、半程榜首=利物浦；数据不可得自动 skip）。
+- **实况模式待 P2 接线**：未来赛程源 = football-data `fixtures.csv`；`clubdata._CUR_END=2025` 新赛季要 +1。
+
+## 📌 上一次接手（2026-07-08 傍晚 · 俱乐部半衰期正式裁决 hl=365 + E1 并入否决 + IA 可视化原型）
+- **正式复扫裁决（`bt_club_hl.py` full_scan：5 联赛 × 3 时序 cutoff × 8 档网格，120 拟合）**：
+  - **P2 采纳 half_life=365 统一**（跨联赛平均 RPS 0.2018 最优，240 并列；180–545 平底盆地，每联赛距自身最优 ≤0.0016，不为噪声开 per-league 超参）。各联赛最优 E0=180/SP1=240/I1=545/D1=365/F1=545；**730 在所有联赛都不是最优**（国家队超参确实不可照搬）。
+  - **昨日首扫"120-240"被修正**——那是英超单联赛+双 cutoff 窄样本；"首扫只定方向"纪律的活教材，已留档对照。
+  - **E1 英冠并入=否决（闸门不过）**：跳场归零（覆盖价值真实）但无跳场 cutoff（25-01 同 n=192 严格可比）RPS +0.0036 变差。P2 方案：E0 单独模型 + 升班马对阵前端标"数据不足"；后续可研究 E1 降权（w<1）并入。clubdata.LEAGUES 已加 E1（仅作补充数据源，非 S 级赛事）。
+- **IA 可视化原型：`docs/ia-mockup.html`**（静态零依赖，浏览器直开）——L0 切换器（分组+状态徽标）、L1 杯赛 vs 联赛 tab 装配对照（金色=晋级树↔积分榜互换位、划线=tabs_off）、L2 复用清单、设计依据四条。已截图验证渲染。**P1 接线以此为准**。
+- MULTI_EVENT_PLAN.md 已同步裁决与原型链接。
+
+## 📌 上一次接手（2026-07-08 下午 · 多赛事脚手架落地：events.py + clubdata.py + 英超半衰期首扫（120-240 天，反国家队方向））
+- **三件新模块（全离线旁路，运行中 app 零接线——世界杯 7-19 决赛前冻结大改）**：
+  - **`events.py`**：赛事注册表（wc2026/nl2026/epl2526 三条起步），字段=name/kind/universe/espn/data/window/ledger/tabs_off；`status()` 状态机（live/soon/upcoming/archived）+ `sorted_events()` L0 排序（进行中>30 天内>未来>归档）。账本按赛事隔离在 registry 层就锁死（测试断言 ledger 文件名互不相同）。
+  - **`clubdata.py`**：football-data.co.uk 装载层——按季缓存 `data/club/`（已 gitignore）、归一引擎 schema（neutral=False）、赔率列透传（**B365 开盘+闭盘原生齐全,闭盘覆盖实测 100%**）。五大联赛(E0/SP1/I1/D1/F1)全实测通过（各 ~1140 场/3 季）。`_CUR_END=2025`——**新赛季开始后要 +1**。
+  - **`bt_club_hl.py`**：俱乐部半衰期时序首扫（as_of 防泄漏，对齐主项目回测纪律）。**首扫结论：英超最优 hl=120–240 天（RPS 0.2062/0.2065 并列），365 起单调劣化，730（国家队最优）=0.2149 显著差——方向与国家队完全相反**（俱乐部换血快+密度高）。升班马坑：升班季前无顶级数据的队跳过（24-25 跳 23 场），改进=并入英冠 E1。⚠️ 首扫仅定方向（2 cutoff 单联赛），P2 正式采纳需 5 联赛 × ≥3 cutoff × 下探 60/90 网格复扫。
+- **冒烟**：`DixonColesModel(hl=240).fit(EPL 5 季)` → Arsenal 主场 vs Man City 42/27/32%、xG 1.41-1.19（合理）。**引擎对俱乐部数据零改动可用**（fit/predict/neutral=False 全兼容）。
+- **测试 91→93 全绿**：registry 结构不变量+状态机+排序、clubdata 引擎 schema 断言（网络不可达自动 skip）。
+- **下一步（loop 续作）**：① 正式复扫（5 联赛×3 cutoff）定 hl；② L0 切换器前端原型（可做但不接线）；③ 7-19 后 P1 接线动工。
+
+## 📌 上一次接手（2026-07-08 · 用户定新主线：世界杯预测器 → 足球赛事比分预测器（全 S 级赛事）· P0 调研+IA 设计已交付）
+- **用户原话**：「把世界杯比分预测器调整为足球赛事比分预测器，赛事需要包含全部的 S 级别赛事，研究页面结构怎么分级分层合理」——这是**新主线**，/loop 持续迭代中。
+- **P0 交付：`docs/MULTI_EVENT_PLAN.md`**（赛事分级清单、三层 IA、模型宇宙、event registry 形态、P1-P4 路线图、红线）。核心结论：
+  - **数据可行性全实测**：① 国家队 S 级（欧洲杯 388/美洲杯 869/非洲杯 845/亚洲杯 421/欧国联 658 正赛场次）全在 martj42,现引擎（全国际赛训练、257 队）今天就能预测任意国家队对阵，缺的只是赛事外壳；② ESPN API 全赛事 league code 可参数化（uefa.euro=781、conmebol.america、uefa.champions、eng.1…实测有响应）；③ 俱乐部=另一宇宙，football-data.co.uk 实测英超 380 场/季 + **B365 开盘闭盘原生齐全**（CLV 条件比 WC 好）。
+  - **页面三层 IA**：L0 赛事切换器（状态驱动排序：进行中>倒计时>赛季中>归档；URL `#<event>/<tab>`，旧深链 301 到 `#wc2026/<tab>`）→ L1 赛制驱动 tab 装配（杯赛=晋级树/联赛=积分榜；无盘口源→市场 tab 整体隐藏；**验证账本按赛事隔离绝不混池**）→ L2 单场层零改动（矩阵/经理人/读盘卡天然赛事无关）。
+  - **模型宇宙隔离=硬约束**：国家队一个 model.pkl（现状）；俱乐部每联赛一个（half_life **必须重扫**——俱乐部数据密度 10 倍于国家队，730 不可照搬）；跨联赛（欧冠）P4 先研报告再裁决。
+  - **路线图**：P1 registry+切换器+欧国联 26-27（同宇宙零成本，9 月开打）——**等 7-19 世界杯决赛后动工**（运行期冻结大改）；P2 英超（8 月开赛，时机好）；P3 复制到其余四大+2028 双杯壳；P4 欧冠跨联赛校准（可能负 EV 止步）。
+- **决赛前（7-19 前）loop 可做的安全增量**：events.py registry 草稿、俱乐部数据装载器+半衰期回测脚手架（纯离线、零碰运行中 app）。
+
+## 📌 上一次接手（2026-07-07 深夜三 · 白皮书 v4 + skill 过时 TODO 清理；已裁决 backlog 全部清零）
+- **白皮书 v4**（`docs/whitepaper-source.html` + 同名 PDF 重渲，headless Chrome print-to-pdf）：§2.4 补「随赛事推进的实时条件化」一段——夺冠蒙特卡洛对已踢真实赛果条件化（小组赛逐场固定、淘汰赛按对阵自动套用、what-if 优先于事实）、已淘汰球队归零、贝叶斯区间同步继承；meta 行改 v4 2026-07-07。**仅 `docs/` 一份**（桌面无副本，旧 TODO 里"桌面+docs 两份"已不成立）。PDF 已 Read 抽查前 2 页确认渲染正确。
+- **skill 文件 TODO 清理**（`~/.claude/skills/worldcup/SKILL.md` 双语两节）：#1 白皮书、#2 CLV 开盘列（`odds_*_open` 列早已在、开盘随 30min 快照自动累积）标记已完成；新增第 5 条指路——06-25 评审全部已裁决遗留项 07-07 已清零，再提优化先读本文件最新接手。
+- **backlog 现状（诚实盘点，防下轮空转）**：已裁决可做项**全部落地**；余下：③ 夺冠区间 MVN 备选=低 EV 补充视图的补充视图，无用户诉求不做；④ xG=死胡同；bt_knockout 重跑等**淘汰赛全部打完**（决赛 7-19 后）；b_gate/CLV 开盘样本=自动累积。**无可立即施工项。**
+
+## 📌 上一次接手（2026-07-07 深夜二 · 看板增量渲染：指纹跳渲 + 展开态快照回填，否决记录 #8 落地）
+- **修的 UX bug**：60s 轮询 `loadDashboard` 整块 `innerHTML` 重渲会抹掉用户展开态——读盘卡收回、球迷解读关闭、「展开后续场次」折回。纯前端 `templates/index.html`，零后端改动。
+- **实现（renderDashboard）**：① `_dashFp = JSON.stringify([live,upcoming,done])` 指纹，不变 + `dataset.loaded` → **直接跳渲**（`#dashstat` 含 ESPN 同步时间，独立于正文每次照常更新）；② 变了 → `dashSnap()` 快照三态（读盘卡 `.on`/`dataset.loaded`/`innerHTML`、`#upwrap.upnar-on`、`#upmore` display）→ 重渲 → `dashRestore()` 回填。回填 upnar/upmore **复用既有 toggle 函数**（新渲染默认关、调一次=开，按钮态/tip 文案单一事实来源）；③ `loadDashboard` catch 里 `_dashFp=null`（否则错误卡驻留：下次成功轮询指纹相同被跳渲）。
+- **⚠️ 边缘缺陷（CDP 实测抓到后已修）**：读盘卡「暂无盘口」降级文案**不置 `dataset.loaded`**，快照条件只看 loaded 会把它回填成空盒——改为 `on||loaded||innerHTML` 有内容就保。
+- **验证**：node --check 内联 JS 语法通过；**CDP 行为测试**（headless Chrome + `--remote-allow-origins=*` + python websocket-client，脚本套路可复用）：点开读盘卡+球迷解读+展开后续场次 → 再跑 `loadDashboard()`（跳渲路径）三态全保 → `_dashFp` 置脏强制重渲（回填路径）三态+读盘卡内容(43 字节原样)全保，PASS；test_core 91 全绿；1100px 截图正常。**CDP 坑**：headless Chrome 的 ws 需 `--remote-allow-origins=*`（zsh 下 `*` 要引号），否则 websocket-client 的 Origin 头被拒。
+- **跳渲副作用（可接受）**：跳渲同时跳过 `loadHandicapLedger()` 刷新——擂台数据源自已完赛账本，正文没变它基本也没变；有完赛入库正文必变、自然触发全量重渲。
+
+## 📌 上一次接手（2026-07-07 深夜 · _live_status stale-while-revalidate + gzip：否决记录 #7/#9 落地）
+- **SWR（app.py `_live_status`，否决记录 #7「可按提案原文直接落地」）**：TTL(30s) 过期后**立刻返回旧快照**、后台线程单飞刷新（`_STATUS_REFRESH_LOCK.acquire(blocking=False)`，`_market_handicap_one` 同款模式），请求线程不再周期性吃 ESPN 4-5s 首字节尖峰；冷启动（尚无快照）保持同步拉、失败优雅降级不变。刷新失败沿用旧快照、锁在 finally 释放。
+- **gzip（`@app.after_request`，否决记录 #9「顺手加」）**：标准库 gzip level 6；仅 200 + 非 direct_passthrough + 未编码 + 客户端声明 gzip + ≥1KB + json/html/text/js/svg 才压；`set_data` 自动更新 Content-Length，加 Vary: Accept-Encoding；与 `/` 的 no-store 正交（实测共存）。任何异常原样返回响应本体。
+- **验证**：test_core **89→91 全绿**（SWR：慢源 0.4s 下调用 <0.2s 返回旧快照 + 后台 5s 内刷新落盘 + 新鲜期直读，try/finally 还原全局缓存防污染其他测试；gzip：/api/ratings 压缩可解压回原 JSON、未声明不压）。实测 dashboard 52KB→7KB(7.4×)、暖缓存 37ms、首页 gzip 与 no-store 头共存。
+- **⚠️ 测试坑**：给 SWR 写测试时假 fetch 必须**造慢**（sleep 0.4）——瞬时假源会让后台线程赶在返回前刷完缓存，断言「回旧快照」竞态翻车（返回更新数据本身不是 bug）。
+
+## 📌 上一次接手（2026-07-07 晚 · 让球线重赛串线修复：_hc_key 加日期 + hc_lookup 容差匹配，最高优先级遗留项落地）
+- **背景**：06-25 评审第四轮否决记录 #4 定为「最高优先级遗留项，R16/QF 间歇期单开会话专项修复」——同对阵重逢（小组赛对阵在淘汰赛重演，决赛 7-19 前随时可能发生）时，纯对阵键把两场混成一条。本轮（/loop 迭代）落地。
+- **串线面（五处，全修）**：① `_hc_key` 纯对阵 → 新键 **`"YYYY-MM-DD|A|B"`**（ESPN UTC 日 + 排序对阵）；② `backfill_handicap_finished` 因「pair 已存」跳过重逢场次 → 键含日期（取 `ev["date"][:10]`）后重逢自动回补；③ `load_handicap_timeline` 把两次相遇的快照聚成一条时间线（开盘=小组赛、闭盘=重逢场→CLV 垃圾）→ 快照按带日期键分组；④ `fetch_handicap_pair` 取 scoreboard 第一个 pair 匹配事件（重逢时=已完赛的小组赛旧线）→ **优先未完赛事件，全完赛取最近**；⑤ `explainer.build_card` 的 odds.csv 1X2 行 `iloc[0]` 与 handicap rec「第一条匹配」→ 均改按 date 取最近一场。
+- **新 `hc_lookup(store, home, away, date=None, tol_days=2)`**（espn_odds，lines/timeline 通用）：按对阵+日期容差取值——**±2 天容差吸收账本北京日 vs ESPN UTC 日口径差（≤1 天）**，重逢两场相隔 ≥ 数天必不误配；date 给定且超容差=另一次相遇 → None（防串线）；date=None → 取最新；旧无日期键视作任意日期命中（兼容）。消费方迁移：`handicap_ledger.build`（market_lines+timeline 两处，用账本 `e["date"]`）、`app.py` manager 报告 timeline 取开盘线（用 `mh["date"]`）。
+- **存量迁移**：`load_handicap_lines` 读时就地把旧纯对阵键规范成带日期键（行内自带 date，读路径保持只读）；磁盘已一次性原子重写 94 条为新键。1X2 侧 `odds.csv`/快照本就 `(home,away,date)` 三元组键，无此问题。
+- **验证**：test_core **87→89 全绿**（hc_lookup 重逢消歧/容差/旧键兼容 + load 迁移不变量 + 两个合成 market_lines/timeline 测试改走带日期键真实路径）；手动 `python3 espn_odds.py` 跑通（快照 5 场/timeline 99 键全带日期/odds.csv 99 场）；重启后 `/api/handicap_ledger` n=94、vs_market 85、CLV 18 正常，explainer/manager 冒烟过。
+- **⚠️ 注**：`_market_handicap_one` 后台单场抓取偶发超时/SSL EOF（既有网络抖动，重试即好，非本轮引入）。合成测试造市场线时键用 `_hc_key(fav, dog, r["date"])`。
+
+## 📌 上一次接手（2026-07-07 · 夺冠概率对已淘汰球队实时归零：run() 自动套用 actual_ko）
+- **Bug（实证确认）**：`simulate.run()`（夺冠概率）只把小组赛真实赛果并进 cond，`_play_bracket.play()` 只查用户假设 `ko_known`、不查 `self.actual_ko` → R32/R16 已完赛 22 场后，巴西(7.0%)/葡萄牙(5.9%)/荷兰/德国等 **17 支已被淘汰的队夺冠概率仍>0**。`project()`（晋级树）一直是对的（`_project_match` 自动套 actual_ko），只有 run()/champ_ci 这条腿漏了。
+- **修复（simulate.py，零碰 GLM/回测）**：`_play_bracket` 加 `use_actual` 开关——play() 在 ko_known（用户假设优先，与 `_project_match` 同优先级次序）之后按 frozenset 顺序无关查 `actual_ko` 套用真实赛果。**只有 run() 传 use_actual=True**；`simulate_once`（"随机一届"纯假设，小组赛也随机）保持 False 不注入现实。修后已淘汰队夺冠恰为 0，Top8 全为存活队；`champ_ci.py` 复用 run() 自动受益（已重跑，data/champ_ci.json 前十已无被淘汰队）。
+- **API/前端**：`/api/champions` 每行加 `out` 标志（champ==0 且（actual_ko 败者 ∪ ko==0 小组未出线），被用户假设"救活"的不标）+ 顶层 `facts`/`ko_facts`；缓存随 `_refit_all` 清空与 actual_ko 天然同步。前端夺冠漏斗：out 行置灰(opacity .45)+红「已淘汰」徽章，页头标注「已按 N 场小组赛 + M 场淘汰赛真实赛果实时条件化」。新深链 **`#champ?run=1`** 自动跑一次模拟出漏斗（沿用 #manager?h= 分享/截图惯例）。
+- **测试 test_core 84→87 全绿**：① 真实 KO 败者夺冠恰 0；② ko_known 假设优先于 actual_ko（假设被淘汰队晋级后其阶段进度和严格提高——按"进度总和"断言而非写死 qf，赛事推进到 QF/SF 后不过时）；③ API out 标志（out 行 champ 必为 0）。
+- **验证**：live API 实测 facts=72/ko_facts=22、38 队 out（16 小组未出线+22 KO 败者）全零；`#champ?run=1` CDP 截图确认徽章/置灰/条件化标注/CI 图同步。launchctl kickstart 重启服务（守护进程避坑照旧）。
+- **⚠️ 避坑**：改夺冠口径后 `data/champ_ci.json` 是旧的，须重跑 `python3 champ_ci.py`（bayes 后验没变不用重跑 bayes.py）；后台 regen 也会在下次刷新自动触发。
+
+## 📌 上一次接手（2026-07-06 · 7-agent 评审第四轮 → 落地 6 任务：jc 原子写/后端健壮性三连/走地 host 口径/手机端 430 修复/看板入口闭环/让球球迷语言）
 - **背景**：7-agent 评审第四轮（前三轮见 06-25/06-27 两条）。6 席全部落地，QA 整体 pass_with_issues；**test_core 77→84 项全绿**；按纪律全程未 git commit。
 - **① jc_review 原子写 + 进程内写锁（后端，手动录入数据防整档丢失）**：`jc_review.py` `_save_all` 改 verify.save_ledger 同款原子写（**mkstemp dir=STORE 同目录**防跨设备 replace 失败 → os.fdopen 写入 → os.replace，finally 清理 tmp）；模块级 `_STORE_LOCK=threading.RLock()`，`upsert_prematch`/`enter_result` 整段（load→改→save）持锁。`assert_no_rate_fields` 写盘前断壁保留、**零新增 schema 字段（红线未动）**。+2 测试（原子写无 .tmp 残留、并发 upsert 零丢失）。QA：POST→GET 回读一致、reconcile 正常、data/ 全程 0 个 .tmp。
 - **② 后端健壮性三连**：ⓐ `espn_odds._get` 照抄 live._fetch_json 已验证模式——模块级 `_NOPROXY_OPENER`，(系统代理,直连)×2 重试、全败 raise last；网络调用收敛为 `_urlopen_raw` 供 monkeypatch，签名/返回不变。ⓑ `app._regen_odds_worker` 加 **returncode!=0 分支**：打印 stderr 尾 5 行、不写 updated/last、不清 `_MARKET_CACHE`/`_MR_CACHE` 直接 return（节流窗口从成功完成起算，对齐 `_regen_ci_worker`）。ⓒ `verify.py` 加 `_LEDGER_LOCK`(RLock)，freeze/backfill 整段持锁（两函数互不调用已确认）；save_ledger 未动、API 输出结构零变化。+3 测试。**避坑：load_ledger/save_ledger 的 LEDGER_PATH 默认值在 def 时绑定，monkeypatch 模块变量不影响默认路径**（并发锁测试按规格用退化路径实现）。手动 `python3 espn_odds.py` 跑通（snapshot 6 场/让球 6 场/odds.csv 98 场）。

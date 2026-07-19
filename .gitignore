@@ -33,3 +33,4 @@ data/handicap_snapshots.jsonl
 # Fjelstul World Cup DB 外部缓存（bt_knockout.py 首次运行自动下载）
 data/fjelstul_matches.csv
 data/fjelstul_goals.csv
+data/club/

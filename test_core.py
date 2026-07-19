@@ -89,8 +89,63 @@ def test_project_structure(model):
     assert len(p["groups"]) == 12                         # 12 个小组
     r32 = [x for x in p["rounds"] if x["name"] == "R32"][0]
     assert len(r32["matches"]) == 16                      # R32 16 场
-    assert [x["name"] for x in p["rounds"]] == ["R32", "R16", "QF", "SF", "Final"]
+    assert [x["name"] for x in p["rounds"]] == ["R32", "R16", "QF", "SF", "Final", "Third"]
     assert p["champion"]                                  # 有冠军
+
+
+def test_project_third_place_is_sf_losers(model):
+    """季军赛（103）：对阵必须恰为两场半决赛的败者，且带完整日期/场馆标注。"""
+    from simulate import TournamentSimulator
+    sim = TournamentSimulator(model, datamod.load_raw(), sims=1)
+    p = sim.project(today="2026-07-16")
+    rd = {r["name"]: r["matches"] for r in p["rounds"]}
+    sf, (third,), (final,) = rd["SF"], rd["Third"], rd["Final"]
+    losers = {m["a"] if m["winner"] == m["b"] else m["b"] for m in sf}
+    assert third["mn"] == 103
+    assert {third["a"], third["b"]} == losers             # 两 SF 败者相遇
+    assert {final["a"], final["b"]} & losers == set()     # 决赛=两胜者，与季军赛不重叠
+    assert third["date"] == "2026-07-19" and third["city"] == "Miami"  # 北京开球日 + 场馆
+
+
+def test_simulate_once_includes_third_place(model):
+    """随机一届（record 路径）也要打季军赛：Third 轮存在且对阵=该届 SF 败者。"""
+    from simulate import TournamentSimulator
+    sim = TournamentSimulator(model, datamod.load_raw(), sims=1)
+    r = sim.simulate_once(seed=7)
+    rd = {x["name"]: x["matches"] for x in r["rounds"]}
+    (third,) = rd["Third"]
+    losers = {m["a"] if m["winner"] == m["b"] else m["b"] for m in rd["SF"]}
+    assert {third["a"], third["b"]} == losers and third["winner"] in losers
+
+
+def test_run_applies_actual_ko_eliminated_zero(model):
+    """夺冠模拟 run() 须自动套用真实淘汰赛赛果：已被淘汰的队夺冠概率恰为 0。"""
+    from simulate import TournamentSimulator
+    sim = TournamentSimulator(model, datamod.load_raw(), sims=200)
+    if not sim.actual_ko:
+        pytest.skip("尚无已完赛淘汰赛样本")
+    losers = {t for fs, (_, w) in sim.actual_ko.items() for t in fs if t != w}
+    champ = {t: c for (t, c, *_r) in sim.run()}
+    assert losers and all(champ[t] == 0 for t in losers)
+
+
+def test_run_ko_known_overrides_actual_ko(model):
+    """用户假设 ko_known 优先于真实赛果：把真实败者假设成胜者后其晋级概率>0。"""
+    from simulate import TournamentSimulator
+    sim = TournamentSimulator(model, datamod.load_raw(), sims=200)
+    # 找一支 R32 赢过、R16 输掉的队（两条 actual_ko 记录），改写其输掉那场
+    wins = {w for _, w in sim.actual_ko.values()}
+    cand = [(fs, w) for fs, (_, w) in sim.actual_ko.items()
+            if (set(fs) - {w}) & wins]
+    if not cand:
+        pytest.skip("尚无 R16 已完赛样本")
+    fs, w = cand[0]
+    loser = next(iter(set(fs) - {w}))
+    base = {t: r for (t, *r) in sim.run()}                 # (champ,final,sf,qf,ko)
+    ovr = {t: r for (t, *r) in sim.run(ko_known={(loser, w): (1, 0, loser)})}
+    assert base[loser][0] == 0                             # 真实：已淘汰，夺冠 0
+    # 假设其晋级后，淘汰赛各阶段进度总和须严格提高（无论输在哪一轮都成立）
+    assert sum(ovr[loser][:4]) > sum(base[loser][:4])
 
 
 def test_official_third_place_table_germany_paraguay():
@@ -131,14 +186,59 @@ def test_api_predict_ok(client):
 
 def test_api_project_ok(client):
     d = client.post("/api/project", json={}).get_json()
-    assert d["champion"] and "ko_facts" in d and len(d["rounds"]) == 5
+    assert d["champion"] and "ko_facts" in d and len(d["rounds"]) == 6  # 含季军赛 Third 轮
     assert d["champion_basis"] == "single_path_projection"
     assert "不是多次蒙特卡洛夺冠概率榜首" in d["projection_note"]
+
+
+def test_api_champions_out_flag(client):
+    """夺冠 API：带真实赛果计数 + 每行 out 标志；被标已淘汰的行夺冠概率必为 0。"""
+    d = client.get("/api/champions?sims=500").get_json()
+    assert "facts" in d and "ko_facts" in d and d["rows"]
+    assert all("out" in x for x in d["rows"])
+    if d["ko_facts"]:
+        outs = [x for x in d["rows"] if x["out"]]
+        assert outs and all(x["champ"] == 0 for x in outs)
 
 
 def test_api_ratings_ok(client):
     d = client.get("/api/ratings").get_json()
     assert "rows" in d and "available" in d
+
+
+def test_live_status_stale_while_revalidate(monkeypatch):
+    """_live_status 过期后须立刻返回旧快照（不阻塞请求线程），后台线程完成刷新。"""
+    import time as _t
+    import app as appmod
+    saved = dict(appmod._STATUS_CACHE)
+    try:
+        def slow_fetch():                                    # 慢源：证明请求线程不等它
+            _t.sleep(0.4)
+            return [{"home": "A", "away": "B", "state": "in"}]
+        monkeypatch.setattr(appmod.livemod, "fetch_status", slow_fetch)
+        appmod._STATUS_CACHE["data"] = [{"home": "Old", "away": "X", "state": "pre"}]
+        appmod._STATUS_CACHE["t"] = _t.time() - 999          # 制造过期
+        t0 = _t.time()
+        out = appmod._live_status(max_age=30)
+        assert _t.time() - t0 < 0.2                          # 未被慢源阻塞
+        assert out and out[0]["home"] == "Old"               # 立刻回旧快照
+        deadline = _t.time() + 5                             # 等后台刷新落盘
+        while _t.time() < deadline and appmod._STATUS_CACHE["data"][0]["home"] != "A":
+            _t.sleep(0.05)
+        assert appmod._STATUS_CACHE["data"][0]["home"] == "A"
+        assert appmod._live_status(max_age=30)[0]["home"] == "A"   # 新鲜期内直接命中
+    finally:
+        appmod._STATUS_CACHE.update(saved)
+
+
+def test_api_gzip_when_accepted(client):
+    """≥1KB JSON 且客户端声明 gzip → 压缩且可解压回原 JSON；未声明 → 不压。"""
+    import gzip as g, json as j
+    r = client.get("/api/ratings", headers={"Accept-Encoding": "gzip"})
+    assert r.status_code == 200 and r.headers.get("Content-Encoding") == "gzip"
+    assert "rows" in j.loads(g.decompress(r.data))
+    r2 = client.get("/api/ratings")
+    assert r2.headers.get("Content-Encoding") != "gzip"
 
 
 def test_api_version_shape(client):
@@ -584,10 +684,124 @@ def test_handicap_ledger_buckets():
     assert seen >= b["n"]      # 每场至少进 stage+strength 两个维度
 
 
+# ---------- 多赛事扩展脚手架（2026-07-08，离线旁路） ----------
+def test_events_registry_invariants():
+    """注册表结构不变量 + 状态机 + L0 排序（live 永远第一）。"""
+    import datetime as _dt
+    import events
+    for k, e in events.EVENTS.items():
+        assert {"name", "kind", "universe", "espn", "data", "window", "ledger"} <= set(e)
+        a, b = (_dt.date.fromisoformat(x) for x in e["window"])
+        assert a < b
+    assert len({e["ledger"] for e in events.EVENTS.values()}) == len(events.EVENTS)  # 账本隔离
+    d = _dt.date(2026, 7, 8)
+    assert events.status("wc2026", d) == "live"
+    assert events.status("wc2026", _dt.date(2026, 8, 1)) == "archived"
+    assert events.status("nl2026", _dt.date(2026, 8, 10)) == "soon"
+    assert events.sorted_events(d)[0] == "wc2026"
+    assert events.get()["key"] == events.DEFAULT
+
+
+def test_clubdata_load_engine_schema():
+    """俱乐部装载帧须满足引擎训练 schema + 赔率透传；无缓存且无网则跳过。"""
+    import clubdata
+    try:
+        df = clubdata.load("E0", seasons=2)
+    except Exception as e:  # noqa  网络不可达/源变动 → 跳过，不红
+        pytest.skip(f"club 数据不可得：{e}")
+    for c in ("date", "home_team", "away_team", "home_score", "away_score",
+              "tournament", "neutral", "B365CH"):
+        assert c in df.columns
+    assert len(df) >= 700 and (~df["neutral"]).all()
+    assert df["date"].is_monotonic_increasing
+    assert df["home_score"].ge(0).all()
+
+
+def test_teams_zh_club_mapping_complete():
+    """五大联赛近 7 季全部俱乐部队名须有中文映射；disp/to_en 双向可用；国家队命名空间不被污染。"""
+    import teams_zh
+    assert len(teams_zh.CLUB) >= 140
+    assert not set(teams_zh.CLUB) & set(teams_zh.CN)          # 两命名空间无撞名
+    assert teams_zh.disp("Man City") == "🏴󠁧󠁢󠁥󠁮󠁧󠁿 曼城"
+    assert teams_zh.to_en("巴黎圣日耳曼") == "Paris SG"
+    assert teams_zh.to_en("拜仁慕尼黑") == "Bayern Munich"
+    try:
+        import clubdata
+        names = set()
+        for lg in ("E0", "SP1", "I1", "D1", "F1"):
+            df = clubdata.load(lg, seasons=7)
+            names |= set(df.home_team) | set(df.away_team)
+    except Exception as e:  # noqa
+        pytest.skip(f"club 数据不可得：{e}")
+    missing = sorted(names - set(teams_zh.CLUB))
+    assert not missing, f"缺映射：{missing}"
+
+
+def test_clubsim_retro_sane():
+    """联赛赛季模拟器不变量：场次守恒、冠军概率归一、半程视角榜首与史实一致（利物浦）。"""
+    import clubsim
+    try:
+        rows, nf, nr = clubsim.simulate_retro("E0", "2024-08-01", "2025-06-01", "2025-01-01",
+                                              sims=400, feeder="E1")
+    except Exception as e:  # noqa
+        pytest.skip(f"club 数据不可得：{e}")
+    assert nf + nr == 380 and nf > 0 and nr > 0
+    assert abs(sum(d["title"] for d in rows) - 1.0) < 1e-9
+    assert len(rows) == 20 and rows[0]["team"] == "Liverpool"
+    for d in rows:
+        assert 0 <= d["bottom3"] <= 1 and 0 < d["exp_pts"] < 114
+
+
+def test_clubsim_preseason_25_26():
+    """季前模拟（实况模式第一形态）：0 已赛 + 双循环合成整季；名单=留级 17+升班马 3。"""
+    import clubsim
+    promoted = ["Leeds", "Burnley", "Sunderland"]
+    try:
+        rows, teams = clubsim.simulate_preseason("E0", promoted=promoted,
+                                                 sims=300, feeder="E1")
+    except Exception as e:  # noqa
+        pytest.skip(f"club 数据不可得：{e}")
+    assert len(teams) == 20 and set(promoted) <= set(teams)
+    assert "Southampton" not in teams and "Leicester" not in teams  # 24-25 降级队已出表
+    assert abs(sum(d["title"] for d in rows) - 1.0) < 1e-9
+    assert {d["team"] for d in rows} == set(teams)
+    for d in rows:                                # 380 场全模拟：期望分在开放区间
+        assert 0 < d["exp_pts"] < 114 and 1 <= d["exp_rank"] <= 20
+
+
 # ---------- 让球：模型 vs 市场闭盘线（2026-06-25 续二） ----------
 def test_hc_key_order_invariant():
     import espn_odds
     assert espn_odds._hc_key("Brazil", "Haiti") == espn_odds._hc_key("Haiti", "Brazil")
+    assert (espn_odds._hc_key("Brazil", "Haiti", "2026-07-10")
+            == espn_odds._hc_key("Haiti", "Brazil", "2026-07-10")
+            == "2026-07-10|Brazil|Haiti")
+
+
+def test_hc_lookup_date_disambiguates_rematch():
+    """同对阵重逢（小组赛 + 淘汰赛重演）须按日期各认各场；±2 天容差吸收 UTC/北京日口径差。"""
+    import espn_odds
+    store = {espn_odds._hc_key("Mexico", "South Africa", "2026-06-11"): {"fav_line": 1.5},
+             espn_odds._hc_key("South Africa", "Mexico", "2026-07-10"): {"fav_line": 0.5}}
+    look = espn_odds.hc_lookup
+    assert look(store, "Mexico", "South Africa", "2026-06-12")["fav_line"] == 1.5  # 北京日+1 仍中
+    assert look(store, "South Africa", "Mexico", "2026-07-10")["fav_line"] == 0.5
+    assert look(store, "Mexico", "South Africa", "2026-06-20") is None             # 两场都超容差
+    assert look(store, "Mexico", "South Africa")["fav_line"] == 0.5               # 无日期 → 最新
+    assert look(store, "Ghana", "Japan", "2026-07-01") is None                     # 无该对阵
+    legacy = {espn_odds._hc_key("Ghana", "Japan"): {"fav_line": 1.0}}              # 旧键兼容
+    assert look(legacy, "Japan", "Ghana", "2026-07-01")["fav_line"] == 1.0
+
+
+def test_handicap_lines_load_normalizes_dated_keys():
+    """load_handicap_lines 读出的键须全部带日期（旧纯对阵键就地迁移），键日期与行内 date 一致。"""
+    import espn_odds
+    store = espn_odds.load_handicap_lines()
+    if not store:
+        pytest.skip("本地无 handicap_lines.json 样本")
+    for k, v in store.items():
+        d, pair = espn_odds._hc_parse_key(k)
+        assert d == v["date"] and pair == "|".join(sorted((v["home"], v["away"])))
 
 
 def test_vs_market_out_logic():
@@ -615,8 +829,8 @@ def test_handicap_ledger_vs_market_integration():
     if not base["rows"]:
         return
     r = base["rows"][0]                            # fav/dog 在 build 内是英文 canon
-    # 构造一条与该场强弱一致的市场线（让得比模型少 1 球，制造可下注分歧）
-    key = espn_odds._hc_key(r["fav"], r["dog"])
+    # 构造一条与该场强弱一致的市场线（让得比模型少 1 球，制造可下注分歧）；带日期键走真实匹配路径
+    key = espn_odds._hc_key(r["fav"], r["dog"], r["date"])
     mkt = {key: {"fav_line": max(0.5, r["fair_line"] - 1.0),
                  "fav_is_home": r["fav_is_home"], "ou": 2.5}}
     b = hl.build(sim, df, market_lines=mkt)
@@ -648,7 +862,7 @@ def test_handicap_ledger_clv_from_timeline():
     r = next((x for x in base["rows"] if x["fair_line"] >= 1.5), None)
     if r is None:
         return
-    key = espn_odds._hc_key(r["fav"], r["dog"])
+    key = espn_odds._hc_key(r["fav"], r["dog"], r["date"])
     mkt = {key: {"fav_line": r["fair_line"], "fav_is_home": r["fav_is_home"], "ou": 2.5}}
     # 开盘线比模型公平盘低 1 球（模型更看好强队=position +1），闭盘升 0.5（朝模型移动→正 CLV）
     open_line = r["fair_line"] - 1.0
@@ -1262,3 +1476,100 @@ def test_ledger_lock_serializes_read_modify_write(tmp_path, monkeypatch):
     want = {f"K|{t}|{i}" for t in ("A", "B") for i in range(20)}
     assert set(final) == want, f"丢更新：缺 {want - set(final)}"
     assert not list(tmp_path.glob("*.tmp"))
+
+
+# ---------- 俱乐部单场预测 CLI（2026-07-09） ----------
+
+def test_clubpredict_resolve_and_league_detect():
+    """队名解析（中文/大小写/子串/错拼建议）+ 联赛归属识别；数据不可得跳过。"""
+    import clubpredict
+    try:
+        pool = clubpredict._league_teams()
+    except Exception as e:  # noqa
+        pytest.skip(f"club 数据不可得：{e}")
+    assert clubpredict.resolve("阿森纳", pool)[0] == ("Arsenal", "E0")
+    assert clubpredict.resolve("man city", pool)[0] == ("Man City", "E0")
+    assert clubpredict.resolve("Forest", pool)[0] == ("Nott'm Forest", "E0")   # 唯一子串
+    assert clubpredict.resolve("拜仁慕尼黑", pool)[0] == ("Bayern Munich", "D1")  # 跨联赛归属正确
+    miss, sugg = clubpredict.resolve("Arsnal", pool)
+    assert miss is None and any("Arsenal" in s for s in sugg)                  # 错拼给建议
+
+
+def test_clubpredict_model_cache_and_sane_probs():
+    """联赛模型缓存守卫（schema+hl=365）+ 预测概率归一；数据不可得跳过。"""
+    import clubpredict
+    from model import SCHEMA_VERSION
+    try:
+        m = clubpredict.get_club_model("E0", verbose=False)
+    except Exception as e:  # noqa
+        pytest.skip(f"club 数据不可得：{e}")
+    assert m.schema_version == SCHEMA_VERSION
+    assert abs(m.half_life_days - 365.0) < 1e-6        # 俱乐部裁决值，绝非国家队的 730
+    import os
+    assert os.path.exists(clubpredict._cache_path("E0"))
+    m2 = clubpredict.get_club_model("E0", verbose=False)   # 二次调用走缓存，不重训
+    assert set(m2.teams) == set(m.teams)
+    r = m.predict("Arsenal", "Man City", neutral=False)
+    assert abs(r["p_home"] + r["p_draw"] + r["p_away"] - 1.0) < 1e-6
+    assert r["xg_home"] > 0 and r["xg_away"] > 0
+
+
+def test_clubdata_feeder_mapping():
+    """赛季模拟 feeder 映射：S5 全覆盖、feeder 码合法且自身不是 S 级。"""
+    import clubdata
+    assert set(clubdata.FEEDER) == {"E0", "SP1", "I1", "D1", "F1"}
+    assert all(v in clubdata.LEAGUES for v in clubdata.FEEDER.values())
+    assert not set(clubdata.FEEDER.values()) & set(clubdata.FEEDER)
+
+
+def test_clubsim_h2h_tiebreak_laliga_rule():
+    """西甲口径 tiebreak 插拔：同分时 gd 模式看总净胜、h2h 模式看相互战绩，榜首应互换。"""
+    import pandas as pd
+    import clubsim
+    facts = pd.DataFrame([          # A/B 同 7 分：A 总净胜 +8，B 相互战绩 4>1
+        ("A", "B", 0, 2), ("B", "A", 1, 1),
+        ("A", "C", 9, 0), ("C", "A", 0, 1),
+        ("B", "C", 1, 0), ("C", "B", 1, 0),
+    ], columns=["home_team", "away_team", "home_score", "away_score"])
+    kw = dict(model=None, teams={"A", "B", "C"}, facts=facts, remaining=[], sims=8)
+    top_gd = clubsim.SeasonSimulator(**kw, tiebreak="gd").run()[0]
+    top_h2h = clubsim.SeasonSimulator(**kw, tiebreak="h2h").run()[0]
+    assert top_gd["team"] == "A" and top_gd["title"] == 1.0
+    assert top_h2h["team"] == "B" and top_h2h["title"] == 1.0
+    assert clubsim.LEAGUE_TIEBREAK == {"SP1": "h2h", "I1": "h2h"}
+
+
+def test_clubsim_remaining_pairs_matches_real_calendar():
+    """剩余赛程推导 == 真实日历 as_of 之后的对阵集合（20 队英超 + 18 队德甲精确等值）。"""
+    import pandas as pd
+    import clubsim
+    try:
+        import clubdata
+        for code, n_season in (("E0", 380), ("D1", 306)):
+            df = clubdata.load(code, seasons=7)
+            season = clubsim.season_slice(df, "2024-08-01", "2025-06-01")
+            cut = pd.Timestamp("2025-01-01")
+            facts = season[season.date < cut]
+            actual = set(zip(*(season[season.date >= cut][c] for c in ("home_team", "away_team"))))
+            teams = set(season.home_team) | set(season.away_team)
+            derived = set(clubsim.remaining_pairs(facts, teams))
+            assert derived == actual, f"{code} 推导剩余赛程与真实日历不符"
+            assert len(facts) + len(derived) == n_season
+    except AssertionError:
+        raise
+    except Exception as e:  # noqa
+        pytest.skip(f"club 数据不可得：{e}")
+
+
+def test_clubdata_load_fixtures_schema():
+    """fixtures.csv 装载：结构断言（休赛期可为空，只保证 schema 与联赛过滤）。"""
+    import clubdata
+    try:
+        fx = clubdata.load_fixtures()
+    except Exception as e:  # noqa
+        pytest.skip(f"fixtures 不可得：{e}")
+    for c in ("div", "date", "home_team", "away_team", "B365H", "B365D", "B365A"):
+        assert c in fx.columns
+    if len(fx):
+        assert fx["div"].isin(clubdata.LEAGUES).all()
+        assert fx["date"].is_monotonic_increasing

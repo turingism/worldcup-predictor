@@ -269,7 +269,7 @@ def build_card(m, home, away):
                ((odds.home_team == a) & (odds.away_team == h))]
     if row.empty:
         return None
-    o = row.iloc[0]
+    o = row.sort_values("date").iloc[-1]   # 同对阵重逢（小组赛在淘汰赛重演）取最近一场，防串旧线
     pr = m.predict(h, a, neutral=True)
     c1, cx, c2 = orient_odds(o.home_team, o.away_team, h, a, o.odds_1, o.odds_x, o.odds_2)
     has_open = not any(pd.isna(o[c]) for c in ("odds_1_open", "odds_x_open", "odds_2_open"))
@@ -278,7 +278,9 @@ def build_card(m, home, away):
     hc = None
     try:
         hl = json.load(open(os.path.join(base, "data", "handicap_lines.json")))
-        rec = next((v for v in hl.values() if {v["home"], v["away"]} == {h, a}), None)
+        recs = sorted((v for v in hl.values() if {v["home"], v["away"]} == {h, a}),
+                      key=lambda v: str(v.get("date", "")))
+        rec = recs[-1] if recs else None   # 同对阵重逢取最近一场，防串旧线
         if rec and rec.get("fav_spread_odds") and rec.get("dog_spread_odds"):
             *_, M = m.score_matrix(h, a, neutral=True)
             s = manager.settle_line(manager._margin_pmf(M), rec["fav_is_home"], rec["fav_line"])
