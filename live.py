@@ -20,8 +20,18 @@ import urllib.request
 import schedule
 import wc2026
 
-ESPN_URL = ("https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/"
-            "scoreboard?dates={d1}-{d2}&limit=300")
+# P1-②：league code 参数化。默认=events 注册表里世界杯的 espn code（fifa.world），
+# ESPN_URL 常量与历史逐字节相同——默认调用零行为变化；新赛事传 league 拿同构模板。
+_ESPN_SB_TMPL = ("https://site.api.espn.com/apis/site/v2/sports/soccer/{lg}/"
+                 "scoreboard?dates={{d1}}-{{d2}}&limit=300")
+
+
+def espn_scoreboard_tmpl(league: str | None = None) -> str:
+    import events as eventsmod
+    return _ESPN_SB_TMPL.format(lg=league or eventsmod.EVENTS["wc2026"]["espn"])
+
+
+ESPN_URL = espn_scoreboard_tmpl()
 LIVE_PATH = os.path.join(os.path.dirname(__file__), "data", "live_results.json")
 
 TOURN_START = dt.date(2026, 6, 11)

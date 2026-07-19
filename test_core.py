@@ -1599,3 +1599,21 @@ def test_event_gate_not_wired_placeholder(client):
             continue
         d = client.get(f"/api/dashboard?event={key}").get_json()
         assert d == {"status": "not_wired", "event": key, "name": events.EVENTS[key]["name"]}
+
+
+# ---------- P1-② league code 参数化 ----------
+def test_espn_url_league_param():
+    import live, espn_odds
+    # 默认与历史字面量逐字节相同（零行为变化）
+    assert live.ESPN_URL == ("https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/"
+                             "scoreboard?dates={d1}-{d2}&limit=300")
+    assert espn_odds.SB_URL == live.ESPN_URL
+    assert espn_odds.SUM_URL == ("https://site.api.espn.com/apis/site/v2/sports/soccer/"
+                                 "fifa.world/summary?event={eid}")
+    # 三例参数化构造（fifa.world / uefa.nations / eng.1），不打真网
+    for lg in ("fifa.world", "uefa.nations", "eng.1"):
+        assert f"/soccer/{lg}/scoreboard" in live.espn_scoreboard_tmpl(lg)
+        assert f"/soccer/{lg}/summary" in espn_odds.sum_url_tmpl(lg)
+    # 模板占位符完好可 format
+    u = live.espn_scoreboard_tmpl("eng.1").format(d1="20250809", d2="20250810")
+    assert "dates=20250809-20250810" in u and "{" not in u

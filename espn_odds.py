@@ -28,9 +28,22 @@ import urllib.request
 
 import live   # 复用 _canon_name / NAME_FIX / ESPN 队名→martj42
 
-SB_URL = ("https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/"
-          "scoreboard?dates={d1}-{d2}&limit=300")
-SUM_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event={eid}"
+# P1-②：league code 参数化（同 live.espn_scoreboard_tmpl 口径）；SB_URL/SUM_URL 默认值
+# 与历史逐字节相同——默认调用零行为变化。
+_SUM_TMPL = "https://site.api.espn.com/apis/site/v2/sports/soccer/{lg}/summary?event={{eid}}"
+
+
+def sb_url_tmpl(league: str | None = None) -> str:
+    return live.espn_scoreboard_tmpl(league)
+
+
+def sum_url_tmpl(league: str | None = None) -> str:
+    import events as eventsmod
+    return _SUM_TMPL.format(lg=league or eventsmod.EVENTS["wc2026"]["espn"])
+
+
+SB_URL = sb_url_tmpl()
+SUM_URL = sum_url_tmpl()
 SNAP_PATH = os.path.join(os.path.dirname(__file__), "data", "odds_snapshots.jsonl")
 ODDS_CSV = os.path.join(os.path.dirname(__file__), "data", "odds.csv")
 HC_LINES_PATH = os.path.join(os.path.dirname(__file__), "data", "handicap_lines.json")
