@@ -161,7 +161,7 @@ def print_club_prediction(m: DixonColesModel, code: str, home: str, away: str, n
 
 def print_ranking(code: str, top: int = 20):
     m = get_club_model(code)
-    print(f"\n  🏆 {clubdata.LEAGUES[code]} 模型净实力榜 Top {top}（近 {SEASONS} 季加权，相对值）")
+    print(f"\n  🏆 {clubdata.LEAGUES[code]} 模型净实力榜 Top {top}（近 {SEASONS} 季加权，联赛内相对值，跨联赛不可比）")
     print("  " + "─" * 44)
     for i, (t, s) in enumerate(net_ranking(m, top), 1):
         print(f"   {i:>2}. {teams_zh.disp(t):<26} {s:+.3f}")

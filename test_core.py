@@ -1691,3 +1691,30 @@ def test_club_net_ranking_not_empty(client):
     assert rows == sorted(rows, key=lambda x: -x[1])          # 降序
     api = client.get("/api/club/overview?event=epl2526").get_json()["ranking"]
     assert [r["team"] for r in api] == [t for t, _ in rows]   # API 与 CLI 同源
+
+
+# ---------- 球队数据架构裁决（2026-07-19）：共用过程数据实现 + 实体层双池隔离 ----------
+def test_matchfacts_shared_impl_both_universes():
+    """裁决第 1 条验收：manager.recent_form/head_to_head 为两宇宙共用实现——
+    只依赖 7 个共有核心列，分别在国家队帧与俱乐部帧上跑通且账目自洽。"""
+    import data as datamod, clubdata, manager
+    for df, team, opp in ((datamod.load_raw(), "Spain", "Argentina"),
+                          (clubdata.load("E0"), "Arsenal", "Man City")):
+        f = manager.recent_form(df, team, 6)
+        assert f["n"] == 6 and f["w"] + f["d"] + f["l"] == 6
+        assert len(f["form_str"]) == 6 and set(f["form_str"]) <= set("WDL")
+        assert f["gf"] == sum(x["gf"] for x in f["matches"])
+        h = manager.head_to_head(df, team, opp, 5)
+        assert h["n"] >= 1 and h["home_wins"] + h["away_wins"] + h["draws"] == h["n"]
+
+
+def test_team_pool_cross_league_and_isolation():
+    """裁决第 2 条验收：俱乐部池跨五大联赛共享（两个联赛各取一队均可解析），
+    国家队池与俱乐部池物理隔离（国家队名不落入俱乐部池）。"""
+    import clubpredict
+    pool = clubpredict._league_teams()
+    assert clubpredict.resolve("阿森纳", pool)[0] == ("Arsenal", "E0")
+    assert clubpredict.resolve("皇家马德里", pool)[0] == ("Real Madrid", "SP1")
+    for national in ("西班牙", "Argentina", "France"):
+        got, _ = clubpredict.resolve(national, pool)
+        assert got is None, f"国家队名 {national} 不应命中俱乐部池"

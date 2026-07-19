@@ -2742,7 +2742,7 @@ async function renderEventView(key){
     if(o.ranking){
       const rk=o.ranking.slice(0,10).map((r,i)=>`<tr><td>${i+1}</td><td>${r.disp}</td><td>${r.score>0?'+':''}${r.score.toFixed(3)}</td></tr>`).join('');
       t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">模型净实力榜 Top 10</h3>
-        <table class="mgt"><tr><th>#</th><th>球队</th><th>净实力（相对值）</th></tr>${rk}</table></div>`;
+        <table class="mgt"><tr><th>#</th><th>球队</th><th>净实力（联赛内相对值，跨联赛不可比）</th></tr>${rk}</table></div>`;
     }
     $('#ev_tables').innerHTML=t;
   }catch(e){

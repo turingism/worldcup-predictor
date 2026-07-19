@@ -100,3 +100,53 @@ docs/evidence/ 全部截图；git log 9e88367..HEAD 每步 commit message 附验
 ### 证据
 test_core 114 全绿；本条上方 CLI/API 实测输出；git commit 本轮。
 决赛观测继续等待（北京 7-20 03:00 开球）。
+
+## 2026-07-19 晚（第四轮）球队数据架构裁决落档（用户指令项）
+
+### 裁决结论（对照六条约束逐条落位）
+
+1. **账本层统一（match 数据模型）——现状即达标，零迁移**。两宇宙 match 帧共享
+   7 个核心列（date/home_team/away_team/home_score/away_score/neutral/tournament），
+   clubdata 装载时已归一到引擎 schema（这正是 DC 引擎零改动可训俱乐部的原因）。
+   共用实现裁决：**manager.py 的过程数据函数（_team_matches/recent_form/
+   head_to_head/team_stats）即两宇宙共用实现**——只依赖共有核心列，实测在国家队
+   帧与俱乐部帧上零改动跑通（证据见下），不另造新模块、不产生第二份实现。
+   注意与红线的边界：本条说的是"历史比赛事实层"统一；**验证账本
+   （predictions_*.json）按赛事隔离是 registry 层锁死的不变量，不在本条范围、
+   继续隔离**。
+2. **实体层同库不同池——现状语义达标（teams_zh 双命名空间 + 池化查询），物理
+   单表留裁决**。现状：teams_zh 一个模块（同库）内 national/CLUB 两个命名空间
+   （不同池），零交集由既有测试锁死；俱乐部池经 clubpredict._league_teams 跨五
+   大联赛共享；国家队名查俱乐部池实测返回 None（物理隔离）。若要字面意义的
+   "单表 + universe 字段"，需把两个 dict 合并为带字段的结构并改全部消费方
+   （teams_zh.disp 双表查/_R 反查/测试断言），估计 M 级半日工作量、收益主要是
+   形式统一——**是否执行留待用户裁决，本轮不动**。
+3. **模型层不共享——现状即达标 + 本轮补标注**。每联赛独立拟合已是硬约束；
+   卡片/CLI 实力榜标注本轮改为「联赛内相对值，跨联赛不可比」（index.html 表头
+   + clubpredict CLI 文案）；欧冠跨联赛校准维持独立 P4/P2 末项，本轮未处理。
+4. **卡片数据维度按宇宙区分——架构已备好，具体卡片渲染属 P2 施工**：共用维度
+   走 manager.py 共用函数；俱乐部特有（积分榜/主客场拆分）数据在
+   clubsim.final_table 与 clubdata 帧（主客场可按 home/away 过滤共有列直算）；
+   国家队特有维度（东道主/环境/晋级树）现有世界杯口径零改动。
+5. **现状冲突与迁移成本评估（留用户裁决的两项）**：
+   a. teams 物理单表化：见第 2 条，M 级，收益形式化，默认不迁。
+   b. 常用简称别名缺口（新发现）：跨联赛查询全称均可解析（皇家马德里→SP1、
+      阿森纳→E0），但「皇马/巴萨/拜仁/尤文」等简称未命中（difflib 只给建议）。
+      修法=teams_zh.CLUB 补别名映射表，S 级工作量，无风险；**待用户点头随下轮
+      P2 顺手做**。
+6. **验收证据（同一套函数两宇宙实测 + 跨联赛池查询）**：
+   - 国家队：recent_form(martj42 帧, Spain, 6) → WWWWWW 6胜0平 进13失1 零封5，
+     最近一场 2026-07-14 半决赛 2-0 法国（与真实赛果一致）；head_to_head
+     西 vs 阿近 5 次 → 西 3 胜 阿 2 胜，最近 2018-03-27 西 6-1 阿（真实）。
+   - 俱乐部（同一套函数零改动）：recent_form(E0 帧, Arsenal, 6) → WWDLDW
+     3胜2平1负，最近一场 2025-05-25 客胜南安普顿 2-1（真实季末轮）；
+     head_to_head 阿森纳 vs 曼城近 5 次 → 阿 2 胜 平 2 曼城 1 胜，最近
+     2025-02-02 阿森纳 5-1（真实）。
+   - 跨联赛池：阿森纳→(Arsenal,E0)、皇家马德里→(Real Madrid,SP1)；
+     国家队名（西班牙/Argentina/France）查俱乐部池全部 None（隔离正确）。
+   - 固化为 test_core 两项新测试（test_matchfacts_shared_impl_both_universes /
+     test_team_pool_cross_league_and_isolation），基线 114→116 全绿。
+
+### 本轮改动面
+clubpredict.py/index.html 标注文案两处 + test_core 两测试；零逻辑重构（裁决
+的要点恰是"现状已满足，不造第二套"）。决赛观测继续等待（19:05 实测未开球）。
