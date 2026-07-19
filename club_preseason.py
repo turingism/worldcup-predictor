@@ -22,7 +22,10 @@ PROMOTED_2526 = {
     "D1": ["FC Koln", "Hamburg"],          # 直升 2 队；16 名附加赛保级不建模（诚实近似）
     "F1": ["Lorient", "Paris FC", "Metz"],
 }
-SEASON = "2025-26"
+SEASON = "2025-26"   # ⚠ 已过时：25-26 整季 2026-07-19 已回补入库（史实赛季）。
+                     # 26-27 季前模拟需先确认升班马：直升队可从 feeder 终表得
+                     # （E0←Coventry/Ipswich 等），附加赛胜者需外部信息——名单
+                     # 未确认前本脚本拒绝运行，防止再产出误标赛季的 JSON。
 SIMS = 5000
 
 
@@ -46,6 +49,9 @@ def build(code: str, sims: int = SIMS) -> dict:
 
 
 def main():
+    import sys
+    sys.exit("club_preseason: 25-26 已是史实赛季（2026-07-19 回补）。请先把 PROMOTED/"
+             "SEASON 更新为 26-27 真实名单（附加赛胜者需外部确认）再移除此闸。")
     codes = sys.argv[1:] or list(PROMOTED_2526)
     for code in codes:
         print(f"[preseason] {code} 模拟 {SIMS} 次…", flush=True)

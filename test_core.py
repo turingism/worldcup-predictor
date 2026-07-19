@@ -752,17 +752,21 @@ def test_clubsim_retro_sane():
         assert 0 <= d["bottom3"] <= 1 and 0 < d["exp_pts"] < 114
 
 
-def test_clubsim_preseason_25_26():
-    """季前模拟（实况模式第一形态）：0 已赛 + 双循环合成整季；名单=留级 17+升班马 3。"""
-    import clubsim
-    promoted = ["Leeds", "Burnley", "Sunderland"]
+def test_clubsim_preseason_rolling():
+    """季前模拟机制测试（赛季滚动口径，2026-07-19 改判）：原测试写死 25-26 升班马名单，
+    25-26 整季回补入库后该名单已在终表内、前提过时。改为从数据自导：升班马=feeder 最近
+    一季前三中不在留级名单者（附加赛胜者近似，仅测机制不测真实名单），跨赛季滚动成立。"""
+    import clubsim, clubdata
     try:
-        rows, teams = clubsim.simulate_preseason("E0", promoted=promoted,
+        df = clubdata.load("E1")
+        last_end = df.date.max()
+        season = df[df.date >= last_end - __import__("pandas").Timedelta(days=330)]
+        cand = clubsim.final_table(season)[:3]
+        rows, teams = clubsim.simulate_preseason("E0", promoted=cand,
                                                  sims=300, feeder="E1")
     except Exception as e:  # noqa
         pytest.skip(f"club 数据不可得：{e}")
-    assert len(teams) == 20 and set(promoted) <= set(teams)
-    assert "Southampton" not in teams and "Leicester" not in teams  # 24-25 降级队已出表
+    assert len(teams) == 20 and set(cand) <= set(teams)
     assert abs(sum(d["title"] for d in rows) - 1.0) < 1e-9
     assert {d["team"] for d in rows} == set(teams)
     for d in rows:                                # 380 场全模拟：期望分在开放区间

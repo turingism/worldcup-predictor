@@ -33,7 +33,9 @@ FEEDER = {"E0": "E1", "SP1": "SP2", "I1": "I2", "D1": "D2", "F1": "F2"}
 URL = "https://www.football-data.co.uk/mmz4281/{season}/{code}.csv"
 CLUB_DIR = os.path.join(os.path.dirname(__file__), "data", "club")
 ODDS_COLS = ["B365H", "B365D", "B365A", "B365CH", "B365CD", "B365CA"]
-_CUR_END = 2025   # 最新完结/进行中赛季的结束年下限（新赛季开始后 +1 即可）
+_CUR_END = 2026   # 最新完结/进行中赛季的结束年下限（新赛季开始后 +1 即可）
+                  # 2026-07-19 回补：25-26 整季（2025-08~2026-05）此前一直缺库——
+                  # 「8 月开赛滚入」的是 26-27 赛季，勿再混淆两者。
 
 
 def season_codes(n: int, end_year: int = _CUR_END) -> list[str]:
