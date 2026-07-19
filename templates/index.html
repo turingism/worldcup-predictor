@@ -1458,7 +1458,8 @@ function renderDashboard(d){
   if(d.upcoming&&d.upcoming.length) _dashUp0={h:d.upcoming[0].home,a:d.upcoming[0].away};
   $('#dashstat').innerHTML=`🔴 正在比赛 <b>${c.live||0}</b> · 🟡 即将开赛 <b>${c.upcoming||0}</b> · ✅ 已结束 <b>${c.done||0}</b>`
     +(d.status_updated?` · <span class="muted">ESPN 同步 ${d.status_updated}</span>`:'')
-    +(d.stale_finished?` · <b style="color:#e3b341">⚠️ ${d.stale_finished} 场已完场，点刷新入库</b>`:'');
+    +(d.stale_finished?` · <b style="color:#e3b341">⚠️ ${d.stale_finished} 场已完场，点刷新入库</b>`:'')
+    +(wcArchived()?` · <b style="color:#8b949e">赛事已结束 · 回顾模式（账本定格，自动轮询已停）</b>`:'');
   const fp=JSON.stringify([d.live,d.upcoming,d.done]);
   if(fp===_dashFp && $('#dashres').dataset.loaded){ return; }   // 内容没变：跳渲
   const snap=dashSnap();
@@ -2636,22 +2637,118 @@ function selectEvent(key, tab, qs){
   }
   renderEvbar();
 }
+function evPct(p){ return (p*100).toFixed(1)+'%'; }
+function evWdlBar(ph,pd,pa){
+  return `<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin:6px 0">
+    <div style="width:${ph*100}%;background:#3fb950"></div>
+    <div style="width:${pd*100}%;background:#8b949e"></div>
+    <div style="width:${pa*100}%;background:#58a6ff"></div></div>`;
+}
+function evPredCard(d, title){
+  const venue = d.neutral ? '中立场' : `${d.home_disp} 主场`;
+  const scores = d.top_scores.slice(0,5).map(s=>
+    `<span style="display:inline-block;margin:2px 10px 2px 0">${s.h}-${s.a} <b>${evPct(s.p)}</b></span>`).join('');
+  return `<div class="card" style="margin-top:10px">
+    <h3 style="margin:0 0 6px">${title||'单场预测'}：${d.home_disp} vs ${d.away_disp} <small class="muted">（${venue}）</small></h3>
+    <div>${d.home_disp} 胜 <b>${evPct(d.p_home)}</b> · 平局 <b>${evPct(d.p_draw)}</b> · ${d.away_disp} 胜 <b>${evPct(d.p_away)}</b></div>
+    ${evWdlBar(d.p_home,d.p_draw,d.p_away)}
+    <div class="muted">期望进球 ${d.home_disp} ${d.xg_home} - ${d.xg_away} ${d.away_disp}
+      ${d.over25!=null?` · 大 2.5 球 ${evPct(d.over25)} · 双方进球 ${evPct(d.btts)}`:''}</div>
+    <div style="margin-top:6px">最可能比分：${scores}</div>
+    <div class="muted" style="margin-top:8px;font-size:11.5px">90 分钟口径（含补时，不含加时点球） · 研究/信息性质，非投注建议 ·
+      数据来源 ${d.source||''}${d.data_through?`（截至 ${d.data_through}）`:''}</div>
+  </div>`;
+}
+async function evClubPredict(key){
+  const h=$('#ev_home'), a=$('#ev_away'), out=$('#ev_predout');
+  if(!h||!a||!out||!h.value.trim()||!a.value.trim()) return;
+  out.innerHTML='<div class="card spin">计算中…</div>';
+  try{
+    const r=await fetch(`/api/club/predict?event=${key}&home=${encodeURIComponent(h.value)}&away=${encodeURIComponent(a.value)}&neutral=${$('#ev_neutral')&&$('#ev_neutral').checked?1:0}`);
+    const d=await r.json();
+    out.innerHTML = r.ok ? evPredCard(d)
+      : `<div class="card"><span class="muted">${d.error||'查询失败'}${d.suggest&&d.suggest.length?'；你是想找：'+d.suggest.join(' / '):''}</span></div>`;
+  }catch(e){ out.innerHTML='<div class="card"><span class="muted">网络错误，请重试。</span></div>'; }
+}
+async function evNlPredict(key){
+  const h=$('#ev_home'), a=$('#ev_away'), out=$('#ev_predout');
+  if(!h||!a||!out||!h.value.trim()||!a.value.trim()) return;
+  out.innerHTML='<div class="card spin">计算中…</div>';
+  try{
+    const r=await fetch(`/api/predict?event=${key}&home=${encodeURIComponent(h.value)}&away=${encodeURIComponent(a.value)}&neutral=${$('#ev_neutral')&&$('#ev_neutral').checked?1:0}`);
+    const d=await r.json();
+    if(!r.ok){ out.innerHTML=`<div class="card"><span class="muted">${d.error||'查询失败'}</span></div>`; return; }
+    out.innerHTML=evPredCard({home_disp:d.home, away_disp:d.away,
+      neutral:$('#ev_neutral')&&$('#ev_neutral').checked,
+      p_home:d.p_home, p_draw:d.p_draw, p_away:d.p_away, xg_home:d.xg_home, xg_away:d.xg_away,
+      top_scores:(d.top_scores||[]).slice(0,5), source:'martj42 国际赛数据库'});
+  }catch(e){ out.innerHTML='<div class="card"><span class="muted">网络错误，请重试。</span></div>'; }
+}
+function evPredForm(key, isClub, defH, defA){
+  return `<div class="card" style="margin-top:10px">
+    <h3 style="margin:0 0 6px">任意对阵单场预测</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input id="ev_home" placeholder="主队 / 第一支" value="${defH||''}" style="flex:1;min-width:130px">
+      <input id="ev_away" placeholder="客队 / 第二支" value="${defA||''}" style="flex:1;min-width:130px">
+      <label class="muted" style="font-size:12px"><input type="checkbox" id="ev_neutral"> 中立场</label>
+      <button onclick="${isClub?'evClubPredict':'evNlPredict'}('${key}')">出预测</button>
+    </div>
+    <div id="ev_predout"></div>
+  </div>`;
+}
 async function renderEventView(key){
   const v = $('#eventview'); if(!v) return;
   await loadEvents();
-  const meta = (EVENTS_META||[]).find(e=>e.key===key) || {key, name:key, status:'', kind:''};
-  let body;
-  if(meta.wired){
-    body = '<div class="muted">加载中…</div>';
-  } else {
-    // 诚实空态：后端返回 not_wired 占位时不显示空白页，明确说明当前状态与已就绪的底层能力
-    body = `<div class="muted" style="line-height:1.8">本赛事的网页接线尚未完成（后端返回 not_wired 占位）。<br>
-      数据层与预测模型已就绪：${(meta.universe||'').startsWith('club')
-        ? '命令行 <code>python3 clubpredict.py "主队" "客队"</code> 已可出该联赛单场预测（数据来源 football-data.co.uk）'
-        : '命令行 <code>python3 predict.py "主队" "客队"</code> 已可出任意国家队对阵预测（数据来源 martj42 国际赛数据库）'}。<br>
-      网页版接线按路线图推进（联赛看板于 25-26 赛季开赛前上线）。</div>`;
+  const meta = (EVENTS_META||[]).find(e=>e.key===key) || {key, name:key, status:'', kind:'', universe:''};
+  const isClub = (meta.universe||'').startsWith('club');
+  const head = `<div class="card"><h3 style="margin:0 0 8px">${meta.name} ${evBadge(meta)}</h3><div id="ev_head" class="muted">加载中…</div></div>`;
+  if(!meta.wired && !isClub && key!=='nl2026'){
+    v.innerHTML = `<div class="card"><h3 style="margin:0 0 8px">${meta.name} ${evBadge(meta)}</h3>
+      <div class="muted">本赛事的网页接线尚未完成（后端 not_wired 占位）。数据层与模型已就绪，接线按路线图推进。</div></div>`;
+    return;
   }
-  v.innerHTML = `<div class="card"><h3 style="margin:0 0 8px">${meta.name} ${evBadge(meta)}</h3>${body}</div>`;
+  if(!isClub){                                     // nl2026：同宇宙直连国家队引擎
+    v.innerHTML = head + evPredForm(key, false, '西班牙', '法国');
+    $('#ev_head').innerHTML = `2026-27 欧国联 9 月开赛。同一国家队模型宇宙（257 队，数据来源 martj42
+      国际赛数据库${meta.db_matches?`，含欧国联正赛 ${meta.db_matches} 场历史`:''}），当前即可预测任意
+      国家队对阵；赛程看板与账本在开赛前接线。`;
+    evNlPredict(key);
+    return;
+  }
+  v.innerHTML = head + `<div id="ev_default"></div>` + evPredForm(key, true) + `<div id="ev_tables"></div>`;
+  try{
+    const r = await fetch(`/api/club/overview?event=${key}`);
+    if(!r.ok) throw new Error('overview '+r.status);
+    const o = await r.json();
+    $('#ev_head').innerHTML = `${o.league} · 每联赛独立 Dixon-Coles 模型（近 7 季 ${o.matches} 场，
+      半衰期 365 天） · 数据更新于 <b>${o.data_through}</b> · 来源 ${o.source}`;
+    if(o.ranking && o.ranking.length>=2){          // 默认真实预测卡片：模型实力榜前二对阵
+      $('#ev_home').value=o.ranking[0].disp; $('#ev_away').value=o.ranking[1].disp;
+      evClubPredict(key);
+    }
+    let t='';
+    if(o.preseason && o.preseason.rows){
+      const p=o.preseason;
+      const rows=p.rows.slice(0,6).map(r=>`<tr><td>${r.disp}</td><td>${evPct(r.title)}</td><td>${evPct(r.top4)}</td><td>${r.exp_pts.toFixed(0)}</td></tr>`).join('');
+      const rel=[...p.rows].sort((x,y)=>y.bottom3-x.bottom3).slice(0,3).map(r=>`${r.disp} ${evPct(r.bottom3)}`).join(' · ');
+      t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">25-26 季前模拟概率（${p.sims} 次蒙特卡洛）</h3>
+        <table class="mgt"><tr><th>球队</th><th>夺冠</th><th>前四</th><th>期望积分</th></tr>${rows}</table>
+        <div class="muted" style="margin-top:6px">降级概率前三：${rel}</div>
+        <div class="muted" style="margin-top:6px;font-size:11.5px">计算于 ${p.computed_at} · 升班马含 ${p.promoted.join('/')} ·
+          已知短板：点估无参数不确定性，极端值偏自信（回测档案已记录） · 研究/信息性质</div></div>`;
+    } else {
+      t += `<div class="card" style="margin-top:10px"><span class="muted">季前模拟数据未生成（运行 python3 club_preseason.py 后显示）。</span></div>`;
+    }
+    if(o.ranking){
+      const rk=o.ranking.slice(0,10).map((r,i)=>`<tr><td>${i+1}</td><td>${r.disp}</td><td>${r.score>0?'+':''}${r.score.toFixed(3)}</td></tr>`).join('');
+      t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">模型净实力榜 Top 10</h3>
+        <table class="mgt"><tr><th>#</th><th>球队</th><th>净实力（相对值）</th></tr>${rk}</table></div>`;
+    }
+    $('#ev_tables').innerHTML=t;
+  }catch(e){
+    $('#ev_head').innerHTML = `<span class="muted">联赛数据加载失败（${e.message}）。请稍后重试；命令行
+      <code>python3 clubpredict.py "主队" "客队"</code> 可离线出预测。</span>`;
+  }
 }
 
 // 深链：双段 #<event>/<tab>?qs；旧单段深链（#bracket / #manager?h=… 等，外部聊天记录里存量分享链）
@@ -2703,14 +2800,17 @@ const DataScheduler=(function(){
   };
 })();
 // 晋级树：每 5min 拉完赛（只在该 tab 可见时；有新赛果才 loadProjection）
-DataScheduler.register('bracket', 5*60*1000, ()=>{ if(bracketLoaded) liveFacts(null,true); });
+// P1-⑤：wc2026 归档态（events.status 驱动，决赛回补前恒为 live、不激活）——归档后停全部
+// 世界杯自动轮询：不再有新赛果，ESPN 拉取/重训触发均为纯浪费；手动按钮不受影响。
+function wcArchived(){ return (EVENTS_META||[]).some(e=>e.key==='wc2026'&&e.status==='archived'); }
+DataScheduler.register('bracket', 5*60*1000, ()=>{ if(!wcArchived() && bracketLoaded) liveFacts(null,true); });
 // 市场对标：每 60s 用现有快照重建对标（演示态不打断）
-DataScheduler.register('market', 60*1000, ()=>{ if(marketLoaded && !$('#marketres').querySelector('.val-demo')) loadMarket('fresh'); });
+DataScheduler.register('market', 60*1000, ()=>{ if(!wcArchived() && marketLoaded && !$('#marketres').querySelector('.val-demo')) loadMarket('fresh'); });
 // 看板：每 60s 只读刷新 ESPN 实时状态（不重训）
-DataScheduler.register('verify', 60*1000, ()=>{ if($('#dashres').dataset.loaded) loadDashboard(); });
+DataScheduler.register('verify', 60*1000, ()=>{ if(!wcArchived() && $('#dashres').dataset.loaded) loadDashboard(); });
 // 看板：每 3min 拉完赛（可能重训）；有新赛果才重渲看板
-DataScheduler.register('verify', 3*60*1000, async ()=>{ const r=await postLive(); if(r&&r.ok&&r.changed) loadDashboard(); });
-DataScheduler.register('xuanxue', 2*60*1000, ()=>{ if(xuanxueLoaded) loadXuanxue(); });  // 完赛后自动结算并入排行
+DataScheduler.register('verify', 3*60*1000, async ()=>{ if(wcArchived()) return; const r=await postLive(); if(r&&r.ok&&r.changed) loadDashboard(); });
+DataScheduler.register('xuanxue', 2*60*1000, ()=>{ if(!wcArchived() && xuanxueLoaded) loadXuanxue(); });  // 完赛后自动结算并入排行
 
 // —— 赞赏（纯自愿，不解锁任何功能）——
 function openSponsor(){ const m=$('#sponsor-modal'); if(m) m.classList.add('on'); }

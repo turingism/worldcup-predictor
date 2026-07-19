@@ -1644,3 +1644,37 @@ def test_ledger_runtime_isolation(tmp_path):
     jc_review._save_all({"k2": {"date": "2026-09-02"}}, jb)
     assert set(jc_review.load_all(ja)) == {"k1"} and set(jc_review.load_all(jb)) == {"k2"}
     assert jc_review.load_all(str(tmp_path / "absent.json")) == {}
+
+
+# ---------- P1-⑤ 俱乐部接线 + nl2026 壳 ----------
+def test_club_overview_api(client):
+    d = client.get("/api/club/overview?event=epl2526").get_json()
+    assert d["code"] == "E0" and d["source"] == "football-data.co.uk"
+    assert len(d["ranking"]) == 20 and d["data_through"] >= "2025-05-01"
+    if d["preseason"]:                                # 预计算 JSON 存在时校验结构与归一
+        rows = d["preseason"]["rows"]
+        assert len(rows) == 20
+        assert abs(sum(r["title"] for r in rows) - 1.0) < 0.02
+    # nl2026 未解锁 club 端点 → 闸门 not_wired 占位（先于路由）；无参数=默认 wc2026 → 路由内 400
+    r = client.get("/api/club/overview?event=nl2026")
+    assert r.status_code == 200 and r.get_json()["status"] == "not_wired"
+    assert client.get("/api/club/overview").status_code == 400
+
+
+def test_club_predict_api(client):
+    d = client.get("/api/club/predict?event=epl2526&home=阿森纳&away=曼城").get_json()
+    assert abs(d["p_home"] + d["p_draw"] + d["p_away"] - 1.0) < 5e-4   # 输出 round(4) 后的容差
+    assert d["home"] == "Arsenal" and len(d["top_scores"]) >= 5
+    assert "90 分钟" in d["note"]
+    r = client.get("/api/club/predict?event=epl2526&home=Arsnal&away=曼城")
+    assert r.status_code == 404 and r.get_json()["suggest"]
+    # 跨联赛球队在本联赛池内解析不到 → 404（诚实拒绝口径）
+    assert client.get("/api/club/predict?event=epl2526&home=皇马&away=曼城").status_code == 404
+
+
+def test_nl2026_predict_unlocked(client):
+    d = client.get("/api/predict?home=Spain&away=France&neutral=1&event=nl2026").get_json()
+    assert "p_home" in d and abs(d["p_home"] + d["p_draw"] + d["p_away"] - 1.0) < 0.02
+    ev = client.get("/api/events").get_json()
+    nl = next(e for e in ev if e["key"] == "nl2026")
+    assert nl["db_matches"] == 658 and nl["wired"]

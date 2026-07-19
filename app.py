@@ -171,12 +171,114 @@ def api_events():
     for k in eventsmod.sorted_events(today):
         e = eventsmod.EVENTS[k]
         a = dt.date.fromisoformat(e["window"][0])
-        out.append({"key": k, "name": e["name"], "kind": e["kind"], "universe": e["universe"],
-                    "status": eventsmod.status(k, today),
-                    "days_to_start": max(0, (a - today).days),
-                    "tabs_off": e.get("tabs_off", []),
-                    "wired": "*" in (_EVENT_WIRED.get(k) or set()) or k == eventsmod.DEFAULT})
+        row = {"key": k, "name": e["name"], "kind": e["kind"], "universe": e["universe"],
+               "status": eventsmod.status(k, today),
+               "days_to_start": max(0, (a - today).days),
+               "tabs_off": e.get("tabs_off", []),
+               "wired": bool(_EVENT_WIRED.get(k)) or k == eventsmod.DEFAULT}
+        if e["universe"] == "intl":
+            row["db_matches"] = datamod.count_tournament(DF, e["data"])   # 正赛精确匹配口径
+        out.append(row)
     return jsonify(out)
+
+
+# ---- P1-⑤ 俱乐部赛事最小接线（真实预测卡片；重活复用 clubpredict/clubsim 离线件）----
+_CLUB_MODEL_LOCK = threading.Lock()
+
+
+def _club_code(ev: dict) -> str:
+    return ev["universe"].split("_", 1)[1]        # club_E0 → E0
+
+
+def _club_event_or_400():
+    key, ev = _event()
+    if not ev or not ev["universe"].startswith("club_"):
+        return None, None, make_response(jsonify({"error": "club event required (?event=epl2526 等)"}), 400)
+    return key, ev, None
+
+
+@app.route("/api/club/overview")
+def api_club_overview():
+    """联赛 tab 概览：模型实力榜 + 季前夺冠/降级概率（预计算 JSON 直读）+ 数据时间戳。"""
+    key, ev, err = _club_event_or_400()
+    if err:
+        return err
+    import clubdata
+    import clubpredict
+    code = _club_code(ev)
+    with _CLUB_MODEL_LOCK:
+        m = clubpredict.get_club_model(code, verbose=False)
+    df = clubdata.load(code)
+    # 不用 m.power_ranking（其身价过滤是国家队口径，会滤空俱乐部池）；净实力=attack-defence 同式直算
+    rows = sorted(((t, m.attack[t] - m.defence[t]) for t in m.teams), key=lambda x: -x[1])
+    ranking = [{"team": t, "disp": teams_zh.disp(t), "score": round(float(s), 3)}
+               for t, s in rows[:20]]
+    pre = None
+    ppath = os.path.join(os.path.dirname(__file__), "data", "club", f"preseason_{code}.json")
+    try:
+        with open(ppath, encoding="utf-8") as f:
+            pre = json.load(f)
+        for r in pre.get("rows", []):
+            r["disp"] = teams_zh.disp(r["team"])
+    except (FileNotFoundError, json.JSONDecodeError):
+        pre = None                                   # 前端显示明确空态，不静默
+    return jsonify({"event": key, "league": clubdata.LEAGUES[code], "code": code,
+                    "data_through": str(df.date.max().date()), "matches": int(len(df)),
+                    "source": "football-data.co.uk", "hl": 365,
+                    "ranking": ranking, "preseason": pre})
+
+
+@app.route("/api/club/predict")
+def api_club_predict():
+    """联赛单场预测：与 clubpredict CLI 同一模型/同一计算，输出 JSON。"""
+    key, ev, err = _club_event_or_400()
+    if err:
+        return err
+    import clubdata
+    import clubpredict
+    code = _club_code(ev)
+    home_q = (request.args.get("home") or "").strip()
+    away_q = (request.args.get("away") or "").strip()
+    neutral = request.args.get("neutral") == "1"
+    if not home_q or not away_q:
+        return make_response(jsonify({"error": "home/away 必填"}), 400)
+    pool = {code: clubpredict._league_teams((code,))[code]}   # 只在本联赛池内解析
+    out, names = {}, {}
+    for side, q in (("home", home_q), ("away", away_q)):
+        got, sugg = clubpredict.resolve(q, pool)
+        if got is None:
+            return make_response(jsonify({"error": f"找不到球队「{q}」", "suggest": sugg or []}), 404)
+        names[side] = got[0]
+    if names["home"] == names["away"]:
+        return make_response(jsonify({"error": "两队相同"}), 400)
+    with _CLUB_MODEL_LOCK:
+        m = clubpredict.get_club_model(code, verbose=False)
+    r = m.predict(names["home"], names["away"], neutral=neutral)
+    M = r["matrix"]
+    tot = np.add.outer(np.arange(M.shape[0]), np.arange(M.shape[1]))
+    df = clubdata.load(code)
+    return jsonify({
+        "event": key, "league": clubdata.LEAGUES[code],
+        "home": r["home"], "away": r["away"],
+        "home_disp": teams_zh.disp(r["home"]), "away_disp": teams_zh.disp(r["away"]),
+        "neutral": neutral,
+        "p_home": round(r["p_home"], 4), "p_draw": round(r["p_draw"], 4),
+        "p_away": round(r["p_away"], 4),
+        "xg_home": round(r["xg_home"], 2), "xg_away": round(r["xg_away"], 2),
+        "over25": round(float(M[tot >= 3].sum()), 4),
+        "btts": round(float(M[1:, 1:].sum()), 4),
+        "top_scores": [{"h": int(i), "a": int(j), "p": round(float(p), 4)}
+                       for (i, j), p in r["top_scores"]],
+        "data_through": str(df.date.max().date()), "source": "football-data.co.uk",
+        "note": "90 分钟口径（含补时，不含加时点球）；研究/信息性质",
+    })
+
+
+# 逐 API 解锁：俱乐部五赛事开放 club 端点；nl2026 同宇宙直接复用国家队单场预测
+for _k, _e in eventsmod.EVENTS.items():
+    if _e["universe"].startswith("club_"):
+        _EVENT_WIRED.setdefault(_k, set()).update({"/api/club/overview", "/api/club/predict"})
+_EVENT_WIRED.setdefault("nl2026", set()).update({"/api/predict"})
 
 
 @app.route("/api/config")

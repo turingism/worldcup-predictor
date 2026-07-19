@@ -128,6 +128,12 @@ def load_raw(path: str = DATA_PATH, live: bool = True) -> pd.DataFrame:
     return df
 
 
+def count_tournament(df: pd.DataFrame, name: str) -> int:
+    """P1-⑤：精确等于赛事名的正赛场次数（勿用 contains——"FIFA World Cup qualification"
+    是另一赛事，精确匹配是本项目口径铁律）。"""
+    return int((df["tournament"] == name).sum())
+
+
 def played(df: pd.DataFrame) -> pd.DataFrame:
     """只保留已开赛、且日期有效的场次（用于训练）。"""
     m = df["home_score"].notna() & df["away_score"].notna() & df["date"].notna()

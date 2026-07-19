@@ -22,9 +22,59 @@
 - `docs/diagnosis.md`（含逐层实测表）
 - 本轮 pytest 输出：103 passed, 1 skipped in 39.83s
 
-### 遗留问题 / 下一步
+### 遗留问题 / 下一步（07-19 晚已大部分完成，见下一条记录）
 - [ ] P1 接线（决赛赛果回补后动工，照 `docs/P1_WIRING_CHECKLIST.md` 五步）：event 上下文 → live/espn 参数化 → 账本隔离 → L0 切换器 → nl2026 壳。
 - [ ] 链路打通验收件：浏览器截图可见非世界杯赛事预测卡片，存 `docs/evidence/`（待 P1-④）。
 - [ ] P2（8 月初英超开赛前）：英超 web 接线、每日抓取脚本、`clubdata._CUR_END` +1。
 - [ ] 未验证项：每日定时抓取脚本（赛季未开，未做）；可靠性曲线出图（未做）；欧冠两回合制（P4 研究项，未做）。
 - 任务书与既有裁决的冲突已在 diagnosis.md 第五节勘误（数据源不重选、DC 基线已超额完成）。
+
+## 2026-07-19 晚（同日第二轮）P1 五步接线全部完成：联赛 Tab 真实预测卡片上线
+
+说明：用户明确指示解冻动工。事实核查：动工时决赛（西班牙 vs 阿根廷）尚未开球
+（北京 7-20 03:00），账本 103 场、决赛未回补——前置条件①在事实层面未满足，按
+用户指令视为提前解冻；因此 wc2026 归档模式做成 events.status 条件驱动（决赛回
+补前恒为 live 不激活），世界杯今晚的实时链路零干扰。
+
+### 做了什么（每步独立 commit）
+1. 存量基线 commit：07-07 至 07-16 冻结期全部离线增量落库（此前从未提交）。
+2. P1-①（2cfc27f）：before_request event 闸门，全 API 接受 ?event=；默认逐字节
+   不变；非法 400；未接线赛事 not_wired 占位。
+3. P1-②：live/espn_odds ESPN league code 参数化，默认 fifa.world 字面量逐字节
+   不变，_NOPROXY_OPENER 重试模式未动。
+4. P1-③：verify 账本与 jc_review 存储 path 显式贯穿（调用时解析，兼容旧测试
+   monkeypatch），ledger_path/store_path 按注册表隔离，全赛事路径互异断言。
+5. P1-④：L0 赛事切换器（/api/events 状态驱动排序、纯文字徽标）、hash 双段路由
+   #<event>/<tab>、旧深链永续回填、未接线赛事诚实空态。
+6. P1-⑤：nl2026 壳（同宇宙复用 /api/predict，658 场历史实时读库）+ 俱乐部真实
+   接线（/api/club/overview 实力榜+季前概率、/api/club/predict 单场预测，复用
+   clubpredict/clubsim 离线件）+ club_preseason.py 预计算五联赛季前概率 JSON +
+   wc2026 归档模式条件驱动（归档后停轮询+回顾模式标注）。
+
+### 如何验证的
+- test_core 110→113 全绿（+13 项：闸门 golden diff/400/占位、URL 三例、账本隔
+  离、club overview/predict 结构与归一、nl2026 解锁）。
+- 重启后同时刻 golden diff：5 个确定性端点 有参=无参 逐字节一致。
+- 浏览器截图（headless Chrome，全部人工 Read 核验）：
+  - docs/evidence/p1-5-epl-real-cards.png：英超 Tab 真实预测卡片（曼城 vs 阿森纳
+    42.3/26.2/31.5 + Top5 比分 + 季前概率表 + 实力榜 + 时间戳/来源）——链路打通
+    验收件（阶段 0 第 4 条）。
+  - p1-5-laliga/seriea/bundes/ligue1：其余四联赛同构渲染。
+  - p1-5-nl2026-shell.png：欧国联壳 + 西班牙 vs 法国真实预测卡。
+  - p1-4-legacy-bracket.png / p1-5-legacy-manager.png：旧深链 #bracket、
+    #manager?h=Argentina&a=France 回填后完整可用（晋级树零回归、报告自动生成）。
+  - p1-4-default-dashboard.png：世界杯默认视图零回归，决赛冻结预测在位。
+- 预计算数字与 07-16 档案交叉验证一致（曼城 42.7/巴萨 48.0/国米 62.8/拜仁
+  80.1/巴黎 83.2）。
+
+### 证据路径
+docs/evidence/ 全部截图；git log 9e88367..HEAD 每步 commit message 附验收证据。
+
+### 未验证 / 遗留（如实标注）
+- wc2026 归档态行为（回顾模式标注+停轮询）：代码为条件驱动，决赛回补、状态翻
+  archived 后才自然激活，本轮无法实测——标注「未验证」，明日决赛回补后观测。
+- 联赛「未来 7 天赛程预测」「积分榜（赛内 as_of 口径）」「jc_review 联赛入口」：
+  P2 范围（25-26 开赛前），未做。每日定时抓取脚本：未做（赛季未开，无更新源）。
+- 欧冠：维持 P4 研究项，跨联赛对阵仍诚实拒绝。
+- power_ranking 的身价过滤在俱乐部池会滤空（既有暗坑）：app 侧已绕开（attack-
+  defence 直算），clubpredict --ranking CLI 路径仍受影响，待单独修。
