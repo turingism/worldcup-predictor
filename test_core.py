@@ -1573,3 +1573,29 @@ def test_clubdata_load_fixtures_schema():
     if len(fx):
         assert fx["div"].isin(clubdata.LEAGUES).all()
         assert fx["date"].is_monotonic_increasing
+
+
+# ---------- P1-① event 上下文闸门 ----------
+def test_event_gate_default_byte_identical(client):
+    """?event=wc2026 与无参数响应逐字节一致（golden diff 核心断言）。
+    /api/bracket 是"随机一届"抽样端点，两次调用天然不同，不进逐字节样本。"""
+    for path in ("/api/ratings", "/api/teams", "/api/verify", "/api/config", "/api/champ_ci"):
+        a = client.get(path)
+        b = client.get(path + "?event=wc2026")
+        assert a.status_code == b.status_code == 200, path
+        assert a.get_data() == b.get_data(), f"{path} 响应不一致"
+
+
+def test_event_gate_bogus_400(client):
+    r = client.get("/api/ratings?event=bogus")
+    assert r.status_code == 400
+    assert "unknown event" in r.get_json()["error"]
+
+
+def test_event_gate_not_wired_placeholder(client):
+    import events
+    for key in events.EVENTS:
+        if key == events.DEFAULT:
+            continue
+        d = client.get(f"/api/dashboard?event={key}").get_json()
+        assert d == {"status": "not_wired", "event": key, "name": events.EVENTS[key]["name"]}

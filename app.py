@@ -31,6 +31,7 @@ from flask import Flask, jsonify, make_response, render_template, request, send_
 import clv as clvmod
 import data as datamod
 import espn_odds as oddsmod
+import events as eventsmod
 import inplay as inplaymod
 import live as livemod
 import manager as managermod
@@ -55,6 +56,31 @@ READONLY = os.environ.get("READONLY", "").strip().lower() in ("1", "true", "yes"
 # 市场价值/Kelly 手动开闸：MARKET_UNLOCK=1 时强制显示价值/Kelly 面板（含未开赛场次的算法 EV/Kelly），
 # 绕过 CLV 诚实门槛——**默认关闭**（公开默认仍诚实锁定）；开闸后前端会大字标注"未验证·非建议·不担责"。
 MARKET_UNLOCK = os.environ.get("MARKET_UNLOCK", "").strip().lower() in ("1", "true", "yes", "on")
+
+# P1-① event 上下文：全 API 统一接受 ?event=。默认（无参数或 event=wc2026）不进任何新分支，
+# 行为与接线前逐字节一致；非法 key → 400；合法但尚未接线的赛事 → not_wired 占位（逐 API 解锁时
+# 把 path 加进 _EVENT_WIRED[key]，值 {"*"} 表示该赛事全部路由已接线）。
+_EVENT_WIRED: dict[str, set] = {eventsmod.DEFAULT: {"*"}}
+
+
+def _event():
+    """当前请求的 (event_key, registry_entry)。key 非法时 entry 为 None（闸门已挡，路由内可信）。"""
+    key = request.args.get("event") or eventsmod.DEFAULT
+    return key, eventsmod.EVENTS.get(key)
+
+
+@app.before_request
+def _event_gate():
+    key = request.args.get("event")
+    if key is None or key == eventsmod.DEFAULT:
+        return None
+    ev = eventsmod.EVENTS.get(key)
+    if ev is None:
+        return make_response(jsonify({"error": f"unknown event: {key}"}), 400)
+    wired = _EVENT_WIRED.get(key) or set()
+    if request.path.startswith("/api/") and "*" not in wired and request.path not in wired:
+        return jsonify({"status": "not_wired", "event": key, "name": ev["name"]})
+    return None
 
 
 def _readonly_block():
