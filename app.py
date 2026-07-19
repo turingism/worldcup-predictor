@@ -209,10 +209,8 @@ def api_club_overview():
     with _CLUB_MODEL_LOCK:
         m = clubpredict.get_club_model(code, verbose=False)
     df = clubdata.load(code)
-    # 不用 m.power_ranking（其身价过滤是国家队口径，会滤空俱乐部池）；净实力=attack-defence 同式直算
-    rows = sorted(((t, m.attack[t] - m.defence[t]) for t in m.teams), key=lambda x: -x[1])
-    ranking = [{"team": t, "disp": teams_zh.disp(t), "score": round(float(s), 3)}
-               for t, s in rows[:20]]
+    ranking = [{"team": t, "disp": teams_zh.disp(t), "score": round(s, 3)}
+               for t, s in clubpredict.net_ranking(m, 20)]   # CLI 同源（B1 暗坑修复）
     pre = None
     ppath = os.path.join(os.path.dirname(__file__), "data", "club", f"preseason_{code}.json")
     try:

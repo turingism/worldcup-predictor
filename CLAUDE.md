@@ -24,7 +24,12 @@
 - **🔁 重验淘汰赛保守（用数据重判，非凭记忆，重跑 `bt_knockout.py`）**：90 分钟原始保守仍显著（淘汰赛 2.50 vs 小组赛 2.77，p=0.040；平局 +7.4pp，p=0.021；乘子 0.903），**且现在对竞彩 90 分钟盘正相关**；但**剔除球队强度后纯阶段乘子 0.926、CI[0.832,1.031]、p=0.159 仍不显著**。→ **结论不变：不叠进 GLM**；理由口径换了（旧：含加时洗没=错；新：竞彩90分钟相关但纯增量不显著、引擎已建模强度那部分）。**此负结论对口径假设稳健——90 分钟与含加时口径下纯阶段保守均不显著，结论不依赖口径。**
 - **下游交付已是 90 分钟口径**：竞彩 PDF（明写「竞彩=90分钟结算」）、小红书卡（footer「常规时间口径推演」）本就对，无需改（卡另顺手去掉「押」字、tip 改清楚）。
 
-## 📌 最新接手（2026-07-19 晚 · P1 五步接线全部落地：L0 切换器上线，联赛 Tab 已渲染真实预测卡片；决赛前用户指令提前解冻）
+## 📌 最新接手（2026-07-19 晚二 · 状态 B 收官：net_ranking 暗坑修复（B1）+ evPct 核查（B2），test_core 114 绿；决赛观测待 7-20 凌晨）
+- **B1**：`clubpredict.net_ranking(m, top)` 共用实现下沉（attack-defence 直算），CLI `--ranking` 与 `/api/club/overview` 同源——修复前 CLI 实测输出**空榜**（power_ranking 身价过滤=国家队口径，俱乐部池整池滤空），修复后 Top20 正常（曼城 +0.041 居首）；model.py 零改动（国家队 power_ranking 的身价过滤是刻意设计，勿动）。+1 回归测试（非空/降序/CLI=API 同值）。
+- **B2**：evPct 改名审计干净——页面原有 `const pct`(752)/局部 `pctTag` 与新增 `evPct`(2640) 无冲突，新增块无旧引用残留，node --check 过。
+- **下一步**：决赛（北京 7-20 03:00）完赛回补后走状态 A（归档翻转实测+账本终局），再入 P2 清单（_CUR_END+1 → 每日抓取 → fixtures 赛程预测 → 赛内积分榜 → 市场 tab → jc 联赛入口）。
+
+## 📌 上一次接手（2026-07-19 晚 · P1 五步接线全部落地：L0 切换器上线，联赛 Tab 已渲染真实预测卡片；决赛前用户指令提前解冻）
 - **用户明确指示解冻施工**（事实核查：动工时决赛未开球、账本 103 场无 104——前置①未满足，按指令执行；wc2026 归档模式因此做成 events.status **条件驱动**，决赛回补前恒 live 不激活，今晚实时链路零干扰）。每步独立 commit（9e88367..f291a6a），验收证据在各 commit message + `docs/evidence/` 七张截图 + `docs/progress.md`。
 - **P1-①**：`before_request` event 闸门（`_event()`/`_EVENT_WIRED`），全 API 接受 `?event=`；默认 wc2026 **逐字节不变**（同时刻 golden diff 5 端点实测一致）；非法 400；未接线赛事 not_wired 占位、逐 API 解锁。**P1-②**：ESPN league code 参数化（`live.espn_scoreboard_tmpl`/`espn_odds.sb_url_tmpl+sum_url_tmpl`），默认字面量不变。**P1-③**：verify/jc_review path 显式贯穿（**调用时解析 `path or 常量`**——def 时绑定坑的正解，旧测试 monkeypatch 兼容），`verify.ledger_path(event)`/`jc_review.store_path(event)` 按注册表隔离。**P1-④**：L0 切换器（`/api/events` 状态排序、纯文字徽标）+ hash 双段 `#<event>/<tab>` + 旧深链（#bracket、#manager?h= 分享链）replaceState 永续回填，晋级树/看板/manager 深链截图零回归。**P1-⑤**：nl2026 壳（解锁 `/api/predict`，db_matches=658 实时读库）+ **俱乐部真实接线**：`/api/club/overview`（实力榜+季前概率）/`/api/club/predict`（与 clubpredict CLI 同模型同计算，联赛池内解析、错拼给建议、跨联赛仍拒绝），`club_preseason.py` 预计算五联赛 5000 次季前概率 JSON（数字与 07-16 档案一致）。
 - **test_core 110→113 全绿**（闸门/URL/隔离/club API/nl2026 共 +13 项，中途曾因 def 绑定坑打断旧 jc 测试并污染真实 jc_review.json 12 条合成记录，已清理并改回调用时解析——教训：**动 store 默认参数前先跑旧测试**）。

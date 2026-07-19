@@ -112,6 +112,17 @@ def resolve(name: str, pool: dict[str, set[str]]):
     return (cand, code), None
 
 
+def net_ranking(m: DixonColesModel, top: int = 20) -> list[tuple[str, float]]:
+    """俱乐部净实力榜：attack - defence 直算（与 power_ranking 同式）。
+
+    不用 m.power_ranking——其身价过滤是国家队口径（剔非 FIFA 噪声队），俱乐部
+    无身价记录会整池滤空（2026-07-19 实测暗坑）。CLI 与 /api/club/overview 同源取此。
+    """
+    rows = sorted(((t, float(m.attack[t] - m.defence[t])) for t in m.teams),
+                  key=lambda x: -x[1])
+    return rows[:top]
+
+
 def bar(p: float, width: int = 24) -> str:
     n = int(round(p * width))
     return "█" * n + "·" * (width - n)
@@ -152,7 +163,7 @@ def print_ranking(code: str, top: int = 20):
     m = get_club_model(code)
     print(f"\n  🏆 {clubdata.LEAGUES[code]} 模型净实力榜 Top {top}（近 {SEASONS} 季加权，相对值）")
     print("  " + "─" * 44)
-    for i, (t, s) in enumerate(m.power_ranking(top), 1):
+    for i, (t, s) in enumerate(net_ranking(m, top), 1):
         print(f"   {i:>2}. {teams_zh.disp(t):<26} {s:+.3f}")
     print()
 

@@ -1678,3 +1678,16 @@ def test_nl2026_predict_unlocked(client):
     ev = client.get("/api/events").get_json()
     nl = next(e for e in ev if e["key"] == "nl2026")
     assert nl["db_matches"] == 658 and nl["wired"]
+
+
+# ---------- B1：net_ranking 暗坑修复回归 ----------
+def test_club_net_ranking_not_empty(client):
+    """power_ranking 的身价过滤在俱乐部池滤空（07-19 实测暗坑）——net_ranking 必须非空，
+    且 CLI 与 API 同源同值。"""
+    import clubpredict
+    m = clubpredict.get_club_model("E0", verbose=False)
+    rows = clubpredict.net_ranking(m, 20)
+    assert len(rows) == 20 and all(isinstance(s, float) for _, s in rows)
+    assert rows == sorted(rows, key=lambda x: -x[1])          # 降序
+    api = client.get("/api/club/overview?event=epl2526").get_json()["ranking"]
+    assert [r["team"] for r in api] == [t for t, _ in rows]   # API 与 CLI 同源

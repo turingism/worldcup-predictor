@@ -78,3 +78,25 @@ docs/evidence/ 全部截图；git log 9e88367..HEAD 每步 commit message 附验
 - 欧冠：维持 P4 研究项，跨联赛对阵仍诚实拒绝。
 - power_ranking 的身价过滤在俱乐部池会滤空（既有暗坑）：app 侧已绕开（attack-
   defence 直算），clubpredict --ranking CLI 路径仍受影响，待单独修。
+
+## 2026-07-19 晚（第三轮）状态 B：暗坑修复 B1 + 核查 B2
+
+状态判定：18:50 实测决赛未开球（账本 103、upcoming=西班牙 vs 阿根廷）——状态 A
+未到点，按序命中状态 B。
+
+### B1 power_ranking 俱乐部池滤空修复
+- 共用实现下沉：`clubpredict.net_ranking(m, top)`（attack-defence 直算，含暗坑
+  成因注释）；CLI `print_ranking` 与 `/api/club/overview` 改为同源取数；
+  model.py 零改动（国家队 power_ranking 行为原样，身价过滤对国家队是刻意设计）。
+- 验证：修复前 `clubpredict.py --ranking E0` 输出空榜（实测复现），修复后 Top20
+  正常（曼城 +0.041 居首）；新增回归测试断言非空、降序、CLI 与 API 同值；
+  test_core 113→114 全绿；重启后 API 实测 ranking[0]=曼城。
+
+### B2 evPct 改名核查（零改动审计）
+- 全页仅三处相关定义：页面原有 `const pct`（752 行）、无关的局部 `pctTag`、
+  新增 `function evPct`（2640 行）；新增块内 grep 无旧 `pct(` 残留；node --check
+  通过。结论：无冲突无残留，B2 关闭。
+
+### 证据
+test_core 114 全绿；本条上方 CLI/API 实测输出；git commit 本轮。
+决赛观测继续等待（北京 7-20 03:00 开球）。
