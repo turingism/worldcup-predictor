@@ -24,7 +24,14 @@
 - **🔁 重验淘汰赛保守（用数据重判，非凭记忆，重跑 `bt_knockout.py`）**：90 分钟原始保守仍显著（淘汰赛 2.50 vs 小组赛 2.77，p=0.040；平局 +7.4pp，p=0.021；乘子 0.903），**且现在对竞彩 90 分钟盘正相关**；但**剔除球队强度后纯阶段乘子 0.926、CI[0.832,1.031]、p=0.159 仍不显著**。→ **结论不变：不叠进 GLM**；理由口径换了（旧：含加时洗没=错；新：竞彩90分钟相关但纯增量不显著、引擎已建模强度那部分）。**此负结论对口径假设稳健——90 分钟与含加时口径下纯阶段保守均不显著，结论不依赖口径。**
 - **下游交付已是 90 分钟口径**：竞彩 PDF（明写「竞彩=90分钟结算」）、小红书卡（footer「常规时间口径推演」）本就对，无需改（卡另顺手去掉「押」字、tip 改清楚）。
 
-## 📌 最新接手（2026-07-19 · 决赛日阶段 0 诊断收官：diagnosis/data-sources/backtest 三文档落档，基线 103+1s 绿，只待决赛回补即 P1 动工）
+## 📌 最新接手（2026-07-19 晚 · P1 五步接线全部落地：L0 切换器上线，联赛 Tab 已渲染真实预测卡片；决赛前用户指令提前解冻）
+- **用户明确指示解冻施工**（事实核查：动工时决赛未开球、账本 103 场无 104——前置①未满足，按指令执行；wc2026 归档模式因此做成 events.status **条件驱动**，决赛回补前恒 live 不激活，今晚实时链路零干扰）。每步独立 commit（9e88367..f291a6a），验收证据在各 commit message + `docs/evidence/` 七张截图 + `docs/progress.md`。
+- **P1-①**：`before_request` event 闸门（`_event()`/`_EVENT_WIRED`），全 API 接受 `?event=`；默认 wc2026 **逐字节不变**（同时刻 golden diff 5 端点实测一致）；非法 400；未接线赛事 not_wired 占位、逐 API 解锁。**P1-②**：ESPN league code 参数化（`live.espn_scoreboard_tmpl`/`espn_odds.sb_url_tmpl+sum_url_tmpl`），默认字面量不变。**P1-③**：verify/jc_review path 显式贯穿（**调用时解析 `path or 常量`**——def 时绑定坑的正解，旧测试 monkeypatch 兼容），`verify.ledger_path(event)`/`jc_review.store_path(event)` 按注册表隔离。**P1-④**：L0 切换器（`/api/events` 状态排序、纯文字徽标）+ hash 双段 `#<event>/<tab>` + 旧深链（#bracket、#manager?h= 分享链）replaceState 永续回填，晋级树/看板/manager 深链截图零回归。**P1-⑤**：nl2026 壳（解锁 `/api/predict`，db_matches=658 实时读库）+ **俱乐部真实接线**：`/api/club/overview`（实力榜+季前概率）/`/api/club/predict`（与 clubpredict CLI 同模型同计算，联赛池内解析、错拼给建议、跨联赛仍拒绝），`club_preseason.py` 预计算五联赛 5000 次季前概率 JSON（数字与 07-16 档案一致）。
+- **test_core 110→113 全绿**（闸门/URL/隔离/club API/nl2026 共 +13 项，中途曾因 def 绑定坑打断旧 jc 测试并污染真实 jc_review.json 12 条合成记录，已清理并改回调用时解析——教训：**动 store 默认参数前先跑旧测试**）。
+- **⚠️ 未验证**：wc2026 归档态（回顾模式标注+停轮询 `wcArchived()`）待决赛回补后状态翻 archived 自然激活，明日观测。**⚠️ 新发现暗坑**：`model.power_ranking` 的身价过滤在俱乐部池滤空（app 侧已用 attack-defence 直算绕开，`clubpredict --ranking` CLI 仍受影响，待修）。
+- **下一步**：① 决赛（北京 7-20 03:00）回补后观测归档模式+账本终局评估；② P2（8 月初前）：`_CUR_END`+1、联赛赛内积分榜（simulate_retro as_of）、未来赛程预测（fixtures.csv）、每日抓取脚本、市场 tab（bt_club_market 文案）、jc_review 联赛入口；③ 修 CLI ranking 暗坑。
+
+## 📌 上一次接手（2026-07-19 · 决赛日阶段 0 诊断收官：diagnosis/data-sources/backtest 三文档落档，基线 103+1s 绿，只待决赛回补即 P1 动工）
 - **/loop 任务书「联赛拓展屡次失败」归因钉死（`docs/diagnosis.md`，逐层实测非推测）**：数据层通（十联赛 CSV 在位）、计算层通（clubpredict 实跑 39.7/26.4/33.9）、**API 层与前端层零接线=冻结纪律下的计划内未实施**（grep app.py 零 club/events 引用、`?event=` 实测被忽略、index.html 零联赛入口）——不存在孤儿路由/断头代码，P1 照单施工即是修复。
 - **`docs/data-sources.md` + `docs/backtest.md` 落档**：把散在 CLAUDE.md 各期的选型裁决（football-data.co.uk + martj42，任务书候选源逐一落选理由）与回测结论（hl=365 裁决、闭盘全胜模型如实不美化、clubsim 回溯验证）整合成正式文档；未验证项（每日抓取脚本/可靠性曲线/欧冠两回合）如实标注。`docs/progress.md` 开档。
 - **基线**：test_core **103 passed + 1 skipped**（网络项自动跳）——P1 前置条件②满足；前置条件①=决赛（西班牙 vs 阿根廷，北京 7-20 凌晨）赛果回补，17:55 实测仍 upcoming。
