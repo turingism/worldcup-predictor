@@ -2840,6 +2840,37 @@ function evChampCards(o, ss){
   }
   return t;
 }
+// C6 机制解读：共用引擎正文（与世界杯同一 Dixon-Coles 引擎的方法论描述，一份实现
+// 五联赛共用）+ 按联赛参数化的差异章节。世界杯侧机制解读 Tab（赔率机制交互工具）不动。
+function evExplainCards(o){
+  const league=o?`${o.league}（近 7 季 ${o.matches} 场，数据截至 ${o.data_through}）`:'本联赛';
+  return `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">预测机制（与世界杯同一引擎）</h3>
+    <div style="font-size:13px;line-height:1.75">
+      <p style="margin:6px 0"><b>核心引擎：Dixon-Coles 双泊松模型。</b>把一场比赛建模为主客双方各自的进球数服从泊松分布，
+      每队有一对「进攻/防守」参数，由历史比赛用加权极大似然拟合；对 0-0、1-0、0-1、1-1 等低比分格用 Dixon-Coles ρ 参数
+      修正双泊松的独立性假设偏差。两队参数相乘得到期望进球（xG），展开成完整比分概率矩阵，胜平负、大小球、双方进球、
+      让球等全部盘口概率都从这一张矩阵推导，口径天然自洽。</p>
+      <p style="margin:6px 0"><b>时间衰减。</b>越旧的比赛权重越低（指数半衰）：一场半衰期前的比赛只算半场，四个半衰期前
+      只算 6%。这让模型自动跟随球队状态演变，无需人工修正。</p>
+      <p style="margin:6px 0"><b>结算口径。</b>训练与预测统一 90 分钟（含补时，不含加时点球）。</p>
+      <p style="margin:6px 0"><b>市场诚实层。</b>已回测结论：B365 闭盘 RPS 优于本模型（俱乐部与国家队两宇宙同款结论）——
+      闭盘聚合了阵容、伤停与临场信息流，公开历史比分模型结构上不可能稳定胜出。所有输出为研究/信息性质，
+      不构成投注建议（详见「市场对标」Tab）。</p>
+    </div></div>
+  <div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">联赛版与世界杯版的差异</h3>
+    <div style="overflow-x:auto"><table class="mgt">
+      <tr><th style="min-width:110px">维度</th><th>联赛（${o?o.league:'俱乐部宇宙'}）</th><th>世界杯（国家队宇宙）</th></tr>
+      <tr><td>模型池</td><td><b>每联赛独立拟合</b>：${league}单独训练一套攻防参数，联赛间互不混训</td><td>全球国家队一套模型（257 队，1872 年起国际赛）</td></tr>
+      <tr><td>强度可比性</td><td>攻防/净实力为<b>联赛内相对值</b>，跨联赛不可比（跨联赛刻度待欧战交锋锚点校准，未完成前诚实拒绝跨联赛对阵）</td><td>同池内全队可比</td></tr>
+      <tr><td>主场口径</td><td><b>neutral=False</b>：联赛主客场固定，主场优势直接由主客场进球差拟合</td><td>多数中立场；东道主在本国城市才给主场修正</td></tr>
+      <tr><td>时间衰减</td><td><b>半衰期 365 天</b>（俱乐部转会窗频繁、阵容换血快，回测裁决）</td><td>半衰期 730 天（国家队阵容更迭慢，回测裁决）</td></tr>
+      <tr><td>数据源</td><td>football-data.co.uk（含 B365 开/闭盘赔率）</td><td>martj42 国际赛数据库 + ESPN 实时兜底</td></tr>
+      <tr><td>升降级</td><td>赛季模拟时并入次级联赛（feeder）数据为升班马定级；单场预测用纯顶级联赛模型</td><td>无此概念（预选赛/正赛均在同池）</td></tr>
+      <tr><td>赛制推演</td><td>双循环积分制 → 赛季推演（争冠/前四/降级概率）</td><td>小组赛+淘汰赛 → 晋级树状图 + 点球加时建模</td></tr>
+    </table></div>
+    <div class="muted" style="margin-top:8px;font-size:11.5px">正文与差异表为同一份组件，五联赛共用；各项裁决依据见项目回测档案
+      （docs/backtest.md）。${o?`数据更新于 ${o.data_through} · 来源 ${o.source}`:''}</div></div>`;
+}
 // C5 市场对标（bt_club_market 口径：as-of 防泄漏、Shin 去水、三方同场对比）
 function evMarketCards(mk){
   if(mk.empty) return evEmptyCard(mk.reason||'市场对标数据未生成。');
@@ -2942,7 +2973,9 @@ function evShowTab(key, tk){
     c.innerHTML='<div class="card spin">加载中…</div>';
     evGet(key,'market').then(mk=>{ c.innerHTML=evMarketCards(mk); }).catch(e=>buildPh('市场对标数据加载失败（'+e.message+'）。'));
   } else if(tk==='explain'){
-    buildPh('机制解读（共用世界杯正文 + 联赛差异章节）按功能同步清单 C6 推进中，当前未接线。');
+    c.innerHTML='<div class="card spin">加载中…</div>';
+    evGet(key,'overview').then(o=>{ c.innerHTML=evExplainCards(o); })
+      .catch(()=>{ c.innerHTML=evExplainCards(null); });
   } else if(tk==='jc'){
     buildPh('竞彩复盘联赛入口按功能同步清单 C7 推进中，当前未接线（世界杯侧竞彩复盘不受影响）。');
   }
