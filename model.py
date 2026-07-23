@@ -25,6 +25,7 @@ from scipy.stats import nbinom, poisson
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 
+import config
 import data as datamod
 import market
 
@@ -39,6 +40,7 @@ _STATE_DEFAULTS = {
     "half_life_days": 730.0, "max_age_years": 16.0, "min_matches": 12,
     "market_k": 25.0, "min_market_weight": 0.0,
     "avail_att": {}, "avail_def": {},  # 关键球员可用性 xG 乘子（上下文层，空=零影响）
+    "avail_meta": None,                # 可用性装载审计（applied/skipped/TTL，账本留痕用）
     "use_elo": False, "elo_ratings": {}, "elo_coef": 0.0, "comp_weights": None,
     "nb_alpha": 0.0,
     "glm": None, "rho": 0.0, "teams": [], "intercept": 0.0, "home_adv": 0.0,
@@ -61,7 +63,9 @@ def _tau(i, j, lam, mu, rho):
 
 
 class DixonColesModel:
-    def __init__(self, half_life_days=730.0, max_age_years=16.0, min_matches=12,
+    def __init__(self, half_life_days=config.NATIONAL_HALF_LIFE,
+                 max_age_years=config.NATIONAL_MAX_AGE_YEARS,
+                 min_matches=config.NATIONAL_MIN_MATCHES,
                  market_k=25.0, use_elo=False, comp_weights=None, nb_alpha=0.0):
         self.schema_version = SCHEMA_VERSION
         self.nb_alpha = nb_alpha          # 进球分布过离散参数(NB2: var=μ+α·μ²)；0=Poisson(默认)
@@ -93,11 +97,21 @@ class DixonColesModel:
 
     def set_availability(self, avail=None):
         """从 availability.json（或传入 dict）装载关键球员缺阵 xG 乘子。返回受影响队数。
-        这是运行期调用的补充层，不进 model.pkl 缓存、不影响 backtest。"""
+        这是运行期调用的补充层，不进 model.pkl 缓存、不影响 backtest。
+        生产门控（adjust.py）：仅 verified+TTL 内新鲜、或比赛级首发确认的登记生效；
+        陈旧/未核验条目自动跳过并留痕（self.avail_meta 供账本/UI 审计）。"""
+        import datetime as _dt
         import adjust
-        mods = adjust.team_modifiers(avail if isinstance(avail, dict) else None)
+        mods, audit = adjust.team_modifiers_audited(
+            avail if isinstance(avail, dict) else None)
         self.avail_att = {t: m["att"] for t, m in mods.items()}
         self.avail_def = {t: m["def_pen"] for t, m in mods.items()}
+        self.avail_meta = {"applied": audit["applied"],
+                           "skipped": len(audit["skipped"]),
+                           "skipped_detail": audit["skipped"][:20],
+                           "ttl_days": audit["ttl_days"],
+                           "meta_updated": audit["meta_updated"],
+                           "loaded_at": _dt.datetime.now().isoformat(timespec="seconds")}
         return len(mods)
 
     # ---------- 训练 ----------

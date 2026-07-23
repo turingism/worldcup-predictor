@@ -16,12 +16,21 @@
   - 采用非中心化参数化（non-centered）改善采样几何。
   - 时间衰减/赛事权重通过加权对数似然（pm.Potential）施加，与 DC 完全一致。
 
+统计口径（诚实标注）：
+  - 加权对数似然（权重∈(0,1]）意味着这是 **power/pseudo-posterior**（每条观测的
+    似然被升到 w 次幂），不是严格贝叶斯后验——区间应解读为『时间加权伪后验的
+    可信带』，其频率学覆盖率未经验证。meta.posterior_type 记录此口径。
+  - 收敛诊断（R-hat / ESS / divergences）随拟合计算并写入 meta；
+    **收敛不达标（convergence_ok=False）时不发布新评级/后验抽样**（main 退出码 2，
+    旧缓存保持不动）。
+
 用法：
   python3 bayes.py                 # 拟合并缓存 data/bayes_ratings.json
   python3 bayes.py --draws 1500    # 更多采样
 缓存生成后，网页 /api/ratings 直接读 JSON（app 启动不重训，太慢且应确定性）。
 """
 from __future__ import annotations
+import config
 import argparse
 import json
 import os
@@ -38,8 +47,34 @@ RATINGS_PATH = os.path.join(os.path.dirname(__file__), "data", "bayes_ratings.js
 DRAWS_PATH = os.path.join(os.path.dirname(__file__), "data", "bayes_draws.npz")
 N_EXPORT_DRAWS = 300      # 导出的后验抽样套数（供 champ_ci 夺冠区间用，分层收缩→稳定）
 
+# 收敛门槛（不达标不发布）：R-hat ≤ 1.05、min bulk-ESS ≥ 200、零 divergence。
+RHAT_MAX = 1.05
+ESS_MIN = 200.0
+MAX_DIVERGENCES = 0
 
-def fit(half_life: float = 730.0, draws: int = 1000, tune: int = 1000,
+
+def convergence_ok(diag: dict) -> bool:
+    """收敛判定（可测试的纯函数）。diag 需含 rhat_max / ess_min / divergences。"""
+    return (diag.get("rhat_max", float("inf")) <= RHAT_MAX
+            and diag.get("ess_min", 0.0) >= ESS_MIN
+            and diag.get("divergences", 10 ** 9) <= MAX_DIVERGENCES)
+
+
+def _diagnostics(idata) -> dict:
+    """R-hat / bulk-ESS / divergences（对全部关键参数取最差值）。"""
+    import arviz as az
+    var_names = ["intercept", "home_adv", "sigma_a", "sigma_d", "atk", "dfc"]
+    rh = az.rhat(idata, var_names=var_names)
+    es = az.ess(idata, var_names=var_names)
+    rhat_max = float(max(np.nanmax(np.asarray(rh[v])) for v in rh.data_vars))
+    ess_min = float(min(np.nanmin(np.asarray(es[v])) for v in es.data_vars))
+    ss = getattr(idata, "sample_stats", None)
+    div = int(np.asarray(ss["diverging"]).sum()) if ss is not None and "diverging" in ss else 0
+    return {"rhat_max": round(rhat_max, 4), "ess_min": round(ess_min, 1),
+            "divergences": div}
+
+
+def fit(half_life: float = config.NATIONAL_HALF_LIFE, draws: int = 1000, tune: int = 1000,
         chains: int = 2, seed: int = 42, verbose: bool = True,
         progressbar: bool = False) -> dict:
     """拟合分层贝叶斯模型，返回 {team: {net, net_lo, net_hi, atk, dfc}} 及元信息。"""
@@ -74,8 +109,12 @@ def fit(half_life: float = 730.0, draws: int = 1000, tune: int = 1000,
         idata = pm.sample(draws=draws, tune=tune, chains=chains, cores=chains,
                           random_seed=seed, target_accept=0.9, progressbar=progressbar,
                           compute_convergence_checks=False)
+    diag = _diagnostics(idata)
+    converged = convergence_ok(diag)
     if verbose:
-        print(f"[bayes] 采样耗时 {time.time() - t0:.1f}s")
+        print(f"[bayes] 采样耗时 {time.time() - t0:.1f}s；收敛诊断 "
+              f"R-hat_max={diag['rhat_max']} ESS_min={diag['ess_min']} "
+              f"divergences={diag['divergences']} → {'✅ 达标' if converged else '❌ 不达标'}")
 
     A = idata.posterior["atk"].values.reshape(-1, n)
     D = idata.posterior["dfc"].values.reshape(-1, n)
@@ -95,32 +134,47 @@ def fit(half_life: float = 730.0, draws: int = 1000, tune: int = 1000,
 
     # 导出后验抽样（供 champ_ci 夺冠概率区间用）：均匀子采样 N_EXPORT_DRAWS 套，
     # 含每队 atk/dfc + 全局 intercept/home_adv。分层收缩已驯服稀疏队 → 注入模拟器稳定。
-    tot = A.shape[0]
-    sel = np.linspace(0, tot - 1, min(N_EXPORT_DRAWS, tot)).astype(int)
-    np.savez_compressed(DRAWS_PATH, teams=np.array(teams, dtype=object),
-                        atk=A[sel].astype(np.float32), dfc=D[sel].astype(np.float32),
-                        intercept=icpt[sel].astype(np.float32), home_adv=hadv[sel].astype(np.float32),
-                        half_life=half_life)
-    if verbose:
-        print(f"[bayes] 导出 {len(sel)} 套后验抽样 → {DRAWS_PATH}")
+    # 收敛不达标时**不导出**（champ_ci 也会拒读未达标 npz）——旧缓存原样保留。
+    if converged:
+        tot = A.shape[0]
+        sel = np.linspace(0, tot - 1, min(N_EXPORT_DRAWS, tot)).astype(int)
+        np.savez_compressed(DRAWS_PATH, teams=np.array(teams, dtype=object),
+                            atk=A[sel].astype(np.float32), dfc=D[sel].astype(np.float32),
+                            intercept=icpt[sel].astype(np.float32),
+                            home_adv=hadv[sel].astype(np.float32),
+                            half_life=half_life, converged=True,
+                            rhat_max=diag["rhat_max"], ess_min=diag["ess_min"],
+                            divergences=diag["divergences"])
+        if verbose:
+            print(f"[bayes] 导出 {len(sel)} 套后验抽样 → {DRAWS_PATH}")
+    elif verbose:
+        print("[bayes] ⚠ 收敛不达标：不导出后验抽样，不更新夺冠区间（旧缓存保留）")
     return {"ratings": out,
             "meta": {"half_life": half_life, "draws": draws, "tune": tune,
-                     "chains": chains, "n_teams": n, "weight_sum": round(float(w.sum()), 1)}}
+                     "chains": chains, "n_teams": n, "weight_sum": round(float(w.sum()), 1),
+                     "posterior_type": "power/pseudo-posterior (time+competition weighted likelihood)",
+                     "diagnostics": diag, "converged": bool(converged)}}
 
 
 def main():
     ap = argparse.ArgumentParser(description="贝叶斯分层评级（PyMC）—— 拟合并缓存")
     ap.add_argument("--draws", type=int, default=1000)
     ap.add_argument("--tune", type=int, default=1000)
-    ap.add_argument("--half-life", type=float, default=730.0)
+    ap.add_argument("--half-life", type=float, default=config.NATIONAL_HALF_LIFE)
     ap.add_argument("--progress", action="store_true",
                     help="显示 PyMC 采样进度条；默认关闭，避免无 matplotlib 环境崩溃")
     args = ap.parse_args()
 
     res = fit(half_life=args.half_life, draws=args.draws, tune=args.tune,
               progressbar=args.progress)
-    with open(RATINGS_PATH, "w", encoding="utf-8") as f:
+    if not res["meta"]["converged"]:
+        print(f"[bayes] ❌ 收敛不达标 {res['meta']['diagnostics']}：不发布新评级"
+              "（旧 bayes_ratings.json / bayes_draws.npz 保持不动）")
+        sys.exit(2)
+    tmp = RATINGS_PATH + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(res, f, ensure_ascii=False)
+    os.replace(tmp, RATINGS_PATH)
     print(f"[bayes] 已写入 {RATINGS_PATH}（{res['meta']['n_teams']} 队）")
 
     # 打印 Top 15 健全性检查

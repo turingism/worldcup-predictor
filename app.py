@@ -18,7 +18,6 @@ import datetime as dt
 import gzip
 import json
 import os
-import pickle
 import subprocess
 import sys
 import threading
@@ -29,6 +28,7 @@ import numpy as np
 from flask import Flask, jsonify, make_response, render_template, request, send_file
 
 import clv as clvmod
+import config
 import data as datamod
 import espn_odds as oddsmod
 import events as eventsmod
@@ -46,6 +46,7 @@ import wc2026
 import xuanxue as xuanxuemod
 import xuanxue_board as xuanxueboardmod
 from model import DixonColesModel
+import predict as predictmod
 from predict import CACHE_PATH, get_model
 from simulate import TournamentSimulator
 
@@ -91,7 +92,7 @@ def _readonly_block():
     return None
 
 
-HALF_LIFE = 730.0   # 回测最优半衰期（天，修复时间泄漏后重扫定值）；refresh/live 重训同用
+HALF_LIFE = config.NATIONAL_HALF_LIFE   # 单一配置源 config.py；refresh/live 重训同用
 MODEL = get_model(use_cache=True, half_life=HALF_LIFE, verbose=True)
 DF = datamod.load_raw()
 _CHAMP_CACHE: dict[int, list] = {}
@@ -103,10 +104,18 @@ _REFIT_LOCK = threading.Lock()
 # 这把锁让同一时刻只有一个 /api/live 真正去拉取，其余直接复用上次结果（只读旁路，不影响正确性）。
 _LIVE_LOCK = threading.Lock()
 
-# 关键球员可用性『上下文层』：从 data/availability.json 现装 xG 乘子（补充层，不入缓存）。
-_AVAIL_N = MODEL.set_availability()
-if _AVAIL_N:
-    print(f"[avail] 已装载关键球员可用性调整：{_AVAIL_N} 队受影响")
+# 关键球员可用性『上下文层』（2026-07 修复：默认关闭=纯 DC）。
+# 旧行为在启动时无条件注入 availability.json ——陈旧种子数据污染全站预测。
+# 现在：① 必须 WC_INJURIES=1 显式启用；② 启用后也仅 verified+TTL 内新鲜（或
+# 比赛级首发确认）的登记生效（adjust.py 门控）。ESPN 确认首发的单场 override
+# （lineups.py，按场显式拉取）不受此开关影响，本就是显式操作。
+_INJURIES_OPTIN = os.environ.get("WC_INJURIES", "") == "1"
+_AVAIL_N = MODEL.set_availability() if _INJURIES_OPTIN else 0
+if _INJURIES_OPTIN:
+    print(f"[avail] 人工伤停层已显式启用：{_AVAIL_N} 队生效"
+          f"（门控跳过 {getattr(MODEL, 'avail_meta', {}) and MODEL.avail_meta.get('skipped', 0)} 条陈旧/未核验登记）")
+else:
+    print("[avail] 人工伤停层默认关闭（纯 DC）。启用：WC_INJURIES=1 且数据需 verified+新鲜")
 
 # Elo 排名缓存（解读层用，比对『模型 vs 名气』；refresh 时重算）
 _ELO = {}
@@ -894,17 +903,23 @@ def api_ratings():
 
 @app.route("/api/availability")
 def api_availability():
-    """关键球员可用性『上下文层』当前生效的 xG 调整（供前端展示，非引擎核心）。"""
+    """关键球员可用性『上下文层』当前生效的 xG 调整（供前端展示，非引擎核心）。
+    含门控审计：未核验/过期被跳过的登记如实列出，不静默。"""
     import adjust
-    mods = adjust.team_modifiers()
+    mods, audit = adjust.team_modifiers_audited()
     rows = []
     for t, m in sorted(mods.items(), key=lambda kv: kv[1]["att"]):
         rows.append({"team": teams_zh.disp(t), "att": m["att"], "def_pen": m["def_pen"],
                      "items": [{"player": i["player"], "reason": i.get("reason", ""),
                                 "status": i.get("status"), "prob": i.get("prob"),
-                                "role": i.get("role"), "exp_penalty": i.get("exp_penalty")}
+                                "role": i.get("role"), "exp_penalty": i.get("exp_penalty"),
+                                "eligible_via": i.get("eligible_via")}
                                for i in m["items"]]})
-    return jsonify({"rows": rows, "active": bool(rows)})
+    return jsonify({"rows": rows, "active": bool(rows) and _INJURIES_OPTIN,
+                    "enabled": _INJURIES_OPTIN,
+                    "gate": {"ttl_days": audit["ttl_days"],
+                             "meta_updated": audit["meta_updated"],
+                             "skipped": audit["skipped"]}})
 
 
 @app.route("/api/environment")
@@ -1041,13 +1056,13 @@ def _refit_all():
         print("[refit] 已有重训在进行，跳过本次（数据已落盘）")
         return
     try:
+        fp = predictmod.data_fingerprint()   # 先采指纹再读数（与 get_model 同一竞态守则）
         DF = datamod.load_raw()
         MODEL = DixonColesModel(half_life_days=HALF_LIFE).fit(DF, verbose=False)
-        tmp = CACHE_PATH + ".tmp"          # 原子写：先写 .tmp 再 replace，并发也不会写坏 pkl
-        with open(tmp, "wb") as f:
-            pickle.dump(MODEL, f)
-        os.replace(tmp, CACHE_PATH)
-        MODEL.set_availability()   # 重训后重装可用性上下文层（pickle 不含它）
+        # 原子写 pkl + 元数据指纹（缓存新鲜度：数据再更新时 get_model 才能识别失效）
+        predictmod.save_model_cache(MODEL, fp, DF)
+        if _INJURIES_OPTIN:
+            MODEL.set_availability()   # 显式启用时重装可用性层（pickle 不含它；门控照旧）
         _SIM = None
         _CHAMP_CACHE.clear()
         _RAW_CHAMP.clear()

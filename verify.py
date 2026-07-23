@@ -15,6 +15,7 @@
     app.py 的 /api/verify        # 网页「预测验证」tab 数据源
 """
 from __future__ import annotations
+import config
 import datetime as dt
 import json
 import os
@@ -142,9 +143,20 @@ def freeze(sim, now_bj: str | None = None, verbose=False, path: str | None = Non
             except KeyError:                         # 队不在模型（样本不足），跳过
                 return
             old = preds.get(key)
+            # 冻结留痕：本场用到了哪些上下文调整（可用性乘子 + 数据时间）。空 dict=纯 DC。
+            adj = {}
+            for t in (h, a):
+                aa = sim.m.avail_att.get(t)
+                dd = sim.m.avail_def.get(t)
+                if aa is not None or dd is not None:
+                    adj[t] = {"att": aa, "def_pen": dd}
             ent = {"stage": stage, "home": h, "away": a, "kickoff": kickoff, "date": date,
                    "host": host, "city": city, "retro": False,
-                   "frozen_at": now, **p}
+                   "frozen_at": now,
+                   "adjustments": {"availability": adj,
+                                   "avail_meta": getattr(sim.m, "avail_meta", None),
+                                   "env": bool(getattr(sim, "use_env", True))},
+                   **p}
             # 预测内容没变就不动（避免无谓的磁盘写与 frozen_at 抖动）
             if old and all(old.get(k) == ent[k] for k in
                            ("gh", "ga", "p_home", "p_draw", "p_away", "home", "away")):
@@ -239,7 +251,7 @@ def backfill(sim, df, verbose=True, path: str | None = None) -> int:
         path = path or LEDGER_PATH
         preds = load_ledger(path)
         done = _completed(sim, df)
-        half_life = getattr(sim.m, "half_life_days", 730.0)
+        half_life = getattr(sim.m, "half_life_days", config.NATIONAL_HALF_LIFE)
         n = 0
         for c in done:
             if c["key"] in preds:
@@ -386,7 +398,7 @@ def evaluate(sim, df, path: str | None = None) -> dict:
 def main():
     from predict import get_model
     from simulate import TournamentSimulator
-    m = get_model(use_cache=True, half_life=730.0, verbose=False)
+    m = get_model(use_cache=True, half_life=config.NATIONAL_HALF_LIFE, verbose=False)
     m.set_availability()   # 与 app 同口径：含关键球员可用性层，否则冻结条目会两边互相覆盖
     df = datamod.load_raw()
     sim = TournamentSimulator(m, df, sims=1)

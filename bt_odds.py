@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# ⚠️ LEGACY/ARCHIVED 实验脚本：保留旧参数（half_life=240 时代）仅供历史 A/B 对照，
+# 不代表当前生产基线（生产=config.NATIONAL_HALF_LIFE=730）。勿以本脚本结论指导现役参数。
 # Repository summary: World Cup prediction analytics module.
 """模型 vs 博彩盘口 对标（借鉴高盛"与 bookmakers' odds 对照"）。
 

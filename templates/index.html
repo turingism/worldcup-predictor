@@ -659,7 +659,7 @@
         <div style="margin-top:4px">「⚡实时比分」秒级拉取 ESPN 最新完场赛果（开页后每 5 分钟自动同步）；「🔄更新历史数据」拉取全部历史国际赛战绩。有新赛果时模型自动重新训练。</div>
         <div style="margin-top:4px">你也可以在下方改小组赛比分，或<b>点击括号里任意淘汰赛</b>录入结果/做假设（黄色边框为试算）；「清除试算」恢复纯预测。</div>
       </div>
-      <div class="muted xlink" style="margin-top:8px"><a onclick="document.querySelector('.tab[data-t=&quot;champ&quot;]').click()">→ 看完整夺冠概率分布（蒙特卡洛 + 可信区间）</a>　·　此处是<b>单一路径投影</b>：逐场取最可能胜者串成一棵树，可能不同于夺冠概率榜首</div>
+      <div class="muted xlink" style="margin-top:8px"><a onclick="document.querySelector('.tab[data-t=&quot;champ&quot;]').click()">→ 看完整夺冠概率分布（蒙特卡洛 + 区间带）</a>　·　此处是<b>单一路径投影</b>：逐场取最可能胜者串成一棵树，可能不同于夺冠概率榜首</div>
     </div>
     <div id="bracketres"></div>
     <div id="groupsedit"></div>
@@ -1732,7 +1732,7 @@ function matrixHTML(d){
     <div class="wdl"><div class="nm">${d.away} 胜</div><div class="barwrap"><div class="bar a" style="width:${d.p_away*100}%"></div></div><div class="pct">${pct(d.p_away)}</div></div>
     <h3 style="margin:16px 0 6px;font-size:13px">竞彩官方「比分」盘 · 模型概率（绿框=最可能比分）</h3>
     ${jcBoard(d.matrix, top)}
-    <div class="muted" style="font-size:11px;margin:2px 0">按竞彩比分玩法的固定盘面逐档算模型概率；高于盘面最高档的大比分归入「胜/平/负 其他」。各列档位概率之和 = 该列顶部的胜/平/负总概率。</div>
+    <div class="muted" style="font-size:11px;margin:2px 0">按竞彩比分玩法的固定盘面逐档算模型概率；高于盘面最高档的大比分归入「胜/平/负 其他」。各列档位概率之和 = 该列顶部的胜/平/负总概率。<br>⚠ 诚实提示：<b>胜平负概率比精确比分更可靠</b>——回测显示实际净胜球方差比模型隐含高约 15–20%（尾部偏瘦），大比分的真实概率可能略高于此处显示；已试过的过离散修正（NB2）未过样本外采纳门槛，故如实标注而非硬修。</div>
     <div class="mkrow">
       ${mk('总进球 >2.5（大球）',over,'两队合计进 3 球及以上的概率')}
       ${mk('任一方 ≥3 球（大胜）',big,'至少一方单队打进 3 球及以上的概率')}
@@ -1826,11 +1826,11 @@ async function loadRatings(){
       <div class="rval">${r.net>=0?'+':''}${r.net.toFixed(2)}<small>[${r.lo.toFixed(2)}, ${r.hi.toFixed(2)}]</small></div>
     </div>`).join('');
   $('#ratingsres').innerHTML=`<div class="card">
-    <h3 style="margin-top:0">📊 实力榜 · 贝叶斯净实力 94% 可信区间</h3>
+    <h3 style="margin-top:0">📊 实力榜 · 贝叶斯净实力 94% 区间带（伪后验）</h3>
     <div class="muted" style="margin-bottom:10px">
       PyMC 分层双泊松模型（${m.draws||'?'}×${m.chains||'?'} 采样，有效权重和 ${m.weight_sum||'?'}）。
-      圆点=后验均值，横条=94% 可信区间。区间普遍重叠 → 顶尖队在近 8 个月时间加权数据下统计上难分高下。
-      <b>这是上方「夺冠概率·90% 可信区间」的上游</b>：同一套后验，这里看球队<b>净实力</b>，上方看它<b>经括号传播</b>后的夺冠%。
+      圆点=伪后验均值，横条=94% 分位带（时间加权 power posterior，覆盖率未验证）。区间普遍重叠 → 顶尖队在时间加权数据下统计上难分高下。
+      <b>这是上方「夺冠概率·90% 区间带」的上游</b>：同一套后验，这里看球队<b>净实力</b>，上方看它<b>经括号传播</b>后的夺冠%。
       <b>预测/模拟仍由经回测验证的 DC 模型驱动，本视图为不确定性补充。</b>
     </div>
     ${rows}
@@ -2101,7 +2101,7 @@ function renderChampCI(d){
   const computing=d.computing?`<span class="ci-badge">⟳ 区间更新中…（约 1–2 分钟）</span>`:'';
   const err=d.ci_error&&!d.computing?`<span class="ci-badge ci-err">✗ ${d.ci_error.slice(0,40)}</span>`:'';
   const btn=d.computing?'':`<button class="seebtn" onclick="regenChampCI(this)">↻ 重新计算</button>`;
-  const head=`<div class="ci-head"><b title="有 90% 把握，真实夺冠概率落在这个区间内（贝叶斯后验）" style="cursor:help">夺冠概率 · 90% 可信区间</b><span class="muted" style="font-size:11px">${upd}</span>${computing}${err}${btn}</div>`;
+  const head=`<div class="ci-head"><b title="时间加权伪后验（power posterior）的 5–95 分位带，含蒙特卡洛噪声；频率学覆盖率未经验证" style="cursor:help">夺冠概率 · 90% 区间带（伪后验）</b><span class="muted" style="font-size:11px">${upd}</span>${computing}${err}${btn}</div>`;
   if(!d.available){
     return `<div class="card">${head}<div class="muted" style="font-size:12.5px;margin-top:8px">${d.computing?'首次计算中…完成后自动显示（新赛果或点重算后会自动触发）。':'尚无区间数据。点「重新计算」生成（贝叶斯分层后验→模拟，约 1–2 分钟），刷新真实赛果后也会自动重算。'}</div></div>`;
   }
@@ -2119,7 +2119,7 @@ function renderChampCI(d){
     </div>`;
   }).join('');
   return `<div class="card">${head}
-    <div class="muted" style="font-size:12px;margin:6px 0 12px">点＝后验<b>中位</b>，横条＝<b>5–95% 可信区间</b>（贝叶斯分层后验 · ${d.n_draws} 套 × ${d.draw_sims} 模拟）。区间宽且<b>大量重叠</b>＝夺冠次序本就高度不确定；分层<b>收缩</b>使其比上方蒙特卡洛点估<b>更保守</b>，是参数不确定性的诚实呈现。主引擎仍是 DC，本视图为补充。<br><span style="color:var(--dim)">注：此处为贝叶斯<b>可信区间</b>（可直接读作"真值有 90% 概率落在此区间内"），与玄学擂台的频率派<b>置信区间</b>含义不同，用词差异是刻意的。</span></div>
+    <div class="muted" style="font-size:12px;margin:6px 0 12px">点＝中位，横条＝<b>5–95% 分位带</b>（贝叶斯分层<b>伪后验</b> · ${d.n_draws} 套 × ${d.draw_sims} 模拟）。区间宽且<b>大量重叠</b>＝夺冠次序本就高度不确定；分层<b>收缩</b>使其比上方蒙特卡洛点估<b>更保守</b>。主引擎仍是 DC，本视图为补充。<br><span style="color:var(--dim)">口径注：似然带时间/赛事权重 → 这是 <b>power/pseudo-posterior</b> 区间带，且含每套模拟的蒙特卡洛噪声（结果 JSON 有 mc_sd/param_sd 分解）；<b>未经覆盖率验证，不宜读作严格"真值有 90% 概率落在带内"</b>。</span></div>
     ${bars}
   </div>`;
 }

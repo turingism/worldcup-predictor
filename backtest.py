@@ -19,6 +19,7 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 
+import config
 import data as datamod
 from model import DixonColesModel
 
@@ -129,13 +130,13 @@ if __name__ == "__main__":
     df = datamod.load_raw()
     cutoffs = [dt.date(2024, 11, 1), dt.date(2025, 8, 1)]
     horizon = 270
-    half_life = 547
+    half_life = config.NATIONAL_HALF_LIFE   # 生产基线（勿再硬编码旧值 547/240）
     variants = [
         ("无身价", None, 0.0),
         ("身价k25w.15", 25, 0.15),
     ]
-    print(f"回测：cutoffs={cutoffs}, horizon={horizon}d, half_life=547")
-    res = run(df, cutoffs, horizon, 547, variants)
+    print(f"回测：cutoffs={cutoffs}, horizon={horizon}d, half_life={half_life:g}")
+    res = run(df, cutoffs, horizon, half_life, variants)
     print("\n== 聚合结果 ==")
     print(f"  {'配置':<16}{'样本':>6}{'RPS':>9}{'LogLoss':>10}{'命中率':>8}{'净胜球相关':>11}")
     for name, m in res.items():

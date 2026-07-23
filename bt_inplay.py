@@ -14,6 +14,7 @@
 真实样本外验证需要分钟级进球数据——与项目其它"无免费数据源"困境同源，诚实记账。
 """
 from __future__ import annotations
+import config
 import numpy as np
 
 import inplay
@@ -44,7 +45,7 @@ HOST_FIXTURES = [
 
 def run(n: int = 600, seed: int = 42):
     from predict import get_model
-    m = get_model(use_cache=True, half_life=730.0, verbose=False)
+    m = get_model(use_cache=True, half_life=config.NATIONAL_HALF_LIFE, verbose=False)
     rng = np.random.default_rng(seed)
 
     # 1) t=0 一致性

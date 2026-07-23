@@ -16,6 +16,7 @@
 相关性，对「剩余短时段进球」意义甚微；in-play 概率由当前比分+剩余时间主导。
 """
 from __future__ import annotations
+import config
 import re
 
 import numpy as np
@@ -106,7 +107,7 @@ def win_draw_loss_host(model, home: str, away: str, gh: int, ga: int, minute: fl
 if __name__ == "__main__":
     # 自测：t=0 应≈赛前 predict；领先方随时间推进概率单调上升
     from predict import get_model
-    m = get_model(use_cache=True, half_life=730.0, verbose=False)
+    m = get_model(use_cache=True, half_life=config.NATIONAL_HALF_LIFE, verbose=False)
     pre = m.predict("Germany", "Curaçao", neutral=True)
     ip0 = win_draw_loss(m, "Germany", "Curaçao", 0, 0, 0, neutral=True)
     print(f"赛前 predict  : 主{pre['p_home']:.3f} 平{pre['p_draw']:.3f} 客{pre['p_away']:.3f}")

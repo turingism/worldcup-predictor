@@ -14,6 +14,7 @@
   - 早期有效样本极小（取决于 availability.json 登记了多少队），结论不可靠，UI / CLI 须标注。
 """
 from __future__ import annotations
+import config
 import datetime as dt
 
 import numpy as np
@@ -122,7 +123,7 @@ def build_scorecard(model, days_back: int = 12, avail: dict | None = None) -> di
 
 if __name__ == "__main__":
     from predict import get_model
-    m = get_model(use_cache=True, half_life=730, verbose=False)
+    m = get_model(use_cache=True, half_life=config.NATIONAL_HALF_LIFE, verbose=False)
     sc = build_scorecard(m, days_back=12)
     print(f"扫描完赛 {sc['scanned']} 场，有缺阵信息 {sc['n']} 场（{sc['skipped_no_mods']} 场无登记缺阵跳过）")
     if sc["n"]:

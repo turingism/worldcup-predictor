@@ -4,16 +4,16 @@
 
 流程
 ----
-1) 从赛程自动推断 12 个小组（并查集：同组的队互相有小组赛对阵）。
+1) 小组与赛程用官方静态数据（wc2026.GROUPS + schedule.GROUP）。
 2) 小组赛：对每场用模型的比分概率矩阵抽样真实比分 -> 算积分/净胜球/进球。
-   排名规则：积分 > 净胜球 > 进球数 >（随机打破剩余平局）。
-3) 出线：每组前 2（24 队）+ 成绩最好的 8 个小组第三 = 32 队。
-4) 淘汰赛：单场淘汰，平局按 (胜率/(胜率+负率)) 模拟点球。
-   对阵采用「按模型实力重新种子」的标准简化括号（强 vs 弱）。
+   排名规则 = tiebreak.py 官方 2026 完整同分规则（积分 → 同分队相互战绩
+   积分/净胜/进球（递归重算）→ 总净胜/总进球 → 纪律分（无数据降级留痕）→
+   FIFA 排名（2026-06-11 版）；官方标准穷尽才允许随机且留痕）。
+3) 出线：每组前 2（24 队）+ 成绩最好的 8 个小组第三 = 32 队
+  （第三名比较同用官方标准：积分→净胜→进球→纪律→FIFA排名）。
+4) 淘汰赛：官方 R32 括号（wc2026.resolve_r32 官方 495 种第三名映射表），
+   单场淘汰，平局按 (胜率/(胜率+负率)) 近似点球。
 5) 重复 N 次，统计每队进入各轮 / 夺冠的频率。
-
-注：FIFA 官方的 8 个第三名 -> 具体括号位是复杂的固定映射，这里用实力种子简化，
-   会让强队路径略平滑；夺冠概率量级可靠，精确括号可作为后续扩展。
 """
 from __future__ import annotations
 import argparse
@@ -22,7 +22,9 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
+import config
 import data as datamod
+import tiebreak
 import wc2026
 import schedule
 import env
@@ -30,6 +32,16 @@ from model import MAX_GOALS, DixonColesModel
 from predict import get_model
 
 SIDE = MAX_GOALS + 1  # 比分矩阵边长 (0..MAX_GOALS)
+
+# ---- 淘汰赛平局后的晋级近似（2026-07-19 审计修正，见 docs/knockout-approx.md）----
+# 模型 W/D/L ≈ 常规时间口径（docs/score-basis.md）。90 分钟平局后：
+#   加时 30 分钟 —— 模型 xG 按时长线性缩放的独立泊松（近似：假设加时进球率
+#   与常规时间同强度；无公开加时专项数据可校准，如实标注）。
+#   点球大战 —— 无可靠点球能力数据 → 透明保守 50/50 先验。实证支持：本库 572 场
+#   点球大战（Elo 差≥25）强队仅赢 53.5%±4.1%，与 50% 无统计差异；旧近似
+#   ph/(ph+pa)（常规时间胜率归一化）会给出 70-90% 的严重高估。
+ET_SCALE = 30.0 / 90.0
+PEN_PRIOR = 0.5
 
 
 def derive_groups(fx):
@@ -191,13 +203,40 @@ class TournamentSimulator:
         pa, pd, pb, _, _ = self._match_full(a, b, host, city)
         return pa, pd, pb
 
+    def _et_wdl(self, a, b, host=None, city=None):
+        """加时 30 分钟的 (A胜, 平, B胜)：模型 xG 线性缩放的独立泊松（近似，见文件头）。"""
+        _, _, _, xa, xb = self._match_full(a, b, host, city)
+        la, lb = xa * ET_SCALE, xb * ET_SCALE
+        k = np.arange(7)                       # 0..6 球足够覆盖 30 分钟
+        fact = np.array([1, 1, 2, 6, 24, 120, 720], dtype=float)
+        fa = np.exp(-la) * la ** k / fact
+        fb = np.exp(-lb) * lb ** k / fact
+        M = np.outer(fa, fb)
+        M /= M.sum()
+        i, j = np.meshgrid(k, k, indexing="ij")
+        return float(M[i > j].sum()), float(M[i == j].sum()), float(M[i < j].sum())
+
+    def advancement_paths(self, a, b, host=None, city=None):
+        """A 晋级概率的可解释路径分解（审计口径，2026-07-19）：
+          win90  —— 90 分钟(≈常规时间)直接取胜（模型主输出，已回测）
+          et_win —— 90' 平局 × 加时取胜（xG 时长缩放泊松，**近似**）
+          pen_win—— 90' 平局 × 加时平局 × 点球先验 50%（**透明保守先验**，
+                    实证：572 场点球强队仅赢 53.5%±4.1%）
+        adv = 三路之和。数据驱动部分=win90；et/pen 为标注的近似。"""
+        ph, pd_, pa_ = self._wdl(a, b, host, city)
+        ea, ed, eb = self._et_wdl(a, b, host, city)
+        return {"win90": ph,
+                "et_win": pd_ * ea,
+                "pen_win": pd_ * ed * PEN_PRIOR,
+                "adv": ph + pd_ * (ea + ed * PEN_PRIOR),
+                "approx": {"et": "xG×1/3 独立泊松", "pen": f"先验 {PEN_PRIOR:.0%}"}}
+
     def _padv(self, a, b, host=None, city=None):
-        """A 在淘汰赛中晋级的概率（平局按相对胜率模拟点球）。"""
+        """A 在淘汰赛中晋级的概率 = advancement_paths 三路之和
+        （旧版把常规时间胜率归一化伪装成点球能力，已修正）。"""
         key = (a, b, host, city)
         if key not in self._adv_cache:
-            ph, pd, pa = self._wdl(a, b, host, city)
-            pen = ph / (ph + pa) if (ph + pa) > 0 else 0.5  # 点球大战近似
-            self._adv_cache[key] = ph + pd * pen
+            self._adv_cache[key] = self.advancement_paths(a, b, host, city)["adv"]
         return self._adv_cache[key]
 
     def _ko_host(self, mn, a, b):
@@ -207,44 +246,72 @@ class TournamentSimulator:
 
     # ---------- 小组赛（按组向量化 N 次） ----------
     def _simulate_groups(self, known=None):
+        """小组排名 = tiebreak.rank_group 官方 2026 规则（与 simulate_once/project 共用）。
+        向量化捷径仅用于『四队积分互不相同』的行——此时官方规则只看积分，
+        与 (积分,净胜,进球) 打包排序等价；存在积分并列的行逐行走完整规则
+        （相互战绩优先→总成绩→纪律降级→FIFA排名→留痕随机兜底）。"""
         N = self.N
         known = known or {}
-        # 输出：winners/runners (N, 12)；thirds 及其成绩用于挑最佳 8
         winners = np.empty((N, len(self.groups)), dtype=object)
         runners = np.empty((N, len(self.groups)), dtype=object)
         thirds = np.empty((N, len(self.groups)), dtype=object)
-        third_score = np.zeros((N, len(self.groups)))
+        # 最佳第三名比较用的分项成绩（积分/净胜/进球 + FIFA 排名，官方标准顺序）
+        third_score = np.zeros((N, len(self.groups)), dtype=np.int64)
+        ranks = tiebreak.fifa_rankings()
+        self.tb_audit = getattr(self, "tb_audit", {"group_random": 0, "notes": set()})
 
         for gid, members in self.groups.items():
             idx = {t: k for k, t in enumerate(members)}
-            pts = np.zeros((N, 4)); gf = np.zeros((N, 4)); ga = np.zeros((N, 4))
+            pts = np.zeros((N, 4), dtype=np.int64)
+            gf = np.zeros((N, 4), dtype=np.int64)
+            ga = np.zeros((N, 4), dtype=np.int64)
+            match_scores = {}                     # (h,a) -> (gh_arr, ga_arr) 供同分行查相互战绩
             for (h, a) in self.fixtures[gid]:
                 if (h, a) in known:  # 已知/假设赛果：全部 N 次固定，不抽样
                     kh, ka = known[(h, a)]
-                    gh = np.full(N, kh); gaa = np.full(N, ka)
+                    gh = np.full(N, kh, dtype=np.int64); gaa = np.full(N, ka, dtype=np.int64)
                 else:
                     pmf = self._pmf(h, a, self.group_host.get((h, a)), self.group_city.get((h, a)))
                     draws = self.rng.choice(SIDE * SIDE, size=N, p=pmf)
                     gh, gaa = draws // SIDE, draws % SIDE
+                match_scores[(h, a)] = (gh, gaa)
                 ih, ia = idx[h], idx[a]
                 gf[:, ih] += gh; ga[:, ih] += gaa
                 gf[:, ia] += gaa; ga[:, ia] += gh
                 pts[:, ih] += np.where(gh > gaa, 3, np.where(gh == gaa, 1, 0))
                 pts[:, ia] += np.where(gaa > gh, 3, np.where(gh == gaa, 1, 0))
             gd = gf - ga
-            jitter = self.rng.random((N, 4)) * 1e-6
-            comp = pts * 1e6 + (gd + 100) * 1e3 + gf + jitter
-            order = np.argsort(-comp, axis=1)  # 每行：名次->队序号
+            comp = pts * 1_000_000 + (gd + 100) * 1_000 + gf
+            order = np.argsort(-comp, axis=1)  # 每行：名次->队序号（无积分并列时即官方排名）
+            srt = np.sort(pts, axis=1)
+            tied_rows = np.nonzero((srt[:, 1:] == srt[:, :-1]).any(axis=1))[0]
+            for s in tied_rows:                # 有积分并列 → 走官方完整同分规则
+                overall = {members[k]: (int(pts[s, k]), int(gd[s, k]), int(gf[s, k]))
+                           for k in range(4)}
+                res_s = {p: (int(sc[0][s]), int(sc[1][s]))
+                         for p, sc in match_scores.items()}
+                ordered, audit = tiebreak.rank_group(members, overall, res_s,
+                                                     ranks=ranks, rng=self.rng)
+                if audit:
+                    for ev in audit:
+                        self.tb_audit["notes"].add(ev["stage"])
+                        if ev["stage"] == "unresolved_random":
+                            self.tb_audit["group_random"] += 1
+                order[s] = [idx[t] for t in ordered]
             members_arr = np.array(members, dtype=object)
             winners[:, gid] = members_arr[order[:, 0]]
             runners[:, gid] = members_arr[order[:, 1]]
             third_idx = order[:, 2]
             thirds[:, gid] = members_arr[third_idx]
             r = np.arange(N)
-            third_score[:, gid] = (pts[r, third_idx] * 1e6
-                                   + (gd[r, third_idx] + 100) * 1e3
-                                   + gf[r, third_idx])
-        # 每次模拟取成绩最好的 8 个小组第三
+            # 最佳第三名官方标准：积分→净胜→进球→纪律(无数据，降级跳过)→FIFA排名。
+            # 48 队排名齐备且互不相同 → 打包整数即全序、确定可复现，无需随机。
+            mem_rank_term = np.array([999 - ranks.get(t, 999) for t in members],
+                                     dtype=np.int64)
+            third_score[:, gid] = (comp[r, third_idx] * 1_000
+                                   + mem_rank_term[third_idx])
+        self.tb_audit["notes"].add("discipline_unavailable")   # 纪律分全局无数据（如实标注）
+        # 每次模拟取成绩最好的 8 个小组第三（third_score 已含完整官方标准序）
         best_thirds_idx = np.argsort(-third_score, axis=1)[:, :8]
         return winners, runners, thirds, best_thirds_idx
 
@@ -302,9 +369,10 @@ class TournamentSimulator:
         return idx // SIDE, idx % SIDE
 
     def _pen(self, a, b, host=None, city=None):
-        """点球大战 A 取胜概率（按相对常规胜率近似）。"""
-        ph, _, pa = self._wdl(a, b, host, city)
-        return ph / (ph + pa) if (ph + pa) > 0 else 0.5
+        """90 分钟平局后 A 最终晋级的概率 = 加时胜 + 加时平×点球先验。
+        （旧版用常规时间胜率归一化冒充点球能力，实证严重高估强队，已修正。）"""
+        ea, ed, _ = self._et_wdl(a, b, host, city)
+        return ea + ed * PEN_PRIOR
 
     def _play_bracket(self, winner, runner, third, qual_letters, rng, record=False, ko_known=None,
                       use_actual=False):
@@ -380,6 +448,7 @@ class TournamentSimulator:
             L = self.group_letter.get(gid)
             idx = {t: k for k, t in enumerate(members)}
             pts = [0]*4; gf = [0]*4; ga = [0]*4; ms = []
+            res_g = {}
             for (h, a) in self.fixtures[gid]:
                 gh, gaa = self._match_score(h, a, rng, self.group_host.get((h, a)),
                                             self.group_city.get((h, a)))
@@ -389,8 +458,11 @@ class TournamentSimulator:
                 elif gh < gaa: pts[ia] += 3
                 else: pts[ih] += 1; pts[ia] += 1
                 ms.append({"home": h, "away": a, "gh": int(gh), "ga": int(gaa)})
-            order = sorted(range(4), key=lambda k: (pts[k], gf[k]-ga[k], gf[k], rng.random()),
-                           reverse=True)
+                res_g[(h, a)] = (int(gh), int(gaa))
+            # 官方 2026 同分规则（与向量化 MC / 确定性投影共用一套实现）
+            overall = {members[k]: (pts[k], gf[k]-ga[k], gf[k]) for k in range(4)}
+            ordered, _ = tiebreak.rank_group(members, overall, res_g, rng=rng)
+            order = [idx[t] for t in ordered]
             standings = [{"team": members[k], "pts": pts[k], "gd": gf[k]-ga[k],
                           "gf": gf[k], "rank": pos+1} for pos, k in enumerate(order)]
             groups_out.append({"group": L, "standings": standings, "matches": ms})
@@ -399,7 +471,8 @@ class TournamentSimulator:
             thirds_meta.append((L, members[k3], pts[k3], gf[k3]-ga[k3], gf[k3]))
 
         groups_out.sort(key=lambda g: g["group"])
-        best = sorted(thirds_meta, key=lambda d: (d[2], d[3], d[4], rng.random()), reverse=True)[:8]
+        best, _ = tiebreak.rank_thirds(thirds_meta, rng=rng)
+        best = best[:8]
         qual_letters = [d[0] for d in best]
 
         _, rounds_detail, champion = self._play_bracket(
@@ -462,20 +535,25 @@ class TournamentSimulator:
 
         groups_out = []
         win_L, run_L, third_L, thirds_meta = {}, {}, {}, []
+        tb_audit_all = []                 # 确定性路径的同分降级/兜底留痕（输出标注用）
         for gid, members in self.groups.items():
             L = self.group_letter.get(gid)
             ep = {t: 0.0 for t in members}    # 期望积分
             eg = {t: 0.0 for t in members}    # 期望净胜球
+            egf = {t: 0.0 for t in members}   # 期望进球（整组已定时=真实进球）
+            res_g = {}                        # 已定场次比分（相互战绩用）
             ms = []
             for (h, a) in self.fixtures[gid]:
                 key = (h, a)
                 if key in res:
                     gh, ga = res[key]
+                    res_g[key] = (int(gh), int(ga))
                     status = "played" if key in self.actual_results else "set"
                     if gh > ga: ep[h] += 3
                     elif gh < ga: ep[a] += 3
                     else: ep[h] += 1; ep[a] += 1
                     eg[h] += gh - ga; eg[a] += ga - gh
+                    egf[h] += gh; egf[a] += ga
                 else:
                     hostg = self.group_host.get((h, a))
                     cityg = self.group_city.get((h, a))
@@ -486,6 +564,8 @@ class TournamentSimulator:
                     ep[a] += 3 * pa + pdr
                     eg[h] += xh - xa
                     eg[a] += xa - xh
+                    egf[h] += xh
+                    egf[a] += xa
                 kt = schedule.GROUP.get((h, a), "")
                 date, time = (kt[:10], kt[11:]) if kt else (self.fixture_date.get((h, a), ""), "")
                 ven = schedule.group_venue(h, a) or {}
@@ -495,16 +575,30 @@ class TournamentSimulator:
                            "city": ven.get("city", ""),
                            "date_local": lc[:10], "time_local": lc[11:],
                            "play": play_state((h, a), date), "hypo": status == "set"})
-            order = sorted(members, key=lambda t: (ep[t], eg[t], self.strength.get(t, -9)),
-                           reverse=True)
+            if len(res_g) == len(self.fixtures[gid]):
+                # 整组已定（真实/假设赛果齐）→ 真实整数积分表 + 官方 2026 同分规则
+                overall = {t: (int(round(ep[t])), int(round(eg[t])), int(round(egf[t])))
+                           for t in members}
+                order, audit = tiebreak.rank_group(members, overall, res_g, rng=None)
+                for ev in audit:
+                    tb_audit_all.append({"group": L, **ev})
+            else:
+                # 未踢完 → 期望值启发式排序（预测视图；期望值并列概率为零，保留实力兜底）
+                order = sorted(members, key=lambda t: (ep[t], eg[t], self.strength.get(t, -9)),
+                               reverse=True)
             standings = [{"team": t, "pts": round(ep[t], 1), "gd": round(eg[t], 1),
                           "rank": i + 1} for i, t in enumerate(order)]
             groups_out.append({"group": L, "standings": standings, "matches": ms})
             win_L[L], run_L[L], third_L[L] = order[0], order[1], order[2]
-            thirds_meta.append((L, ep[order[2]], eg[order[2]]))
+            thirds_meta.append((L, order[2], ep[order[2]], eg[order[2]], egf[order[2]]))
 
         groups_out.sort(key=lambda g: g["group"])
-        best = sorted(thirds_meta, key=lambda d: (d[1], d[2]), reverse=True)[:8]
+        # 最佳第三名：官方标准（积分→净胜→进球→纪律降级→FIFA排名），确定性路径不随机。
+        # 期望值(浮点)与真实整数在同一比较键上运作；rank_thirds 的 entries=(组,队,积分,净胜,进球)。
+        best, audit3 = tiebreak.rank_thirds(thirds_meta, rng=None)
+        for ev in audit3:
+            tb_audit_all.append({"stage3": True, **ev})
+        best = best[:8]
         qual_letters = [d[0] for d in best]
 
         # 各组是否已"定档"（6 场都有结果，名次确定）→ 决定淘汰赛是否已抽签
@@ -571,7 +665,9 @@ class TournamentSimulator:
         rounds.append({"name": "Third", "matches": [annotate(d3, 103, dr3)]})
         return {"groups": groups_out, "rounds": rounds,
                 "champion": results[wc2026.FINAL[0]],
-                "qualified_thirds": qual_letters}
+                "qualified_thirds": qual_letters,
+                # 同分规则数据降级/兜底留痕（空=全程官方标准判定；纪律分无数据会在此标注）
+                "tiebreak_audit": tb_audit_all}
 
 
 def main():
@@ -579,18 +675,25 @@ def main():
     ap.add_argument("--sims", type=int, default=5000, help="模拟次数（默认 5000）")
     ap.add_argument("--top", type=int, default=24, help="显示前 N 名")
     ap.add_argument("--no-cache", action="store_true", help="强制重新训练模型")
-    ap.add_argument("--no-injuries", action="store_true",
-                    help="忽略 availability.json 关键球员缺阵调整（默认计入）")
+    ap.add_argument("--injuries", action="store_true",
+                    help="显式启用人工伤停调整（仅 verified+TTL 内新鲜的登记生效；默认纯 DC）")
+    ap.add_argument("--no-injuries", action="store_true", help=argparse.SUPPRESS)  # 旧旗标兼容：现默认即关闭
     args = ap.parse_args()
 
-    m = get_model(not args.no_cache, half_life=240.0)
-    if not args.no_injuries:
+    m = get_model(not args.no_cache, half_life=config.NATIONAL_HALF_LIFE)
+    if args.injuries:
         n = m.set_availability()
-        if n:
-            print(f"[avail] 计入 {n} 队关键球员缺阵调整（--no-injuries 可关）")
+        meta = getattr(m, "avail_meta", None) or {}
+        print(f"[avail] 人工伤停层显式启用：{n} 队生效；"
+              f"门控跳过 {meta.get('skipped', 0)} 条陈旧/未核验登记（TTL={meta.get('ttl_days')}d）")
     df = datamod.load_raw()
     print(f"[sim] 运行 {args.sims} 次蒙特卡洛 ...")
-    rows = TournamentSimulator(m, df, sims=args.sims).run()
+    sim = TournamentSimulator(m, df, sims=args.sims)
+    rows = sim.run()
+    ta = getattr(sim, "tb_audit", None)
+    if ta and ta.get("notes"):
+        print(f"[tiebreak] 同分规则数据降级标注: {sorted(ta['notes'])}"
+              f"（官方标准穷尽后随机兜底 {ta.get('group_random', 0)} 次）")
 
     print(f"\n  🏆 2026 世界杯夺冠概率（{args.sims} 次模拟）")
     print("  " + "─" * 64)

@@ -237,7 +237,7 @@ A playful, **deterministic** layer that casts each fixture through **seven tradi
 | Metric | Value | What it means |
 |---|---|---|
 | **RPS** | **0.1624** | Ranked Probability Score, lower = better — bookmaker-closing-line territory |
-| **Hit-rate** | **59.7%** | 3-way (W/D/L) argmax accuracy |
+| **Hit-rate** | **59.7%** | 3-way (W/D/L) argmax accuracy — **across ALL internationals** (incl. qualifiers/friendlies). WC-finals-only (as-of, 2014/18/22/26 pooled, n=295, `bt_wc.py`): RPS 0.186 / hit 61.0% CI[55.6, 66.8] — but the classic 64-team editions alone were 53–59% at RPS≈0.20, and the 2026 closing line beat the model on identical matches (RPS 0.1462 vs 0.1514). Quote the stratified numbers, not this mixed one |
 | **Calibration (ECE)** | **1.06%** | vs an 8–10% industry baseline — **more calibrated by construction** |
 | **Goal-diff correlation** | **65%** | Goldman's own metric (its WC-only self-rating ~45–49%; different sample, magnitude only) |
 
@@ -365,7 +365,7 @@ worldcup-predictor/
 ├── champ_ci.py    📈 Title 90% credible interval (bayes-posterior-driven MC)
 ├── env.py         Environment layer: altitude / heat multipliers for host cities (feeds in-play + verify)
 ├── backtest.py    Out-of-sample backtest (RPS / LogLoss / hit-rate); bt_*.py = various A/B backtests
-├── test_core.py   Regression suite (84 checks: prediction sanity / matrix normalization / API smoke / red-line guards / concurrency / …)
+├── test_core.py   Regression suite (140+ checks and growing — run `pytest test_core.py -q` for the live count: prediction sanity / matrix normalization / official-2026 tiebreaks / cache freshness / API smoke / red-line guards / concurrency / …)
 ├── app.py         Flask backend (dashboard/predict/simulate/verify/market/CI + background auto-recompute)
 └── templates/index.html   Single-page UI (dashboard + heatmap + bracket + title board + intervals + market)
 ```

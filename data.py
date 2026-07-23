@@ -128,6 +128,39 @@ def load_raw(path: str = DATA_PATH, live: bool = True) -> pd.DataFrame:
     return df
 
 
+FJELSTUL_PATH = os.path.join(os.path.dirname(__file__), "data", "fjelstul_matches.csv")
+
+
+def known_et_mask(df: pd.DataFrame) -> pd.Series:
+    """已知打了加时的场次布尔掩码（90分钟/含加时口径审计用）。
+
+    数据事实：martj42 results.csv 的淘汰赛比分**含加时**（不含点球）。可识别的加时场次：
+      a) shootouts.csv 的点球大战场次（120' 平局；90' 亦为平局 → W/D/L 标签仍正确，
+         但比分可能含加时进球）；
+      b) fjelstul 世界杯数据库 extra_time=1（1930-2022 世界杯；其中加时分胜负的场次
+         在 results.csv 里被记为『胜』，其 90 分钟真实结果是平局 → 标签口径错误）。
+    诚实边界：非世界杯赛事『加时分胜负（未到点球）』的场次无公开可靠源可识别，
+    不在掩码内（见 docs/score-basis.md）。绝不推造 90 分钟比分。"""
+    keys: set = set()
+    sh = load_shootouts()
+    for _, r in sh.iterrows():
+        if pd.notna(r["date"]):
+            keys.add((r["date"].date(), frozenset((r["home_team"], r["away_team"]))))
+    if os.path.exists(FJELSTUL_PATH):
+        fj = pd.read_csv(FJELSTUL_PATH)
+        fj = fj[fj["extra_time"] == 1]
+        for _, r in fj.iterrows():
+            d = pd.to_datetime(r["match_date"], errors="coerce")
+            if pd.notna(d):
+                keys.add((d.date(), frozenset((r["home_team_name"], r["away_team_name"]))))
+    if not keys:
+        return pd.Series(False, index=df.index)
+    return pd.Series(
+        [(d.date(), frozenset((h, a))) in keys if pd.notna(d) else False
+         for d, h, a in zip(df["date"], df["home_team"], df["away_team"])],
+        index=df.index)
+
+
 def count_tournament(df: pd.DataFrame, name: str) -> int:
     """P1-⑤：精确等于赛事名的正赛场次数（勿用 contains——"FIFA World Cup qualification"
     是另一赛事，精确匹配是本项目口径铁律）。"""
@@ -151,7 +184,7 @@ def upcoming(df: pd.DataFrame, tournament: str | None = "FIFA World Cup") -> pd.
 
 def build_training_frame(
     df: pd.DataFrame,
-    half_life_days: float = 547.0,   # ~1.5 年；近期比赛权重更高
+    half_life_days: float = 730.0,   # 生产默认=config.NATIONAL_HALF_LIFE（勿再各处硬编码）
     max_age_years: float = 16.0,     # 太老的比赛直接丢弃（限制规模 + 阵容已大换血）
     min_matches: int = 12,           # 样本太少的球队拟合不稳，剔除
     as_of: dt.date | None = None,

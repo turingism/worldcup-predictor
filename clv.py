@@ -20,6 +20,7 @@ vs **闭盘线**隐含概率。闭盘线是市场吸收全部信息后的金标�
   —— 有「开盘+闭盘」两套才能算 CLV：odds_* 视为闭盘，odds_*_open 视为开盘。
 """
 from __future__ import annotations
+import config
 import os
 
 import numpy as np
@@ -94,7 +95,7 @@ def _result(played, home, away, date, tol_days=2):
 def _as_of_model(df, cutoff):
     if cutoff not in _AS_OF_MODEL:
         from model import DixonColesModel
-        _AS_OF_MODEL[cutoff] = DixonColesModel(half_life_days=730.0).fit(
+        _AS_OF_MODEL[cutoff] = DixonColesModel(half_life_days=config.NATIONAL_HALF_LIFE).fit(
             df, verbose=False, as_of=cutoff)
     return _AS_OF_MODEL[cutoff]
 

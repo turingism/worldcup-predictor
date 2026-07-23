@@ -1,3 +1,5 @@
+# ⚠️ LEGACY/ARCHIVED 实验脚本：保留旧参数（half_life=240 时代）仅供历史 A/B 对照，
+# 不代表当前生产基线（生产=config.NATIONAL_HALF_LIFE=730）。勿以本脚本结论指导现役参数。
 # Repository summary: World Cup prediction analytics module.
 """
 实验：概率校准检验 + 等温回归(Isotonic)后校准能否降低 RPS。

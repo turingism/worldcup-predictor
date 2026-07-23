@@ -20,6 +20,7 @@ B（FLB/大热必死）、D（诱惑形态命名）【冻结】——见 bt_expl
 零碰 GLM/账本：只读模型预测 + 市场赔率，纯描述。复用 devig(Shin)。
 """
 from __future__ import annotations
+import config
 import numpy as np
 import devig
 
@@ -136,16 +137,17 @@ def handicap_divergence(model_fav_cover, market_fav_cover):
 def handicap_reading(hA, hC, is_knockout, fav_name, dog_name):
     """读盘卡：纯规则翻译 + 【90 分钟结算】确定性对照（零预测、零方向、不出买哪边）。
     全用实际队名（不用强队/弱队，避免看反）。复用 hA(2路Shin去水)/hC(模型cover+CLV先验)。
-    口径：竞彩按 90 分钟（含补时、不含加时与点球）结算；模型为常规时间分布，二者基本一致。"""
+    口径：竞彩按 90 分钟（含补时、不含加时与点球）结算；模型≈常规时间分布（训练比分在淘汰赛
+    历史样本含少量加时，约占 1.8%，见 docs/score-basis.md），二者口径接近但非严格一致。"""
     line = float(hA["line"])
     is_int = abs(line - round(line)) < 1e-9
     fav_lbl = f"{fav_name}(-{line:g})"      # 被看好方让球：墨西哥(-1.5)
     dog_lbl = f"{dog_name}(+{line:g})"      # 受让方：南非(+1.5)
     warn = "⚠ 本盘按【90 分钟（含补时、不含加时与点球）的比分】结算。" + (
         "本场为淘汰赛、可能打加时甚至点球，但竞彩让球只按 90 分钟结算——"
-        "加时/点球只决定晋级、不影响本盘 cover。模型为常规时间分布，与之口径基本一致（均不含加时点球）。"
+        "加时/点球只决定晋级、不影响本盘 cover。模型≈常规时间分布（训练样本含少量历史加时比分），与竞彩口径接近但非严格一致。"
         if is_knockout else
-        "本场为小组赛、无加时，竞彩与模型均按 90 分钟，口径基本一致（均不含加时点球）。")
+        "本场为小组赛、无加时，竞彩按 90 分钟结算，模型≈常规时间分布，口径接近（均不含加时点球）。")
     floor_l = int(line)                      # 半球盘：受让方「90分钟净胜 ≤floor_l 即 cover」
     # 受让方「最多输几球仍算赢盘」：整数线=line-1（输到 line 是走盘），半球线=int(line)。
     keep_n = (int(line) - 1) if is_int else int(line)
@@ -285,7 +287,7 @@ def build_card(m, home, away):
             *_, M = m.score_matrix(h, a, neutral=True)
             s = manager.settle_line(manager._margin_pmf(M), rec["fav_is_home"], rec["fav_line"])
             denom = s["win"] + s["lose"]
-            # 竞彩按 90 分钟（含补时、不含加时点球）结算，模型为常规时间分布、口径基本一致。
+            # 竞彩按 90 分钟（含补时、不含加时点球）结算；模型≈常规时间分布（非严格 90 分钟，见 docs/score-basis.md）。
             # is_ko 仅用于淘汰赛额外提醒（加时/点球只决定晋级、不影响本盘 90 分钟让球结算）。
             is_ko = str(rec.get("date", "")) >= "2026-06-28"
             hc = {"o_fav": rec["fav_spread_odds"], "o_dog": rec["dog_spread_odds"],
@@ -306,7 +308,7 @@ def _cli():
     ap = argparse.ArgumentParser()
     ap.add_argument("home"); ap.add_argument("away")
     args = ap.parse_args()
-    m = predict.get_model(use_cache=True, half_life=730.0, verbose=False)
+    m = predict.get_model(use_cache=True, half_life=config.NATIONAL_HALF_LIFE, verbose=False)
     card = build_card(m, args.home, args.away)
     print(render(card) if card else f"odds.csv 无 {args.home} vs {args.away} 的赔率，换一场。")
 

@@ -9,6 +9,7 @@
 
 纯函数、无网络、无随机：同输入恒定输出，可安全缓存。
 """
+import config
 import explainer   # 只取 _BANNED 行动词全谱做并集；explainer 模块级仅依赖 numpy/devig，无循环
 
 # 球队昵称（仅常见强队；未收录的回退为纯国名，不影响功能）
@@ -122,7 +123,7 @@ def match_narrative(home_disp: str, away_disp: str, p_home: float, p_draw: float
 if __name__ == "__main__":   # CLI 自测 + 合规自检
     import numpy as np
     import predict
-    m = predict.get_model(True, 730, verbose=False)
+    m = predict.get_model(True, config.NATIONAL_HALF_LIFE, verbose=False)
     import teams_zh
     for h, a in [("Morocco", "Haiti"), ("Germany", "Ecuador"), ("Argentina", "France"),
                  ("Brazil", "Scotland"), ("Norway", "France")]:

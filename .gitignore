@@ -7,6 +7,7 @@ __pycache__/
 
 # 训练缓存（可由 get_model 重建）
 model.pkl
+model_meta.json
 
 # 运行时可变状态（app 每次运行会改写；非源码）
 data/predictions.json
