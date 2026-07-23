@@ -2664,11 +2664,43 @@ async function evClubPredict(key){
   if(!h||!a||!out||!h.value.trim()||!a.value.trim()) return;
   out.innerHTML='<div class="card spin">计算中…</div>';
   try{
-    const r=await fetch(`/api/club/predict?event=${key}&home=${encodeURIComponent(h.value)}&away=${encodeURIComponent(a.value)}&neutral=${$('#ev_neutral')&&$('#ev_neutral').checked?1:0}`);
+    const r=await fetch(`/api/club/predict?event=${key}&home=${encodeURIComponent(h.value)}&away=${encodeURIComponent(a.value)}&neutral=${$('#ev_neutral')&&$('#ev_neutral').checked?1:0}&detail=1`);
     const d=await r.json();
-    out.innerHTML = r.ok ? evPredCard(d)
+    out.innerHTML = r.ok ? evPredCard(d)+evMatchupDetail(d)
       : `<div class="card"><span class="muted">${d.error||'查询失败'}${d.suggest&&d.suggest.length?'；你是想找：'+d.suggest.join(' / '):''}</span></div>`;
   }catch(e){ out.innerHTML='<div class="card"><span class="muted">网络错误，请重试。</span></div>'; }
+}
+// C2 对阵分析展开区（参数化，任何联赛同一套组件）：比分矩阵 + 近 6 轮/交锋/主客场拆分/攻防强度
+function evMatchupDetail(d){
+  if(!d.facts||!d.matrix) return '';
+  const F=d.facts, none='<span class="muted">暂无数据</span>';
+  const mrow=x=>`<tr><td class="muted">${x.date}</td><td>${x.home?'主':'客'} vs ${x.opp_disp}</td><td style="text-align:center">${x.gf}-${x.ga}</td><td>${x.res==='W'?'<b style="color:#3fb950">胜</b>':x.res==='D'?'平':'<span style="color:#f85149">负</span>'}</td></tr>`;
+  const splitRow=(lab,s)=>s?`<tr><td>${lab}</td><td>${s.w}胜${s.d}平${s.l}负</td><td>进${s.gf} 失${s.ga}</td><td class="muted">近${s.n}场</td></tr>`:`<tr><td>${lab}</td><td colspan="3">${none}</td></tr>`;
+  const teamBlock=f=>{
+    const rc=f.recent, st=f.strength;
+    return `<div style="flex:1;min-width:280px">
+      <h4 style="margin:6px 0 4px">${f.disp}</h4>
+      <div style="font-size:12.5px">近 ${rc.n} 轮：<b>${rc.w}胜${rc.d}平${rc.l}负</b> 进${rc.gf}失${rc.ga} 零封${rc.clean_sheets}</div>
+      <table class="mgt" style="margin-top:4px">${rc.matches.length?rc.matches.map(mrow).join(''):`<tr><td>${none}</td></tr>`}</table>
+      <table class="mgt" style="margin-top:6px">${splitRow('主场',f.split.home)}${splitRow('客场',f.split.away)}</table>
+      <div style="font-size:12.5px;margin-top:6px">攻防强度：攻 ${st.atk>0?'+':''}${st.atk.toFixed(3)} · 防 ${st.dfc>0?'+':''}${st.dfc.toFixed(3)} · 净 ${st.net>0?'+':''}${st.net.toFixed(3)}
+        <span class="muted">（近${st.sample}场 场均进${st.avg_gf} 失${st.avg_ga}）</span></div>
+    </div>`;
+  };
+  const mx=d.matrix, mmax=Math.max(...mx.p.flat());
+  const grid=`<table class="mgt" style="text-align:center"><tr><th>${d.home_disp.replace(/^\S+\s/,'')}＼${d.away_disp.replace(/^\S+\s/,'')}</th>${Array.from({length:mx.n},(_,j)=>`<th>${j}</th>`).join('')}</tr>`+
+    mx.p.map((row,i)=>`<tr><th>${i}</th>`+row.map(p=>`<td style="background:rgba(56,139,253,${(p/mmax*0.55).toFixed(3)})">${(p*100).toFixed(1)}</td>`).join('')+'</tr>').join('')+
+    `</table><div class="muted" style="font-size:11.5px;margin-top:4px">单元格=该比分概率%（行=主队进球，列=客队进球）；其余比分合计 ${(mx.p_other*100).toFixed(1)}%</div>`;
+  const h2=F.h2h, h2rows=h2.n?h2.rows.map(x=>`<tr><td class="muted">${x.date}</td><td style="text-align:right">${x.home_disp}</td><td style="text-align:center"><b>${x.hs}-${x.as}</b></td><td>${x.away_disp}</td></tr>`).join(''):'';
+  return `<div class="card" style="margin-top:10px">
+    <details open><summary style="cursor:pointer"><b>比分概率分布</b></summary><div style="overflow-x:auto;margin-top:6px">${grid}</div></details>
+    <details open style="margin-top:8px"><summary style="cursor:pointer"><b>球队数据展开</b>（近 6 轮 / 主客场拆分 / 攻防强度）</summary>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px">${teamBlock(F.home)}${teamBlock(F.away)}</div>
+      <div class="muted" style="font-size:11.5px;margin-top:6px">${F.strength_note}</div></details>
+    <details open style="margin-top:8px"><summary style="cursor:pointer"><b>历史交锋</b>${h2.n?`（近 ${h2.n} 次：${F.home.disp.replace(/^\S+\s/,'')} ${h2.home_wins} 胜 · 平 ${h2.draws} · ${F.away.disp.replace(/^\S+\s/,'')} ${h2.away_wins} 胜）`:''}</summary>
+      ${h2.n?`<table class="mgt" style="margin-top:6px">${h2rows}</table>`:`<div style="margin-top:6px">${none}<span class="muted">（数据池近 7 季内无交手记录）</span></div>`}</details>
+    <div class="muted" style="font-size:11.5px;margin-top:8px">数据截至 ${F.data_through} · 来源 ${d.source} · 90 分钟口径</div>
+  </div>`;
 }
 async function evNlPredict(key){
   const h=$('#ev_home'), a=$('#ev_away'), out=$('#ev_predout');

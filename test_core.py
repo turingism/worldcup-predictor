@@ -1705,6 +1705,34 @@ def test_club_predict_api(client):
     assert r.status_code == 404 and r.get_json()["suggest"]
     # 跨联赛球队在本联赛池内解析不到 → 404（诚实拒绝口径）
     assert client.get("/api/club/predict?event=epl2526&home=皇马&away=曼城").status_code == 404
+    # 默认（无 detail）不含展开字段——C2 为增量扩展，原响应结构不变
+    assert "facts" not in d and "matrix" not in d
+
+
+def test_club_matchup_detail_api(client):
+    """C2 对阵分析展开区：近 6 轮/交锋/主客场拆分/攻防强度 + 比分矩阵（共用实现口径）。"""
+    d = client.get("/api/club/predict?event=epl2526&home=阿森纳&away=曼城&detail=1").get_json()
+    f = d["facts"]
+    for side in ("home", "away"):
+        rc = f[side]["recent"]
+        assert rc["n"] == 6 == len(rc["matches"]) and rc["w"] + rc["d"] + rc["l"] == 6
+        assert rc["form_str"] == "".join(x["res"] for x in rc["matches"])
+        assert all(x["opp_disp"] for x in rc["matches"])
+        sp = f[side]["split"]
+        assert sp["home"]["n"] == 6 and sp["away"]["n"] == 6      # 英超数据池必然覆盖
+        st = f[side]["strength"]
+        assert {"atk", "dfc", "net", "avg_gf", "avg_ga"} <= set(st)
+        assert abs(st["net"] - (st["atk"] - st["dfc"])) < 1e-6
+    h2 = f["h2h"]
+    assert h2["n"] >= 1 and h2["home_wins"] + h2["away_wins"] + h2["draws"] == h2["n"]
+    assert "联赛内相对值" in f["strength_note"] and f["data_through"] == d["data_through"]
+    mx = d["matrix"]
+    assert mx["n"] == 6 and len(mx["p"]) == 6 and all(len(row) == 6 for row in mx["p"])
+    tot = sum(sum(row) for row in mx["p"]) + mx["p_other"]
+    assert abs(tot - 1.0) < 0.01
+    # 交锋覆盖不到的组合（升班马 vs 豪门）诚实空态：n=0 结构仍完整
+    d2 = client.get("/api/club/predict?event=epl2526&home=桑德兰&away=阿森纳&detail=1").get_json()
+    assert d2["facts"]["h2h"]["n"] >= 0                            # 结构存在即可（不写死有无交锋）
 
 
 def test_nl2026_predict_unlocked(client):

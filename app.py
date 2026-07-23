@@ -284,7 +284,7 @@ def api_club_predict():
     M = r["matrix"]
     tot = np.add.outer(np.arange(M.shape[0]), np.arange(M.shape[1]))
     df = clubdata.load(code)
-    return jsonify({
+    payload = {
         "event": key, "league": clubdata.LEAGUES[code],
         "home": r["home"], "away": r["away"],
         "home_disp": teams_zh.disp(r["home"]), "away_disp": teams_zh.disp(r["away"]),
@@ -298,7 +298,48 @@ def api_club_predict():
                        for (i, j), p in r["top_scores"]],
         "data_through": str(df.date.max().date()), "source": "football-data.co.uk",
         "note": "90 分钟口径（含补时，不含加时点球）；研究/信息性质",
-    })
+    }
+    if request.args.get("detail") == "1":
+        # C2 对阵分析展开区：账本层共用实现（manager.py 过程数据函数，两宇宙同一份）
+        import manager
+        hn, an = r["home"], r["away"]
+
+        def _mrows(ms):
+            return [{**x, "opp_disp": teams_zh.disp(x["opp"])} for x in ms]
+
+        def _split(t):
+            ms = manager._team_matches(df, t)
+
+            def agg(xs):
+                if not xs:
+                    return None                      # 前端显示「暂无数据」
+                return {"n": len(xs),
+                        "w": sum(x["res"] == "W" for x in xs),
+                        "d": sum(x["res"] == "D" for x in xs),
+                        "l": sum(x["res"] == "L" for x in xs),
+                        "gf": sum(x["gf"] for x in xs), "ga": sum(x["ga"] for x in xs)}
+            return {"home": agg([x for x in ms if x["home"]][:6]),
+                    "away": agg([x for x in ms if not x["home"]][:6])}
+
+        facts = {}
+        for side, t in (("home", hn), ("away", an)):
+            rf = manager.recent_form(df, t, 6)
+            rf["matches"] = _mrows(rf["matches"])
+            facts[side] = {"team": t, "disp": teams_zh.disp(t),
+                           "recent": rf, "strength": manager.team_stats(df, t, m),
+                           "split": _split(t)}
+        h2h = manager.head_to_head(df, hn, an)
+        for x in h2h["rows"]:
+            x["home_disp"], x["away_disp"] = teams_zh.disp(x["home"]), teams_zh.disp(x["away"])
+        payload["facts"] = {"home": facts["home"], "away": facts["away"], "h2h": h2h,
+                            "strength_note": "攻防强度为联赛内相对值，跨联赛不可比",
+                            "data_through": payload["data_through"]}
+        nsz = int(min(6, M.shape[0], M.shape[1]))
+        payload["matrix"] = {"n": nsz,
+                             "p": [[round(float(M[i, j]), 4) for j in range(nsz)]
+                                   for i in range(nsz)],
+                             "p_other": round(float(1.0 - M[:nsz, :nsz].sum()), 4)}
+    return jsonify(payload)
 
 
 # 逐 API 解锁：俱乐部五赛事开放 club 端点；nl2026 同宇宙直接复用国家队单场预测
