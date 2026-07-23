@@ -43,6 +43,26 @@ def season_codes(n: int, end_year: int = _CUR_END) -> list[str]:
     return [f"{y % 100:02d}{(y + 1) % 100:02d}" for y in range(end_year - n, end_year)]
 
 
+# 系统代理偶发 SSL 断流（Clash 节点抖动），ESPN 层实测直连可达——football-data
+# 下载同款策略：先默认（系统代理）再绕过代理直连（与 live._fetch_json 对齐）。
+_NOPROXY_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def _download(url: str, dest: str, timeout: int = 60):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    last = None
+    for opener in (None, _NOPROXY_OPENER):
+        try:
+            r = opener.open(req, timeout=timeout) if opener else \
+                urllib.request.urlopen(req, timeout=timeout)
+            with r, open(dest, "wb") as f:
+                f.write(r.read())
+            return
+        except Exception as e:  # noqa
+            last = e
+    raise RuntimeError(f"下载失败（系统代理+直连均失败）：{last}")
+
+
 def fetch(code: str, season: str, refresh: bool = False) -> str:
     """下载并缓存一季 CSV，返回本地路径。已缓存且非 refresh 直接复用。"""
     if code not in LEAGUES:
@@ -52,7 +72,7 @@ def fetch(code: str, season: str, refresh: bool = False) -> str:
     if refresh or not os.path.exists(path):
         tmp = path + ".tmp"
         try:
-            urllib.request.urlretrieve(URL.format(season=season, code=code), tmp)
+            _download(URL.format(season=season, code=code), tmp)
             os.replace(tmp, path)
         except Exception:
             if os.path.exists(tmp):
@@ -123,8 +143,16 @@ def load_fixtures(code: str | None = None, refresh: bool = False) -> pd.DataFram
              or _time.time() - os.path.getmtime(path) > _FIXTURES_TTL_H * 3600)
     if refresh or stale:
         tmp = path + ".tmp"
-        urllib.request.urlretrieve(FIXTURES_URL, tmp)
-        os.replace(tmp, path)
+        try:
+            _download(FIXTURES_URL, tmp)
+            os.replace(tmp, path)
+        except Exception:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+            if os.path.exists(path):     # 刷新失败但有缓存：沿用（与 fetch 同口径）
+                print("[clubdata] fixtures 刷新失败，沿用本地缓存")
+            else:
+                raise
     raw = pd.read_csv(path, encoding="utf-8-sig", encoding_errors="replace")
     raw = raw.dropna(subset=["Div", "HomeTeam", "AwayTeam"])
     raw = raw[raw["Div"] == code] if code else raw[raw["Div"].isin(LEAGUES)]

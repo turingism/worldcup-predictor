@@ -28,7 +28,11 @@
 - **「25-26 赛季 8 月开赛/8 月滚入/记得 _CUR_END+1」系口径错误**：2025-26 赛季（2025-08 至 2026-05）**已是踢完的史实赛季**，2026-07-19 已整季回补入库（十联赛实拉成功，数据至 2026-05-24，`_CUR_END=2026`）；**2026 年 8 月开赛的是 26-27 赛季**。下方旧接手条目中「25-26 季 8 月才开」「P2 在 25-26 开赛前」等表述以本条为准（P2 时限=26-27 开赛前）。
 - 连带：① events 注册表五联赛条目 key/显示名「25-26」实为 26-27 窗口——**更名留用户裁决**（账本未写入前成本最低）；② 季前 preseason JSON 已删（误标赛季产物），`club_preseason.py` 加闸待 26-27 升班马名单（直升队已知：E0←Coventry/Ipswich 等，见 progress.md 第五轮；**附加赛胜者需外部信息，未确认前标未验证**）；③ 25-26 真实终局已可从库直读（英超降级 West Ham/Burnley/Wolves 等）。
 
-## 📌 最新接手（2026-07-23 十 · 阶段 D 开工：D1 跨赛季装载韧性，147 测试绿）
+## 📌 最新接手（2026-07-23 十一 · D2 每日抓取完成（两次实跑验收），147 测试绿）
+- **D2 完成**：`daily_update.py`（十联赛 CSV 增量+fixtures+ESPN 完场计数，失败写 data/logs/daily_update.log，硬失败 exit 1）**连续两次实跑 exit=0**；launchd `com.melvin.worldcup-daily` 每日 09:00 已加载（定时触发明日才发生，标未验证）。**网络断点修复**：football-data 下载增加系统代理→直连回退（clubdata._download，与 live 层同款），fixtures 刷新失败沿用缓存。界面/模型联动由架构保证（overview 直读帧 + 模型 mtime 指纹）。
+- **下一步：D3 未来赛程预测**——fixtures 已可拉（当前 11 行为 05-30/31 季末残留，消费方按日期过滤）；联赛看板加「未来 7-14 天赛程预测卡片」：load_fixtures(code) 过滤 date>=今天 → 每场用 club 模型出赛前概率（B365 赛前盘对照可选）；休赛期无未来场次 → 显式空态「休赛期，26-27 赛程发布后自动显示」。验收同 C 通用（截图+golden diff）。完成后阶段 D 全清（D1 的 +1 动作 8 月执行），转阶段 B（teams 统一表，保险丝规则）。
+
+## 📌 上一次接手（2026-07-23 十 · 阶段 D 开工：D1 跨赛季装载韧性，147 测试绿）
 - **D1 完成（测试与韧性部分；+1 动作留待 8 月新季 CSV 落地）**：clubdata 三断点修复——新季 CSV 404/0 字节时 load 降级只用历史季（历史季坏仍硬报错）、fetch 刷新失败沿用缓存；`test_clubdata_rollover_resilience` 六断言全离线锁定。**暗坑**：season_codes 的 end_year 默认在 def 时绑定，+1 必须改源码常量+重启，monkeypatch _CUR_END 无效。147 全绿、golden diff 干净。
 - **下一步：D2 每日抓取脚本**——football-data.co.uk 增量（load refresh=True 只刷最新季，已具韧性）+ ESPN（live.py 世界杯口径已归档，联赛侧 ESPN 抓取待接：休赛期可先只做 football-data 增量 + fixtures 刷新，ESPN 联赛实时留待赛季开始，如实标注）；失败写日志（data/logs/ 或类似）；界面时间戳联动（overview data_through 已自动读帧）；**连续实际运行 2 次无报错才算完成**（验收需真实跑两次，勿用预期代替）。可用 launchd 或 cron 注册每日任务。之后 D3 fixtures 未来赛程卡片（load_fixtures 已在，休赛期空态处理）。
 

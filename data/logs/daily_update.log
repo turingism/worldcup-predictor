@@ -1,0 +1,128 @@
+2026-07-23 14:00:29 === daily_update 开始 ===
+2026-07-23 14:00:34 [csv] E0: 2660→2660 场（+0），数据截止 2026-05-24→2026-05-24
+2026-07-23 14:00:39 [csv] SP1: 2660→2660 场（+0），数据截止 2026-05-24→2026-05-24
+2026-07-23 14:00:44 [csv] I1: 2660→2660 场（+0），数据截止 2026-05-24→2026-05-24
+2026-07-23 14:00:49 [csv] D1: 2142→2142 场（+0），数据截止 2026-05-16→2026-05-16
+2026-07-23 14:00:55 [csv] F1: 2337→2337 场（+0），数据截止 2026-05-17→2026-05-17
+2026-07-23 14:01:00 [csv] E1: 3864→3864 场（+0），数据截止 2026-05-02→2026-05-02
+2026-07-23 14:01:05 [csv] SP2: 3234→3234 场（+0），数据截止 2026-05-31→2026-05-31
+2026-07-23 14:01:10 [csv] I2: 2660→2660 场（+0），数据截止 2026-05-08→2026-05-08
+2026-07-23 14:01:15 [csv] D2: 2142→2142 场（+0），数据截止 2026-05-17→2026-05-17
+2026-07-23 14:01:20 [csv] F2: 2410→2410 场（+0），数据截止 2026-05-09→2026-05-09
+2026-07-23 14:01:25 [fixtures][失败] <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1028)>
+Traceback (most recent call last):
+  File "/opt/anaconda3/lib/python3.13/urllib/request.py", line 1319, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              encode_chunked=req.has_header('Transfer-encoding'))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/http/client.py", line 1338, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/http/client.py", line 1384, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/http/client.py", line 1333, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/http/client.py", line 1093, in _send_output
+    self.send(msg)
+    ~~~~~~~~~^^^^^
+  File "/opt/anaconda3/lib/python3.13/http/client.py", line 1037, in send
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "/opt/anaconda3/lib/python3.13/http/client.py", line 1479, in connect
+    self.sock = self._context.wrap_socket(self.sock,
+                ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+                                          server_hostname=server_hostname)
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/ssl.py", line 455, in wrap_socket
+    return self.sslsocket_class._create(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sock=sock,
+        ^^^^^^^^^^
+    ...<5 lines>...
+        session=session
+        ^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/anaconda3/lib/python3.13/ssl.py", line 1076, in _create
+    self.do_handshake()
+    ~~~~~~~~~~~~~~~~~^^
+  File "/opt/anaconda3/lib/python3.13/ssl.py", line 1372, in do_handshake
+    self._sslobj.do_handshake()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+ssl.SSLEOFError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1028)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/melvin/worldcup-predictor/daily_update.py", line 52, in main
+    fx = clubdata.load_fixtures(refresh=True)
+  File "/Users/melvin/worldcup-predictor/clubdata.py", line 126, in load_fixtures
+    urllib.request.urlretrieve(FIXTURES_URL, tmp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/urllib/request.py", line 214, in urlretrieve
+    with contextlib.closing(urlopen(url, data)) as fp:
+                            ~~~~~~~^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/urllib/request.py", line 189, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/urllib/request.py", line 489, in open
+    response = self._open(req, data)
+  File "/opt/anaconda3/lib/python3.13/urllib/request.py", line 506, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+                              '_open', req)
+  File "/opt/anaconda3/lib/python3.13/urllib/request.py", line 466, in _call_chain
+    result = func(*args)
+  File "/opt/anaconda3/lib/python3.13/urllib/request.py", line 1367, in https_open
+    return self.do_open(http.client.HTTPSConnection, req,
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        context=self._context)
+                        ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/urllib/request.py", line 1322, in do_open
+    raise URLError(err)
+urllib.error.URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1028)>
+
+2026-07-23 14:01:36 [espn] eng.1: 今日完场 0 场
+2026-07-23 14:01:41 [espn] esp.1: 今日完场 0 场
+2026-07-23 14:01:51 [espn] ita.1: 今日完场 0 场
+2026-07-23 14:01:56 [espn] ger.1: 今日完场 0 场
+2026-07-23 14:02:01 [espn] fra.1: 今日完场 0 场
+2026-07-23 14:02:01 === daily_update 结束：存在失败（见上） ===
+2026-07-23 14:02:44 === daily_update 开始 ===
+2026-07-23 14:02:50 [csv] E0: 2660→2660 场（+0），数据截止 2026-05-24→2026-05-24
+2026-07-23 14:02:54 [csv] SP1: 2660→2660 场（+0），数据截止 2026-05-24→2026-05-24
+2026-07-23 14:02:59 [csv] I1: 2660→2660 场（+0），数据截止 2026-05-24→2026-05-24
+2026-07-23 14:03:04 [csv] D1: 2142→2142 场（+0），数据截止 2026-05-16→2026-05-16
+2026-07-23 14:03:09 [csv] F1: 2337→2337 场（+0），数据截止 2026-05-17→2026-05-17
+2026-07-23 14:03:15 [csv] E1: 3864→3864 场（+0），数据截止 2026-05-02→2026-05-02
+2026-07-23 14:03:24 [csv] SP2: 3234→3234 场（+0），数据截止 2026-05-31→2026-05-31
+2026-07-23 14:03:29 [csv] I2: 2660→2660 场（+0），数据截止 2026-05-08→2026-05-08
+2026-07-23 14:03:34 [csv] D2: 2142→2142 场（+0），数据截止 2026-05-17→2026-05-17
+2026-07-23 14:03:39 [csv] F2: 2410→2410 场（+0），数据截止 2026-05-09→2026-05-09
+2026-07-23 14:03:44 [fixtures] 11 场，日期 2026-05-30~2026-05-31
+2026-07-23 14:03:48 [espn] eng.1: 今日完场 0 场
+2026-07-23 14:03:53 [espn] esp.1: 今日完场 0 场
+2026-07-23 14:03:59 [espn] ita.1: 今日完场 0 场
+2026-07-23 14:04:03 [espn] ger.1: 今日完场 0 场
+2026-07-23 14:04:19 [espn] fra.1: 今日完场 0 场
+2026-07-23 14:04:19 === daily_update 结束：全部成功 ===
+2026-07-23 14:04:29 === daily_update 开始 ===
+2026-07-23 14:04:35 [csv] E0: 2660→2660 场（+0），数据截止 2026-05-24→2026-05-24
+2026-07-23 14:04:40 [csv] SP1: 2660→2660 场（+0），数据截止 2026-05-24→2026-05-24
+2026-07-23 14:04:45 [csv] I1: 2660→2660 场（+0），数据截止 2026-05-24→2026-05-24
+2026-07-23 14:04:50 [csv] D1: 2142→2142 场（+0），数据截止 2026-05-16→2026-05-16
+2026-07-23 14:04:56 [csv] F1: 2337→2337 场（+0），数据截止 2026-05-17→2026-05-17
+2026-07-23 14:05:01 [csv] E1: 3864→3864 场（+0），数据截止 2026-05-02→2026-05-02
+2026-07-23 14:05:07 [csv] SP2: 3234→3234 场（+0），数据截止 2026-05-31→2026-05-31
+2026-07-23 14:05:11 [csv] I2: 2660→2660 场（+0），数据截止 2026-05-08→2026-05-08
+2026-07-23 14:05:16 [csv] D2: 2142→2142 场（+0），数据截止 2026-05-17→2026-05-17
+2026-07-23 14:05:21 [csv] F2: 2410→2410 场（+0），数据截止 2026-05-09→2026-05-09
+2026-07-23 14:05:27 [fixtures] 11 场，日期 2026-05-30~2026-05-31
+2026-07-23 14:05:31 [espn] eng.1: 今日完场 0 场
+2026-07-23 14:05:35 [espn] esp.1: 今日完场 0 场
+2026-07-23 14:05:40 [espn] ita.1: 今日完场 0 场
+2026-07-23 14:05:46 [espn] ger.1: 今日完场 0 场
+2026-07-23 14:05:50 [espn] fra.1: 今日完场 0 场
+2026-07-23 14:05:50 === daily_update 结束：全部成功 ===

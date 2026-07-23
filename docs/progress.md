@@ -577,3 +577,38 @@ python3 -m pytest test_core.py -q → **147 passed**；golden diff 五端点一�
   +重启+`--refresh`，本轮韧性保证空窗期页面不崩。
 - D2 每日抓取脚本为下轮项（football-data 增量 + ESPN，失败写日志，界面时间
   戳联动，连续实跑 2 次无报错才算完成——注意验收需真实运行两次）。
+
+## 2026-07-23（第十一轮）D2 每日抓取脚本：两次实跑验收通过 + launchd 注册
+
+### 做了什么
+- **`daily_update.py`**：① 十联赛（五大+feeder）最新一季 CSV 强刷并报告
+  before/after 场次与数据截止日；② fixtures.csv 强刷（休赛期 0 场/残留旧行
+  如实记录）；③ ESPN 五大联赛当日完场计数（复用 live._fetch_json 代理回退；
+  休赛期 0 场为正常态）；④ 全程写 `data/logs/daily_update.log`（追加式含
+  traceback），任一硬失败 exit 1。
+- **实测暴露并修复网络断点（红线 5）**：首跑发现 football-data 下载走系统
+  代理 SSL 断流（Clash 节点抖动）——CSV 刷新被 D1 韧性兜住但 fixtures 硬失败；
+  ESPN 因 live 层「代理失败回退直连」成功。修复=clubdata 新增 `_download`
+  同款回退策略（默认代理→直连），fetch 与 load_fixtures 两站点切换，且
+  fixtures 刷新失败时沿用缓存（与 fetch 同口径）。
+- **界面时间戳联动（架构自动保证，实测确认）**：overview 每请求直读帧
+  data_through；club 模型缓存按数据 mtime 指纹自动失效（get_club_model）——
+  CSV 更新后接口与模型自动跟新，无需重启。
+- **launchd 注册**：`com.melvin.worldcup-daily`（每日 09:00，stdout/err 落
+  data/logs/daily_launchd.*），launchctl list 确认已加载（与生产实例
+  com.melvin.worldcup-predictor 并存）。
+
+### 验证（验收口径：连续实际运行 2 次无报错）
+- 修复后连跑两次：**14:02:44 与 14:04:29 两轮均 exit=0 全部成功**——十联赛
+  CSV 真实下载（直连回退生效）、fixtures 11 场（05-30~05-31 季末残留行，
+  消费方按日期过滤的既档口径）、ESPN 五联赛全部响应（今日完场 0 场=休赛期
+  正常）。日志留痕 data/logs/daily_update.log（含首跑失败记录，如实保留）。
+- test_core **147 passed**；golden diff 五端点一致。
+- launchd 定时触发（明日 09:00）属未来事件，**标注未验证**；脚本本体两次
+  实跑已达验收标准。
+
+### 遗留问题
+- D3 未来赛程预测为下轮项：fixtures 数据已可拉（当前为季末残留行），休赛期
+  显式空态+原因；26-27 赛程发布后自动出卡片。
+- 首跑的系统代理 SSL 断流已绕过，但代理节点健康度属环境问题（Clash 侧），
+  与项目无关，不再跟进。
