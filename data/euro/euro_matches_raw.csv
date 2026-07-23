@@ -1,0 +1,1553 @@
+date,home_team,away_team,home_score,away_score,tournament,season,leg,agg_note
+2021-09-14,Sevilla,RB Salzburg,1,1,UEFA Champions League,2021,0,
+2021-09-14,Young Boys,Manchester United,2,1,UEFA Champions League,2021,0,
+2021-09-14,Barcelona,Bayern Munich,0,3,UEFA Champions League,2021,0,
+2021-09-14,Chelsea,Zenit St Petersburg,1,0,UEFA Champions League,2021,0,
+2021-09-14,Dynamo Kyiv,Benfica,0,0,UEFA Champions League,2021,0,
+2021-09-14,Lille,VfL Wolfsburg,0,0,UEFA Champions League,2021,0,
+2021-09-14,Malmö FF,Juventus,0,3,UEFA Champions League,2021,0,
+2021-09-14,Villarreal,Atalanta,2,2,UEFA Champions League,2021,0,
+2021-09-15,Spartak Moscow,Legia Warsaw,0,1,UEFA Europa League,2021,0,
+2021-09-15,Sporting CP,Ajax Amsterdam,1,5,UEFA Champions League,2021,0,
+2021-09-15,Manchester City,RB Leipzig,6,3,UEFA Champions League,2021,0,
+2021-09-15,Liverpool,AC Milan,3,2,UEFA Champions League,2021,0,
+2021-09-15,Atlético Madrid,FC Porto,0,0,UEFA Champions League,2021,0,
+2021-09-15,Sheriff Tiraspol,Shakhtar Donetsk,2,0,UEFA Champions League,2021,0,
+2021-09-15,Besiktas,Borussia Dortmund,1,2,UEFA Champions League,2021,0,
+2021-09-15,Club Brugge,Paris Saint-Germain,1,1,UEFA Champions League,2021,0,
+2021-09-15,Internazionale,Real Madrid,0,1,UEFA Champions League,2021,0,
+2021-09-16,Brøndby IF,Sparta Prague,0,0,UEFA Europa League,2021,0,
+2021-09-16,Eintracht Frankfurt,Fenerbahce,1,1,UEFA Europa League,2021,0,
+2021-09-16,Galatasaray,Lazio,1,0,UEFA Europa League,2021,0,
+2021-09-16,Lokomotiv Moscow,Marseille,1,1,UEFA Europa League,2021,0,
+2021-09-16,Real Betis,Celtic,4,3,UEFA Europa League,2021,0,
+2021-09-16,Red Star Belgrade,Braga,2,1,UEFA Europa League,2021,0,
+2021-09-16,Dinamo Zagreb,West Ham United,0,2,UEFA Europa League,2021,0,
+2021-09-16,Rangers,Lyon,0,2,UEFA Europa League,2021,0,
+2021-09-16,Leicester City,Napoli,2,2,UEFA Europa League,2021,0,
+2021-09-16,PSV Eindhoven,Real Sociedad,2,2,UEFA Europa League,2021,0,
+2021-09-16,AS Monaco,SK Sturm Graz,1,0,UEFA Europa League,2021,0,
+2021-09-16,Bayer Leverkusen,Ferencvaros,2,1,UEFA Europa League,2021,0,
+2021-09-16,Rapid Vienna,Racing Genk,0,1,UEFA Europa League,2021,0,
+2021-09-16,Olympiacos,Antwerp,2,1,UEFA Europa League,2021,0,
+2021-09-16,FC Midtjylland,Ludogorets Razgrad,1,1,UEFA Europa League,2021,0,
+2021-09-28,RB Leipzig,Club Brugge,1,2,UEFA Champions League,2021,0,
+2021-09-28,FC Porto,Liverpool,1,5,UEFA Champions League,2021,0,
+2021-09-28,Real Madrid,Sheriff Tiraspol,1,2,UEFA Champions League,2021,0,
+2021-09-28,Paris Saint-Germain,Manchester City,2,0,UEFA Champions League,2021,0,
+2021-09-28,Borussia Dortmund,Sporting CP,1,0,UEFA Champions League,2021,0,
+2021-09-28,Ajax Amsterdam,Besiktas,2,0,UEFA Champions League,2021,0,
+2021-09-28,AC Milan,Atlético Madrid,1,2,UEFA Champions League,2021,0,
+2021-09-28,Shakhtar Donetsk,Internazionale,0,0,UEFA Champions League,2021,0,
+2021-09-29,VfL Wolfsburg,Sevilla,1,1,UEFA Champions League,2021,0,
+2021-09-29,Atalanta,Young Boys,1,0,UEFA Champions League,2021,0,
+2021-09-29,Manchester United,Villarreal,2,1,UEFA Champions League,2021,0,
+2021-09-29,Zenit St Petersburg,Malmö FF,4,0,UEFA Champions League,2021,0,
+2021-09-29,Bayern Munich,Dynamo Kyiv,5,0,UEFA Champions League,2021,0,
+2021-09-29,Benfica,Barcelona,3,0,UEFA Champions League,2021,0,
+2021-09-29,Juventus,Chelsea,1,0,UEFA Champions League,2021,0,
+2021-09-29,RB Salzburg,Lille,2,1,UEFA Champions League,2021,0,
+2021-09-30,Celtic,Bayer Leverkusen,0,4,UEFA Europa League,2021,0,
+2021-09-30,Antwerp,Eintracht Frankfurt,0,1,UEFA Europa League,2021,0,
+2021-09-30,Lyon,Brøndby IF,3,0,UEFA Europa League,2021,0,
+2021-09-30,Napoli,Spartak Moscow,2,3,UEFA Europa League,2021,0,
+2021-09-30,Real Sociedad,AS Monaco,1,1,UEFA Europa League,2021,0,
+2021-09-30,SK Sturm Graz,PSV Eindhoven,1,4,UEFA Europa League,2021,0,
+2021-09-30,Sparta Prague,Rangers,1,0,UEFA Europa League,2021,0,
+2021-09-30,Braga,FC Midtjylland,3,1,UEFA Europa League,2021,0,
+2021-09-30,Fenerbahce,Olympiacos,0,3,UEFA Europa League,2021,0,
+2021-09-30,Ludogorets Razgrad,Red Star Belgrade,0,1,UEFA Europa League,2021,0,
+2021-09-30,Marseille,Galatasaray,0,0,UEFA Europa League,2021,0,
+2021-09-30,Racing Genk,Dinamo Zagreb,0,3,UEFA Europa League,2021,0,
+2021-09-30,West Ham United,Rapid Vienna,2,0,UEFA Europa League,2021,0,
+2021-09-30,Legia Warsaw,Leicester City,1,0,UEFA Europa League,2021,0,
+2021-09-30,Lazio,Lokomotiv Moscow,2,0,UEFA Europa League,2021,0,
+2021-09-30,Ferencvaros,Real Betis,1,3,UEFA Europa League,2021,0,
+2021-10-19,Besiktas,Sporting CP,1,4,UEFA Champions League,2021,0,
+2021-10-19,Ajax Amsterdam,Borussia Dortmund,4,0,UEFA Champions League,2021,0,
+2021-10-19,Celtic,Ferencvaros,2,0,UEFA Europa League,2021,0,
+2021-10-19,Club Brugge,Manchester City,1,5,UEFA Champions League,2021,0,
+2021-10-19,FC Porto,AC Milan,1,0,UEFA Champions League,2021,0,
+2021-10-19,Atlético Madrid,Liverpool,2,3,UEFA Champions League,2021,0,
+2021-10-19,Paris Saint-Germain,RB Leipzig,3,2,UEFA Champions League,2021,0,
+2021-10-19,Shakhtar Donetsk,Real Madrid,0,5,UEFA Champions League,2021,0,
+2021-10-19,Internazionale,Sheriff Tiraspol,3,1,UEFA Champions League,2021,0,
+2021-10-20,Barcelona,Dynamo Kyiv,1,0,UEFA Champions League,2021,0,
+2021-10-20,Spartak Moscow,Leicester City,3,4,UEFA Europa League,2021,0,
+2021-10-20,Lille,Sevilla,0,0,UEFA Champions League,2021,0,
+2021-10-20,Benfica,Bayern Munich,0,4,UEFA Champions League,2021,0,
+2021-10-20,Chelsea,Malmö FF,4,0,UEFA Champions League,2021,0,
+2021-10-20,Zenit St Petersburg,Juventus,0,1,UEFA Champions League,2021,0,
+2021-10-20,RB Salzburg,VfL Wolfsburg,3,1,UEFA Champions League,2021,0,
+2021-10-20,Young Boys,Villarreal,1,4,UEFA Champions League,2021,0,
+2021-10-20,Manchester United,Atalanta,3,2,UEFA Champions League,2021,0,
+2021-10-21,Real Betis,Bayer Leverkusen,1,1,UEFA Europa League,2021,0,
+2021-10-21,Eintracht Frankfurt,Olympiacos,3,1,UEFA Europa League,2021,0,
+2021-10-21,Fenerbahce,Antwerp,2,2,UEFA Europa League,2021,0,
+2021-10-21,Lazio,Marseille,0,0,UEFA Europa League,2021,0,
+2021-10-21,Ludogorets Razgrad,Braga,0,1,UEFA Europa League,2021,0,
+2021-10-21,Lokomotiv Moscow,Galatasaray,0,1,UEFA Europa League,2021,0,
+2021-10-21,Rapid Vienna,Dinamo Zagreb,2,1,UEFA Europa League,2021,0,
+2021-10-21,PSV Eindhoven,AS Monaco,1,2,UEFA Europa League,2021,0,
+2021-10-21,West Ham United,Racing Genk,3,0,UEFA Europa League,2021,0,
+2021-10-21,FC Midtjylland,Red Star Belgrade,1,1,UEFA Europa League,2021,0,
+2021-10-21,Sparta Prague,Lyon,3,4,UEFA Europa League,2021,0,
+2021-10-21,Napoli,Legia Warsaw,3,0,UEFA Europa League,2021,0,
+2021-10-21,Rangers,Brøndby IF,2,0,UEFA Europa League,2021,0,
+2021-10-21,SK Sturm Graz,Real Sociedad,0,1,UEFA Europa League,2021,0,
+2021-11-02,Juventus,Zenit St Petersburg,4,2,UEFA Champions League,2021,0,
+2021-11-02,Malmö FF,Chelsea,0,1,UEFA Champions League,2021,0,
+2021-11-02,Villarreal,Young Boys,2,0,UEFA Champions League,2021,0,
+2021-11-02,Sevilla,Lille,1,2,UEFA Champions League,2021,0,
+2021-11-02,Atalanta,Manchester United,2,2,UEFA Champions League,2021,0,
+2021-11-02,Bayern Munich,Benfica,5,2,UEFA Champions League,2021,0,
+2021-11-02,VfL Wolfsburg,RB Salzburg,2,1,UEFA Champions League,2021,0,
+2021-11-02,Dynamo Kyiv,Barcelona,0,1,UEFA Champions League,2021,0,
+2021-11-03,Sheriff Tiraspol,Internazionale,1,3,UEFA Champions League,2021,0,
+2021-11-03,Sporting CP,Besiktas,4,0,UEFA Champions League,2021,0,
+2021-11-03,Real Madrid,Shakhtar Donetsk,2,1,UEFA Champions League,2021,0,
+2021-11-03,AC Milan,FC Porto,1,1,UEFA Champions League,2021,0,
+2021-11-03,Liverpool,Atlético Madrid,2,0,UEFA Champions League,2021,0,
+2021-11-03,Manchester City,Club Brugge,4,1,UEFA Champions League,2021,0,
+2021-11-03,RB Leipzig,Paris Saint-Germain,2,2,UEFA Champions League,2021,0,
+2021-11-03,Borussia Dortmund,Ajax Amsterdam,1,3,UEFA Champions League,2021,0,
+2021-11-04,Racing Genk,West Ham United,2,2,UEFA Europa League,2021,0,
+2021-11-04,Leicester City,Spartak Moscow,1,1,UEFA Europa League,2021,0,
+2021-11-04,AS Monaco,PSV Eindhoven,0,0,UEFA Europa League,2021,0,
+2021-11-04,Galatasaray,Lokomotiv Moscow,1,1,UEFA Europa League,2021,0,
+2021-11-04,Legia Warsaw,Napoli,1,4,UEFA Europa League,2021,0,
+2021-11-04,Lyon,Sparta Prague,3,0,UEFA Europa League,2021,0,
+2021-11-04,Olympiacos,Eintracht Frankfurt,1,2,UEFA Europa League,2021,0,
+2021-11-04,Brøndby IF,Rangers,1,1,UEFA Europa League,2021,0,
+2021-11-04,Real Sociedad,SK Sturm Graz,1,1,UEFA Europa League,2021,0,
+2021-11-04,Ferencvaros,Celtic,2,3,UEFA Europa League,2021,0,
+2021-11-04,Marseille,Lazio,2,2,UEFA Europa League,2021,0,
+2021-11-04,Antwerp,Fenerbahce,0,3,UEFA Europa League,2021,0,
+2021-11-04,Red Star Belgrade,FC Midtjylland,0,1,UEFA Europa League,2021,0,
+2021-11-04,Braga,Ludogorets Razgrad,4,2,UEFA Europa League,2021,0,
+2021-11-04,Bayer Leverkusen,Real Betis,4,0,UEFA Europa League,2021,0,
+2021-11-04,Dinamo Zagreb,Rapid Vienna,3,1,UEFA Europa League,2021,0,
+2021-11-23,Dynamo Kyiv,Bayern Munich,1,2,UEFA Champions League,2021,0,
+2021-11-23,Villarreal,Manchester United,0,2,UEFA Champions League,2021,0,
+2021-11-23,Barcelona,Benfica,0,0,UEFA Champions League,2021,0,
+2021-11-23,Chelsea,Juventus,4,0,UEFA Champions League,2021,0,
+2021-11-23,Malmö FF,Zenit St Petersburg,1,1,UEFA Champions League,2021,0,
+2021-11-23,Sevilla,VfL Wolfsburg,2,0,UEFA Champions League,2021,0,
+2021-11-23,Young Boys,Atalanta,3,3,UEFA Champions League,2021,0,
+2021-11-23,Lille,RB Salzburg,1,0,UEFA Champions League,2021,0,
+2021-11-24,Manchester City,Paris Saint-Germain,2,1,UEFA Champions League,2021,0,
+2021-11-24,Atlético Madrid,AC Milan,0,1,UEFA Champions League,2021,0,
+2021-11-24,Internazionale,Shakhtar Donetsk,2,0,UEFA Champions League,2021,0,
+2021-11-24,Club Brugge,RB Leipzig,0,5,UEFA Champions League,2021,0,
+2021-11-24,Besiktas,Ajax Amsterdam,1,2,UEFA Champions League,2021,0,
+2021-11-24,Spartak Moscow,Napoli,2,1,UEFA Europa League,2021,0,
+2021-11-24,Liverpool,FC Porto,2,0,UEFA Champions League,2021,0,
+2021-11-24,Sporting CP,Borussia Dortmund,3,1,UEFA Champions League,2021,0,
+2021-11-24,Sheriff Tiraspol,Real Madrid,0,3,UEFA Champions League,2021,0,
+2021-11-25,Bayer Leverkusen,Celtic,3,2,UEFA Europa League,2021,0,
+2021-11-25,Olympiacos,Fenerbahce,1,0,UEFA Europa League,2021,0,
+2021-11-25,AS Monaco,Real Sociedad,2,1,UEFA Europa League,2021,0,
+2021-11-25,Eintracht Frankfurt,Antwerp,2,2,UEFA Europa League,2021,0,
+2021-11-25,Brøndby IF,Lyon,1,3,UEFA Europa League,2021,0,
+2021-11-25,Red Star Belgrade,Ludogorets Razgrad,1,0,UEFA Europa League,2021,0,
+2021-11-25,Galatasaray,Marseille,4,2,UEFA Europa League,2021,0,
+2021-11-25,Leicester City,Legia Warsaw,3,1,UEFA Europa League,2021,0,
+2021-11-25,Dinamo Zagreb,Racing Genk,1,1,UEFA Europa League,2021,0,
+2021-11-25,PSV Eindhoven,SK Sturm Graz,2,0,UEFA Europa League,2021,0,
+2021-11-25,Real Betis,Ferencvaros,2,0,UEFA Europa League,2021,0,
+2021-11-25,Rangers,Sparta Prague,2,0,UEFA Europa League,2021,0,
+2021-11-25,Rapid Vienna,West Ham United,0,2,UEFA Europa League,2021,0,
+2021-11-25,FC Midtjylland,Braga,3,2,UEFA Europa League,2021,0,
+2021-11-25,Lokomotiv Moscow,Lazio,0,3,UEFA Europa League,2021,0,
+2021-12-07,Real Madrid,Internazionale,2,0,UEFA Champions League,2021,0,
+2021-12-07,Borussia Dortmund,Besiktas,5,0,UEFA Champions League,2021,0,
+2021-12-07,Ajax Amsterdam,Sporting CP,4,2,UEFA Champions League,2021,0,
+2021-12-07,AC Milan,Liverpool,1,2,UEFA Champions League,2021,0,
+2021-12-07,RB Leipzig,Manchester City,2,1,UEFA Champions League,2021,0,
+2021-12-07,Paris Saint-Germain,Club Brugge,4,1,UEFA Champions League,2021,0,
+2021-12-07,Shakhtar Donetsk,Sheriff Tiraspol,1,1,UEFA Champions League,2021,0,
+2021-12-07,FC Porto,Atlético Madrid,1,3,UEFA Champions League,2021,0,
+2021-12-08,Bayern Munich,Barcelona,3,0,UEFA Champions League,2021,0,
+2021-12-08,Zenit St Petersburg,Chelsea,3,3,UEFA Champions League,2021,0,
+2021-12-08,RB Salzburg,Sevilla,1,0,UEFA Champions League,2021,0,
+2021-12-08,Juventus,Malmö FF,1,0,UEFA Champions League,2021,0,
+2021-12-08,Manchester United,Young Boys,1,1,UEFA Champions League,2021,0,
+2021-12-08,VfL Wolfsburg,Lille,1,3,UEFA Champions League,2021,0,
+2021-12-08,Benfica,Dynamo Kyiv,2,0,UEFA Champions League,2021,0,
+2021-12-09,Real Sociedad,PSV Eindhoven,3,0,UEFA Europa League,2021,0,
+2021-12-09,Legia Warsaw,Spartak Moscow,0,1,UEFA Europa League,2021,0,
+2021-12-09,Lyon,Rangers,1,1,UEFA Europa League,2021,0,
+2021-12-09,Sparta Prague,Brøndby IF,2,0,UEFA Europa League,2021,0,
+2021-12-09,Fenerbahce,Eintracht Frankfurt,1,1,UEFA Europa League,2021,0,
+2021-12-09,Antwerp,Olympiacos,1,0,UEFA Europa League,2021,0,
+2021-12-09,Atalanta,Villarreal,2,3,UEFA Champions League,2021,0,
+2021-12-09,Braga,Red Star Belgrade,1,1,UEFA Europa League,2021,0,
+2021-12-09,Napoli,Leicester City,3,2,UEFA Europa League,2021,0,
+2021-12-09,Ferencvaros,Bayer Leverkusen,1,0,UEFA Europa League,2021,0,
+2021-12-09,Lazio,Galatasaray,0,0,UEFA Europa League,2021,0,
+2021-12-09,Ludogorets Razgrad,FC Midtjylland,0,0,UEFA Europa League,2021,0,
+2021-12-09,Marseille,Lokomotiv Moscow,1,0,UEFA Europa League,2021,0,
+2021-12-09,Racing Genk,Rapid Vienna,0,1,UEFA Europa League,2021,0,
+2021-12-09,West Ham United,Dinamo Zagreb,0,1,UEFA Europa League,2021,0,
+2021-12-09,SK Sturm Graz,AS Monaco,1,1,UEFA Europa League,2021,0,
+2021-12-09,Celtic,Real Betis,3,2,UEFA Europa League,2021,0,
+2022-02-15,Sporting CP,Manchester City,0,5,UEFA Champions League,2021,1,1st Leg
+2022-02-15,Paris Saint-Germain,Real Madrid,1,0,UEFA Champions League,2021,1,1st Leg
+2022-02-16,Internazionale,Liverpool,0,2,UEFA Champions League,2021,1,1st Leg
+2022-02-16,RB Salzburg,Bayern Munich,1,1,UEFA Champions League,2021,1,1st Leg
+2022-02-17,Atalanta,Olympiacos,2,1,UEFA Europa League,2021,1,1st Leg
+2022-02-17,Zenit St Petersburg,Real Betis,2,3,UEFA Europa League,2021,1,1st Leg
+2022-02-17,Barcelona,Napoli,1,1,UEFA Europa League,2021,1,1st Leg
+2022-02-17,Borussia Dortmund,Rangers,2,4,UEFA Europa League,2021,1,1st Leg
+2022-02-17,FC Porto,Lazio,2,1,UEFA Europa League,2021,1,1st Leg
+2022-02-17,RB Leipzig,Real Sociedad,2,2,UEFA Europa League,2021,1,1st Leg
+2022-02-17,Sheriff Tiraspol,Braga,2,0,UEFA Europa League,2021,1,1st Leg
+2022-02-17,Sevilla,Dinamo Zagreb,3,1,UEFA Europa League,2021,1,1st Leg
+2022-02-22,Chelsea,Lille,2,0,UEFA Champions League,2021,1,1st Leg
+2022-02-22,Villarreal,Juventus,1,1,UEFA Champions League,2021,1,1st Leg
+2022-02-23,Atlético Madrid,Manchester United,1,1,UEFA Champions League,2021,1,1st Leg
+2022-02-23,Benfica,Ajax Amsterdam,2,2,UEFA Champions League,2021,1,1st Leg
+2022-02-24,Olympiacos,Atalanta,0,3,UEFA Europa League,2021,2,2nd Leg - Atalanta advance 5-1 on aggregate
+2022-02-24,Dinamo Zagreb,Sevilla,1,0,UEFA Europa League,2021,2,2nd Leg - Sevilla advance 3-2 on aggregate
+2022-02-24,Lazio,FC Porto,2,2,UEFA Europa League,2021,2,2nd Leg - FC Porto advance 4-3 on aggregate
+2022-02-24,Real Sociedad,RB Leipzig,1,3,UEFA Europa League,2021,2,2nd Leg - RB Leipzig advance 5-3 on aggregate
+2022-02-24,Real Betis,Zenit St Petersburg,0,0,UEFA Europa League,2021,2,2nd Leg - Real Betis advance 3-2 on aggregate
+2022-02-24,Napoli,Barcelona,2,4,UEFA Europa League,2021,2,2nd Leg - Barcelona advance 5-3 on aggregate
+2022-02-24,Rangers,Borussia Dortmund,2,2,UEFA Europa League,2021,2,2nd Leg - Rangers advance 6-4 on aggregate
+2022-02-24,Braga,Sheriff Tiraspol,2,0,UEFA Europa League,2021,2,2nd Leg - Tied on aggregate - Braga advance 3-2 on penalties
+2022-03-08,Liverpool,Internazionale,0,1,UEFA Champions League,2021,2,2nd Leg - Liverpool advance 2-1 on aggregate
+2022-03-08,Bayern Munich,RB Salzburg,7,1,UEFA Champions League,2021,2,2nd Leg - Bayern Munich advance 8-2 on aggregate
+2022-03-09,Real Betis,Eintracht Frankfurt,1,2,UEFA Europa League,2021,1,1st Leg
+2022-03-09,Manchester City,Sporting CP,0,0,UEFA Champions League,2021,2,2nd Leg - Manchester City advance 5-0 on aggregate
+2022-03-09,FC Porto,Lyon,0,1,UEFA Europa League,2021,1,1st Leg
+2022-03-09,Real Madrid,Paris Saint-Germain,3,1,UEFA Champions League,2021,2,2nd Leg - Real Madrid advance 3-2 on aggregate
+2022-03-10,Sevilla,West Ham United,1,0,UEFA Europa League,2021,1,1st Leg
+2022-03-10,Rangers,Red Star Belgrade,3,0,UEFA Europa League,2021,1,1st Leg
+2022-03-10,Barcelona,Galatasaray,0,0,UEFA Europa League,2021,1,1st Leg
+2022-03-10,Atalanta,Bayer Leverkusen,3,2,UEFA Europa League,2021,1,1st Leg
+2022-03-10,Braga,AS Monaco,2,0,UEFA Europa League,2021,1,1st Leg
+2022-03-15,Manchester United,Atlético Madrid,0,1,UEFA Champions League,2021,2,2nd Leg - Atlético Madrid advance 2-1 on aggregate
+2022-03-15,Ajax Amsterdam,Benfica,0,1,UEFA Champions League,2021,2,2nd Leg - Benfica advance 3-2 on aggregate
+2022-03-16,Juventus,Villarreal,0,3,UEFA Champions League,2021,2,2nd Leg - Villarreal advance 4-1 on aggregate
+2022-03-16,Lille,Chelsea,1,2,UEFA Champions League,2021,2,2nd Leg - Chelsea advance 4-1 on aggregate
+2022-03-17,West Ham United,Sevilla,2,0,UEFA Europa League,2021,2,2nd Leg - West Ham United advance 2-1 on aggregate
+2022-03-17,Lyon,FC Porto,1,1,UEFA Europa League,2021,2,2nd Leg - Lyon advance 2-1 on aggregate
+2022-03-17,Red Star Belgrade,Rangers,2,1,UEFA Europa League,2021,2,2nd Leg - Rangers advance 4-2 on aggregate
+2022-03-17,Eintracht Frankfurt,Real Betis,1,1,UEFA Europa League,2021,2,2nd Leg - Eintracht Frankfurt advance 3-2 on aggregate
+2022-03-17,Bayer Leverkusen,Atalanta,0,1,UEFA Europa League,2021,2,2nd Leg - Atalanta advance 4-2 on aggregate
+2022-03-17,AS Monaco,Braga,1,1,UEFA Europa League,2021,2,2nd Leg - Braga advance 3-1 on aggregate
+2022-03-17,Galatasaray,Barcelona,1,2,UEFA Europa League,2021,2,2nd Leg - Barcelona advance 2-1 on aggregate
+2022-04-05,Benfica,Liverpool,1,3,UEFA Champions League,2021,1,1st Leg
+2022-04-05,Manchester City,Atlético Madrid,1,0,UEFA Champions League,2021,1,1st Leg
+2022-04-06,Villarreal,Bayern Munich,1,0,UEFA Champions League,2021,1,1st Leg
+2022-04-06,Chelsea,Real Madrid,1,3,UEFA Champions League,2021,1,1st Leg
+2022-04-07,Eintracht Frankfurt,Barcelona,1,1,UEFA Europa League,2021,1,1st Leg
+2022-04-07,West Ham United,Lyon,1,1,UEFA Europa League,2021,1,1st Leg
+2022-04-07,Braga,Rangers,1,0,UEFA Europa League,2021,1,1st Leg
+2022-04-07,RB Leipzig,Atalanta,1,1,UEFA Europa League,2021,1,1st Leg
+2022-04-12,Bayern Munich,Villarreal,1,1,UEFA Champions League,2021,2,2nd Leg - Villarreal advance 2-1 on aggregate
+2022-04-12,Real Madrid,Chelsea,2,3,UEFA Champions League,2021,2,2nd Leg - Real Madrid advance 5-4 on aggregate
+2022-04-13,Liverpool,Benfica,3,3,UEFA Champions League,2021,2,2nd Leg - Liverpool advance 6-4 on aggregate
+2022-04-13,Atlético Madrid,Manchester City,0,0,UEFA Champions League,2021,2,2nd Leg - Manchester City advance 1-0 on aggregate
+2022-04-14,Rangers,Braga,3,1,UEFA Europa League,2021,2,2nd Leg - Rangers advance 3-2 on aggregate
+2022-04-14,Lyon,West Ham United,0,3,UEFA Europa League,2021,2,2nd Leg - West Ham United advance 4-1 on aggregate
+2022-04-14,Barcelona,Eintracht Frankfurt,2,3,UEFA Europa League,2021,2,2nd Leg - Eintracht Frankfurt advance 4-3 on aggregate
+2022-04-14,Atalanta,RB Leipzig,0,2,UEFA Europa League,2021,2,2nd Leg - RB Leipzig advance 3-1 on aggregate
+2022-04-26,Manchester City,Real Madrid,4,3,UEFA Champions League,2021,1,1st Leg
+2022-04-27,Liverpool,Villarreal,2,0,UEFA Champions League,2021,1,1st Leg
+2022-04-28,West Ham United,Eintracht Frankfurt,1,2,UEFA Europa League,2021,1,1st Leg
+2022-04-28,RB Leipzig,Rangers,1,0,UEFA Europa League,2021,1,1st Leg
+2022-05-03,Villarreal,Liverpool,2,3,UEFA Champions League,2021,2,2nd Leg - Liverpool advance 5-2 on aggregate
+2022-05-04,Real Madrid,Manchester City,3,1,UEFA Champions League,2021,2,2nd Leg - Real Madrid advance 6-5 on aggregate
+2022-05-05,Eintracht Frankfurt,West Ham United,1,0,UEFA Europa League,2021,2,2nd Leg - Eintracht Frankfurt advance 3-1 on aggregate
+2022-05-05,Rangers,RB Leipzig,3,1,UEFA Europa League,2021,2,2nd Leg - Rangers advance 3-2 on aggregate
+2022-05-18,Eintracht Frankfurt,Rangers,1,1,UEFA Europa League,2021,0,Eintracht Frankfurt win 5-4 on penalties
+2022-05-28,Liverpool,Real Madrid,0,1,UEFA Champions League,2021,0,
+2022-09-06,Celtic,Real Madrid,0,3,UEFA Champions League,2022,0,
+2022-09-06,Borussia Dortmund,F.C. København,3,0,UEFA Champions League,2022,0,
+2022-09-06,Dinamo Zagreb,Chelsea,1,0,UEFA Champions League,2022,0,
+2022-09-06,RB Leipzig,Shakhtar Donetsk,1,4,UEFA Champions League,2022,0,
+2022-09-06,Sevilla,Manchester City,0,4,UEFA Champions League,2022,0,
+2022-09-06,Paris Saint-Germain,Juventus,2,1,UEFA Champions League,2022,0,
+2022-09-06,RB Salzburg,AC Milan,1,1,UEFA Champions League,2022,0,
+2022-09-06,Benfica,Maccabi Haifa,2,0,UEFA Champions League,2022,0,
+2022-09-07,Atlético Madrid,FC Porto,2,1,UEFA Champions League,2022,0,
+2022-09-07,Club Brugge,Bayer Leverkusen,1,0,UEFA Champions League,2022,0,
+2022-09-07,Eintracht Frankfurt,Sporting CP,0,3,UEFA Champions League,2022,0,
+2022-09-07,Barcelona,Viktoria Plzen,5,1,UEFA Champions League,2022,0,
+2022-09-07,Ajax Amsterdam,Rangers,4,0,UEFA Champions League,2022,0,
+2022-09-07,Napoli,Liverpool,4,1,UEFA Champions League,2022,0,
+2022-09-07,Tottenham Hotspur,Marseille,2,0,UEFA Champions League,2022,0,
+2022-09-07,Internazionale,Bayern Munich,0,2,UEFA Champions League,2022,0,
+2022-09-08,Nantes,Olympiacos,2,1,UEFA Europa League,2022,0,
+2022-09-08,Manchester United,Real Sociedad,0,1,UEFA Europa League,2022,0,
+2022-09-08,Omonia Nicosia,Sheriff Tiraspol,0,3,UEFA Europa League,2022,0,
+2022-09-08,Lazio,Feyenoord Rotterdam,4,2,UEFA Europa League,2022,0,
+2022-09-08,Red Star Belgrade,AS Monaco,0,1,UEFA Europa League,2022,0,
+2022-09-08,1. FC Union Berlin,Union St.-Gilloise,0,1,UEFA Europa League,2022,0,
+2022-09-08,PSV Eindhoven,Bodo/Glimt,1,1,UEFA Europa League,2022,0,
+2022-09-08,Ferencvaros,Trabzonspor,3,2,UEFA Europa League,2022,0,
+2022-09-08,SC Freiburg,FK Qarabag,2,1,UEFA Europa League,2022,0,
+2022-09-08,HJK Helsinki,Real Betis,0,2,UEFA Europa League,2022,0,
+2022-09-08,Fenerbahce,Dynamo Kyiv,2,1,UEFA Europa League,2022,0,
+2022-09-08,FC Zürich,Arsenal,1,2,UEFA Europa League,2022,0,
+2022-09-08,AEK Larnaca,Stade Rennais,1,2,UEFA Europa League,2022,0,
+2022-09-08,SK Sturm Graz,FC Midtjylland,1,0,UEFA Europa League,2022,0,
+2022-09-08,Ludogorets Razgrad,AS Roma,2,1,UEFA Europa League,2022,0,
+2022-09-08,Malmö FF,Braga,0,2,UEFA Europa League,2022,0,
+2022-09-13,Marseille,Eintracht Frankfurt,0,1,UEFA Champions League,2022,0,
+2022-09-13,Liverpool,Ajax Amsterdam,2,1,UEFA Champions League,2022,0,
+2022-09-13,FC Porto,Club Brugge,0,4,UEFA Champions League,2022,0,
+2022-09-13,Sporting CP,Tottenham Hotspur,2,0,UEFA Champions League,2022,0,
+2022-09-13,Bayer Leverkusen,Atlético Madrid,2,0,UEFA Champions League,2022,0,
+2022-09-13,Viktoria Plzen,Internazionale,0,2,UEFA Champions League,2022,0,
+2022-09-13,Bayern Munich,Barcelona,2,0,UEFA Champions League,2022,0,
+2022-09-14,Shakhtar Donetsk,Celtic,1,1,UEFA Champions League,2022,0,
+2022-09-14,Manchester City,Borussia Dortmund,2,1,UEFA Champions League,2022,0,
+2022-09-14,Real Madrid,RB Leipzig,2,0,UEFA Champions League,2022,0,
+2022-09-14,Rangers,Napoli,0,3,UEFA Champions League,2022,0,
+2022-09-14,Juventus,Benfica,1,2,UEFA Champions League,2022,0,
+2022-09-14,Chelsea,RB Salzburg,1,1,UEFA Champions League,2022,0,
+2022-09-14,F.C. København,Sevilla,0,0,UEFA Champions League,2022,0,
+2022-09-14,AC Milan,Dinamo Zagreb,3,1,UEFA Champions League,2022,0,
+2022-09-14,Maccabi Haifa,Paris Saint-Germain,1,3,UEFA Champions League,2022,0,
+2022-09-15,FC Midtjylland,Lazio,5,1,UEFA Europa League,2022,0,
+2022-09-15,AS Roma,HJK Helsinki,3,0,UEFA Europa League,2022,0,
+2022-09-15,Real Sociedad,Omonia Nicosia,2,1,UEFA Europa League,2022,0,
+2022-09-15,Olympiacos,SC Freiburg,0,3,UEFA Europa League,2022,0,
+2022-09-15,Trabzonspor,Red Star Belgrade,2,1,UEFA Europa League,2022,0,
+2022-09-15,Feyenoord Rotterdam,SK Sturm Graz,6,0,UEFA Europa League,2022,0,
+2022-09-15,AS Monaco,Ferencvaros,0,1,UEFA Europa League,2022,0,
+2022-09-15,FK Qarabag,Nantes,3,0,UEFA Europa League,2022,0,
+2022-09-15,Braga,1. FC Union Berlin,1,0,UEFA Europa League,2022,0,
+2022-09-15,Real Betis,Ludogorets Razgrad,3,2,UEFA Europa League,2022,0,
+2022-09-15,Stade Rennais,Fenerbahce,2,2,UEFA Europa League,2022,0,
+2022-09-15,Union St.-Gilloise,Malmö FF,3,2,UEFA Europa League,2022,0,
+2022-09-15,Sheriff Tiraspol,Manchester United,0,2,UEFA Europa League,2022,0,
+2022-09-15,Bodo/Glimt,FC Zürich,2,1,UEFA Europa League,2022,0,
+2022-09-15,Dynamo Kyiv,AEK Larnaca,0,1,UEFA Europa League,2022,0,
+2022-10-04,Internazionale,Barcelona,1,0,UEFA Champions League,2022,0,
+2022-10-04,Liverpool,Rangers,2,0,UEFA Champions League,2022,0,
+2022-10-04,Bayern Munich,Viktoria Plzen,5,0,UEFA Champions League,2022,0,
+2022-10-04,FC Porto,Bayer Leverkusen,2,0,UEFA Champions League,2022,0,
+2022-10-04,Ajax Amsterdam,Napoli,1,6,UEFA Champions League,2022,0,
+2022-10-04,Marseille,Sporting CP,4,1,UEFA Champions League,2022,0,
+2022-10-04,Club Brugge,Atlético Madrid,2,0,UEFA Champions League,2022,0,
+2022-10-04,Eintracht Frankfurt,Tottenham Hotspur,0,0,UEFA Champions League,2022,0,
+2022-10-05,RB Salzburg,Dinamo Zagreb,1,0,UEFA Champions League,2022,0,
+2022-10-05,Real Madrid,Shakhtar Donetsk,2,1,UEFA Champions League,2022,0,
+2022-10-05,Chelsea,AC Milan,3,0,UEFA Champions League,2022,0,
+2022-10-05,Manchester City,F.C. København,5,0,UEFA Champions League,2022,0,
+2022-10-05,Benfica,Paris Saint-Germain,1,1,UEFA Champions League,2022,0,
+2022-10-05,Sevilla,Borussia Dortmund,1,4,UEFA Champions League,2022,0,
+2022-10-05,RB Leipzig,Celtic,3,1,UEFA Champions League,2022,0,
+2022-10-05,Juventus,Maccabi Haifa,3,1,UEFA Champions League,2022,0,
+2022-10-06,AS Roma,Real Betis,1,2,UEFA Europa League,2022,0,
+2022-10-06,Braga,Union St.-Gilloise,1,2,UEFA Europa League,2022,0,
+2022-10-06,SK Sturm Graz,Lazio,0,0,UEFA Europa League,2022,0,
+2022-10-06,HJK Helsinki,Ludogorets Razgrad,1,1,UEFA Europa League,2022,0,
+2022-10-06,Red Star Belgrade,Ferencvaros,4,1,UEFA Europa League,2022,0,
+2022-10-06,Omonia Nicosia,Manchester United,2,3,UEFA Europa League,2022,0,
+2022-10-06,Malmö FF,1. FC Union Berlin,0,1,UEFA Europa League,2022,0,
+2022-10-06,Sheriff Tiraspol,Real Sociedad,0,2,UEFA Europa League,2022,0,
+2022-10-06,AS Monaco,Trabzonspor,3,1,UEFA Europa League,2022,0,
+2022-10-06,Olympiacos,FK Qarabag,0,3,UEFA Europa League,2022,0,
+2022-10-06,SC Freiburg,Nantes,2,0,UEFA Europa League,2022,0,
+2022-10-06,Stade Rennais,Dynamo Kyiv,2,1,UEFA Europa League,2022,0,
+2022-10-06,FC Zürich,PSV Eindhoven,1,5,UEFA Europa League,2022,0,
+2022-10-06,Fenerbahce,AEK Larnaca,2,0,UEFA Europa League,2022,0,
+2022-10-06,FC Midtjylland,Feyenoord Rotterdam,2,2,UEFA Europa League,2022,0,
+2022-10-06,Arsenal,Bodo/Glimt,3,0,UEFA Europa League,2022,0,
+2022-10-11,Paris Saint-Germain,Benfica,1,1,UEFA Champions League,2022,0,
+2022-10-11,F.C. København,Manchester City,0,0,UEFA Champions League,2022,0,
+2022-10-11,Celtic,RB Leipzig,0,2,UEFA Champions League,2022,0,
+2022-10-11,Dinamo Zagreb,RB Salzburg,1,1,UEFA Champions League,2022,0,
+2022-10-11,AC Milan,Chelsea,0,2,UEFA Champions League,2022,0,
+2022-10-11,Borussia Dortmund,Sevilla,1,1,UEFA Champions League,2022,0,
+2022-10-11,Shakhtar Donetsk,Real Madrid,1,1,UEFA Champions League,2022,0,
+2022-10-11,Maccabi Haifa,Juventus,2,0,UEFA Champions League,2022,0,
+2022-10-12,Sporting CP,Marseille,0,2,UEFA Champions League,2022,0,
+2022-10-12,Barcelona,Internazionale,3,3,UEFA Champions League,2022,0,
+2022-10-12,Rangers,Liverpool,1,7,UEFA Champions League,2022,0,
+2022-10-12,Bayer Leverkusen,FC Porto,0,3,UEFA Champions League,2022,0,
+2022-10-12,Tottenham Hotspur,Eintracht Frankfurt,3,2,UEFA Champions League,2022,0,
+2022-10-12,Napoli,Ajax Amsterdam,4,2,UEFA Champions League,2022,0,
+2022-10-12,Atlético Madrid,Club Brugge,0,0,UEFA Champions League,2022,0,
+2022-10-12,Viktoria Plzen,Bayern Munich,2,4,UEFA Champions League,2022,0,
+2022-10-13,Lazio,SK Sturm Graz,2,2,UEFA Europa League,2022,0,
+2022-10-13,Bodo/Glimt,Arsenal,0,1,UEFA Europa League,2022,0,
+2022-10-13,Trabzonspor,AS Monaco,4,0,UEFA Europa League,2022,0,
+2022-10-13,Real Sociedad,Sheriff Tiraspol,3,0,UEFA Europa League,2022,0,
+2022-10-13,AEK Larnaca,Fenerbahce,1,2,UEFA Europa League,2022,0,
+2022-10-13,Ludogorets Razgrad,HJK Helsinki,2,0,UEFA Europa League,2022,0,
+2022-10-13,1. FC Union Berlin,Malmö FF,1,0,UEFA Europa League,2022,0,
+2022-10-13,PSV Eindhoven,FC Zürich,5,0,UEFA Europa League,2022,0,
+2022-10-13,Ferencvaros,Red Star Belgrade,2,1,UEFA Europa League,2022,0,
+2022-10-13,FK Qarabag,Olympiacos,0,0,UEFA Europa League,2022,0,
+2022-10-13,Manchester United,Omonia Nicosia,1,0,UEFA Europa League,2022,0,
+2022-10-13,Nantes,SC Freiburg,0,4,UEFA Europa League,2022,0,
+2022-10-13,Dynamo Kyiv,Stade Rennais,0,1,UEFA Europa League,2022,0,
+2022-10-13,Union St.-Gilloise,Braga,3,3,UEFA Europa League,2022,0,
+2022-10-13,Real Betis,AS Roma,1,1,UEFA Europa League,2022,0,
+2022-10-13,Feyenoord Rotterdam,FC Midtjylland,2,2,UEFA Europa League,2022,0,
+2022-10-20,Arsenal,PSV Eindhoven,1,0,UEFA Europa League,2022,0,
+2022-10-25,Sevilla,F.C. København,3,0,UEFA Champions League,2022,0,
+2022-10-25,Benfica,Juventus,4,3,UEFA Champions League,2022,0,
+2022-10-25,Borussia Dortmund,Manchester City,0,0,UEFA Champions League,2022,0,
+2022-10-25,Celtic,Shakhtar Donetsk,1,1,UEFA Champions League,2022,0,
+2022-10-25,RB Salzburg,Chelsea,1,2,UEFA Champions League,2022,0,
+2022-10-25,Dinamo Zagreb,AC Milan,0,4,UEFA Champions League,2022,0,
+2022-10-25,Paris Saint-Germain,Maccabi Haifa,7,2,UEFA Champions League,2022,0,
+2022-10-25,RB Leipzig,Real Madrid,3,2,UEFA Champions League,2022,0,
+2022-10-26,Eintracht Frankfurt,Marseille,2,1,UEFA Champions League,2022,0,
+2022-10-26,Internazionale,Viktoria Plzen,4,0,UEFA Champions League,2022,0,
+2022-10-26,Napoli,Rangers,3,0,UEFA Champions League,2022,0,
+2022-10-26,Tottenham Hotspur,Sporting CP,1,1,UEFA Champions League,2022,0,
+2022-10-26,Barcelona,Bayern Munich,0,3,UEFA Champions League,2022,0,
+2022-10-26,Ajax Amsterdam,Liverpool,0,3,UEFA Champions League,2022,0,
+2022-10-26,Club Brugge,FC Porto,0,4,UEFA Champions League,2022,0,
+2022-10-26,Atlético Madrid,Bayer Leverkusen,2,2,UEFA Champions League,2022,0,
+2022-10-27,PSV Eindhoven,Arsenal,2,0,UEFA Europa League,2022,0,
+2022-10-27,Manchester United,Sheriff Tiraspol,3,0,UEFA Europa League,2022,0,
+2022-10-27,Red Star Belgrade,Trabzonspor,2,1,UEFA Europa League,2022,0,
+2022-10-27,Omonia Nicosia,Real Sociedad,0,2,UEFA Europa League,2022,0,
+2022-10-27,Nantes,FK Qarabag,2,1,UEFA Europa League,2022,0,
+2022-10-27,HJK Helsinki,AS Roma,1,2,UEFA Europa League,2022,0,
+2022-10-27,Ferencvaros,AS Monaco,1,1,UEFA Europa League,2022,0,
+2022-10-27,Malmö FF,Union St.-Gilloise,0,2,UEFA Europa League,2022,0,
+2022-10-27,Ludogorets Razgrad,Real Betis,0,1,UEFA Europa League,2022,0,
+2022-10-27,Lazio,FC Midtjylland,2,1,UEFA Europa League,2022,0,
+2022-10-27,Fenerbahce,Stade Rennais,3,3,UEFA Europa League,2022,0,
+2022-10-27,FC Zürich,Bodo/Glimt,2,1,UEFA Europa League,2022,0,
+2022-10-27,SK Sturm Graz,Feyenoord Rotterdam,1,0,UEFA Europa League,2022,0,
+2022-10-27,1. FC Union Berlin,Braga,1,0,UEFA Europa League,2022,0,
+2022-10-27,SC Freiburg,Olympiacos,1,1,UEFA Europa League,2022,0,
+2022-10-27,AEK Larnaca,Dynamo Kyiv,3,3,UEFA Europa League,2022,0,
+2022-11-01,FC Porto,Atlético Madrid,2,1,UEFA Champions League,2022,0,
+2022-11-01,Viktoria Plzen,Barcelona,2,4,UEFA Champions League,2022,0,
+2022-11-01,Rangers,Ajax Amsterdam,1,3,UEFA Champions League,2022,0,
+2022-11-01,Marseille,Tottenham Hotspur,1,2,UEFA Champions League,2022,0,
+2022-11-01,Liverpool,Napoli,2,0,UEFA Champions League,2022,0,
+2022-11-01,Sporting CP,Eintracht Frankfurt,1,2,UEFA Champions League,2022,0,
+2022-11-01,Bayer Leverkusen,Club Brugge,0,0,UEFA Champions League,2022,0,
+2022-11-01,Bayern Munich,Internazionale,2,0,UEFA Champions League,2022,0,
+2022-11-02,Shakhtar Donetsk,RB Leipzig,0,4,UEFA Champions League,2022,0,
+2022-11-02,Chelsea,Dinamo Zagreb,2,1,UEFA Champions League,2022,0,
+2022-11-02,Real Madrid,Celtic,5,1,UEFA Champions League,2022,0,
+2022-11-02,AC Milan,RB Salzburg,4,0,UEFA Champions League,2022,0,
+2022-11-02,Juventus,Paris Saint-Germain,1,2,UEFA Champions League,2022,0,
+2022-11-02,F.C. København,Borussia Dortmund,1,1,UEFA Champions League,2022,0,
+2022-11-02,Maccabi Haifa,Benfica,1,6,UEFA Champions League,2022,0,
+2022-11-02,Manchester City,Sevilla,3,1,UEFA Champions League,2022,0,
+2022-11-03,Sheriff Tiraspol,Omonia Nicosia,1,0,UEFA Europa League,2022,0,
+2022-11-03,Real Betis,HJK Helsinki,3,0,UEFA Europa League,2022,0,
+2022-11-03,Olympiacos,Nantes,0,2,UEFA Europa League,2022,0,
+2022-11-03,Bodo/Glimt,PSV Eindhoven,1,2,UEFA Europa League,2022,0,
+2022-11-03,AS Roma,Ludogorets Razgrad,3,1,UEFA Europa League,2022,0,
+2022-11-03,Trabzonspor,Ferencvaros,1,0,UEFA Europa League,2022,0,
+2022-11-03,Real Sociedad,Manchester United,0,1,UEFA Europa League,2022,0,
+2022-11-03,Arsenal,FC Zürich,1,0,UEFA Europa League,2022,0,
+2022-11-03,Braga,Malmö FF,2,1,UEFA Europa League,2022,0,
+2022-11-03,FK Qarabag,SC Freiburg,1,1,UEFA Europa League,2022,0,
+2022-11-03,FC Midtjylland,SK Sturm Graz,2,0,UEFA Europa League,2022,0,
+2022-11-03,AS Monaco,Red Star Belgrade,4,1,UEFA Europa League,2022,0,
+2022-11-03,Union St.-Gilloise,1. FC Union Berlin,0,1,UEFA Europa League,2022,0,
+2022-11-03,Feyenoord Rotterdam,Lazio,1,0,UEFA Europa League,2022,0,
+2022-11-03,Dynamo Kyiv,Fenerbahce,0,2,UEFA Europa League,2022,0,
+2022-11-03,Stade Rennais,AEK Larnaca,1,1,UEFA Europa League,2022,0,
+2023-02-14,Paris Saint-Germain,Bayern Munich,0,1,UEFA Champions League,2022,1,1st Leg
+2023-02-14,AC Milan,Tottenham Hotspur,1,0,UEFA Champions League,2022,1,1st Leg
+2023-02-15,Borussia Dortmund,Chelsea,1,0,UEFA Champions League,2022,1,1st Leg
+2023-02-15,Club Brugge,Benfica,0,2,UEFA Champions League,2022,1,1st Leg
+2023-02-16,Sevilla,PSV Eindhoven,3,0,UEFA Europa League,2022,1,1st Leg
+2023-02-16,Barcelona,Manchester United,2,2,UEFA Europa League,2022,1,1st Leg
+2023-02-16,Sporting CP,FC Midtjylland,1,1,UEFA Europa League,2022,1,1st Leg
+2023-02-16,Juventus,Nantes,1,1,UEFA Europa League,2022,1,1st Leg
+2023-02-16,Shakhtar Donetsk,Stade Rennais,2,1,UEFA Europa League,2022,1,1st Leg
+2023-02-16,RB Salzburg,AS Roma,1,0,UEFA Europa League,2022,1,1st Leg
+2023-02-16,Ajax Amsterdam,1. FC Union Berlin,0,0,UEFA Europa League,2022,1,1st Leg
+2023-02-16,Bayer Leverkusen,AS Monaco,2,3,UEFA Europa League,2022,1,1st Leg
+2023-02-21,Liverpool,Real Madrid,2,5,UEFA Champions League,2022,1,1st Leg
+2023-02-21,Eintracht Frankfurt,Napoli,0,2,UEFA Champions League,2022,1,1st Leg
+2023-02-22,Internazionale,FC Porto,1,0,UEFA Champions League,2022,1,1st Leg
+2023-02-22,RB Leipzig,Manchester City,1,1,UEFA Champions League,2022,1,1st Leg
+2023-02-23,AS Roma,RB Salzburg,2,0,UEFA Europa League,2022,2,2nd Leg - AS Roma advance 2-1 on aggregate
+2023-02-23,Stade Rennais,Shakhtar Donetsk,2,1,UEFA Europa League,2022,2,2nd Leg - Tied on aggregate - Shakhtar Donetsk advance 5-4 on penalties
+2023-02-23,Manchester United,Barcelona,2,1,UEFA Europa League,2022,2,2nd Leg - Manchester United advance 4-3 on aggregate
+2023-02-23,PSV Eindhoven,Sevilla,2,0,UEFA Europa League,2022,2,2nd Leg - Sevilla advance 3-2 on aggregate
+2023-02-23,FC Midtjylland,Sporting CP,0,4,UEFA Europa League,2022,2,2nd Leg - Sporting CP advance 5-1 on aggregate
+2023-02-23,AS Monaco,Bayer Leverkusen,2,3,UEFA Europa League,2022,2,2nd Leg - Tied on aggregate - Bayer Leverkusen advance 5-3 on penalties
+2023-02-23,Nantes,Juventus,0,3,UEFA Europa League,2022,2,2nd Leg - Juventus advance 4-1 on aggregate
+2023-02-23,1. FC Union Berlin,Ajax Amsterdam,3,1,UEFA Europa League,2022,2,2nd Leg - 1. FC Union Berlin advance 3-1 on aggregate
+2023-03-07,Benfica,Club Brugge,5,1,UEFA Champions League,2022,2,2nd Leg - Benfica advance 7-1 on aggregate
+2023-03-07,Chelsea,Borussia Dortmund,2,0,UEFA Champions League,2022,2,2nd Leg - Chelsea advance 2-1 on aggregate
+2023-03-08,Bayern Munich,Paris Saint-Germain,2,0,UEFA Champions League,2022,2,2nd Leg - Bayern Munich advance 3-0 on aggregate
+2023-03-08,Tottenham Hotspur,AC Milan,0,0,UEFA Champions League,2022,2,2nd Leg - AC Milan advance 1-0 on aggregate
+2023-03-09,AS Roma,Real Sociedad,2,0,UEFA Europa League,2022,1,1st Leg
+2023-03-09,Shakhtar Donetsk,Feyenoord Rotterdam,1,1,UEFA Europa League,2022,1,1st Leg
+2023-03-09,Manchester United,Real Betis,4,1,UEFA Europa League,2022,1,1st Leg
+2023-03-09,Sevilla,Fenerbahce,2,0,UEFA Europa League,2022,1,1st Leg
+2023-03-09,1. FC Union Berlin,Union St.-Gilloise,3,3,UEFA Europa League,2022,1,1st Leg
+2023-03-09,Sporting CP,Arsenal,2,2,UEFA Europa League,2022,1,1st Leg
+2023-03-09,Bayer Leverkusen,Ferencvaros,2,0,UEFA Europa League,2022,1,1st Leg
+2023-03-09,Juventus,SC Freiburg,1,0,UEFA Europa League,2022,1,1st Leg
+2023-03-14,Manchester City,RB Leipzig,7,0,UEFA Champions League,2022,2,2nd Leg - Manchester City advance 8-1 on aggregate
+2023-03-14,FC Porto,Internazionale,0,0,UEFA Champions League,2022,2,2nd Leg - Internazionale advance 1-0 on aggregate
+2023-03-15,Real Madrid,Liverpool,1,0,UEFA Champions League,2022,2,2nd Leg - Real Madrid advance 6-2 on aggregate
+2023-03-15,Napoli,Eintracht Frankfurt,3,0,UEFA Champions League,2022,2,2nd Leg - Napoli advance 5-0 on aggregate
+2023-03-16,Union St.-Gilloise,1. FC Union Berlin,3,0,UEFA Europa League,2022,2,2nd Leg - Union St.-Gilloise advance 6-3 on aggregate
+2023-03-16,Real Sociedad,AS Roma,0,0,UEFA Europa League,2022,2,2nd Leg - AS Roma advance 2-0 on aggregate
+2023-03-16,Ferencvaros,Bayer Leverkusen,0,2,UEFA Europa League,2022,2,2nd Leg - Bayer Leverkusen advance 4-0 on aggregate
+2023-03-16,Arsenal,Sporting CP,1,1,UEFA Europa League,2022,2,2nd Leg - Tied on aggregate - Sporting CP advance 5-3 on penalties
+2023-03-16,Real Betis,Manchester United,0,1,UEFA Europa League,2022,2,2nd Leg - Manchester United advance 5-1 on aggregate
+2023-03-16,Feyenoord Rotterdam,Shakhtar Donetsk,7,1,UEFA Europa League,2022,2,2nd Leg - Feyenoord Rotterdam advance 8-2 on aggregate
+2023-03-16,Fenerbahce,Sevilla,1,0,UEFA Europa League,2022,2,2nd Leg - Sevilla advance 2-1 on aggregate
+2023-03-16,SC Freiburg,Juventus,0,2,UEFA Europa League,2022,2,2nd Leg - Juventus advance 3-0 on aggregate
+2023-04-11,Benfica,Internazionale,0,2,UEFA Champions League,2022,1,1st Leg
+2023-04-11,Manchester City,Bayern Munich,3,0,UEFA Champions League,2022,1,1st Leg
+2023-04-12,Real Madrid,Chelsea,2,0,UEFA Champions League,2022,1,1st Leg
+2023-04-12,AC Milan,Napoli,1,0,UEFA Champions League,2022,1,1st Leg
+2023-04-13,Manchester United,Sevilla,2,2,UEFA Europa League,2022,1,1st Leg
+2023-04-13,Juventus,Sporting CP,1,0,UEFA Europa League,2022,1,1st Leg
+2023-04-13,Feyenoord Rotterdam,AS Roma,1,0,UEFA Europa League,2022,1,1st Leg
+2023-04-13,Bayer Leverkusen,Union St.-Gilloise,1,1,UEFA Europa League,2022,1,1st Leg
+2023-04-18,Napoli,AC Milan,1,1,UEFA Champions League,2022,2,2nd Leg - AC Milan advance 2-1 on aggregate
+2023-04-18,Chelsea,Real Madrid,0,2,UEFA Champions League,2022,2,2nd Leg - Real Madrid advance 4-0 on aggregate
+2023-04-19,Bayern Munich,Manchester City,1,1,UEFA Champions League,2022,2,2nd Leg - Manchester City advance 4-1 on aggregate
+2023-04-19,Internazionale,Benfica,3,3,UEFA Champions League,2022,2,2nd Leg - Internazionale advance 5-3 on aggregate
+2023-04-20,Sporting CP,Juventus,1,1,UEFA Europa League,2022,2,2nd Leg - Juventus advance 2-1 on aggregate
+2023-04-20,AS Roma,Feyenoord Rotterdam,4,1,UEFA Europa League,2022,2,2nd Leg - AS Roma advance 4-2 on aggregate
+2023-04-20,Sevilla,Manchester United,3,0,UEFA Europa League,2022,2,2nd Leg - Sevilla advance 5-2 on aggregate
+2023-04-20,Union St.-Gilloise,Bayer Leverkusen,1,4,UEFA Europa League,2022,2,2nd Leg - Bayer Leverkusen advance 5-2 on aggregate
+2023-05-09,Real Madrid,Manchester City,1,1,UEFA Champions League,2022,1,1st Leg
+2023-05-10,AC Milan,Internazionale,0,2,UEFA Champions League,2022,1,1st Leg
+2023-05-11,Juventus,Sevilla,1,1,UEFA Europa League,2022,1,1st Leg
+2023-05-11,AS Roma,Bayer Leverkusen,1,0,UEFA Europa League,2022,1,1st Leg
+2023-05-16,Internazionale,AC Milan,1,0,UEFA Champions League,2022,2,2nd Leg - Internazionale advance 3-0 on aggregate
+2023-05-17,Manchester City,Real Madrid,4,0,UEFA Champions League,2022,2,2nd Leg - Manchester City advance 5-1 on aggregate
+2023-05-18,Sevilla,Juventus,2,1,UEFA Europa League,2022,2,2nd Leg - Sevilla advance 3-2 on aggregate
+2023-05-18,Bayer Leverkusen,AS Roma,0,0,UEFA Europa League,2022,2,2nd Leg - AS Roma advance 1-0 on aggregate
+2023-05-31,Sevilla,AS Roma,1,1,UEFA Europa League,2022,0,Sevilla win 4-1 on penalties
+2023-06-10,Manchester City,Internazionale,1,0,UEFA Champions League,2022,0,
+2023-09-19,Shakhtar Donetsk,FC Porto,1,3,UEFA Champions League,2023,0,
+2023-09-19,Feyenoord Rotterdam,Celtic,2,0,UEFA Champions League,2023,0,
+2023-09-19,Barcelona,Antwerp,5,0,UEFA Champions League,2023,0,
+2023-09-19,Manchester City,Red Star Belgrade,3,1,UEFA Champions League,2023,0,
+2023-09-19,AC Milan,Newcastle United,0,0,UEFA Champions League,2023,0,
+2023-09-19,Lazio,Atlético Madrid,1,1,UEFA Champions League,2023,0,
+2023-09-19,Paris Saint-Germain,Borussia Dortmund,2,0,UEFA Champions League,2023,0,
+2023-09-19,Young Boys,RB Leipzig,1,3,UEFA Champions League,2023,0,
+2023-09-20,Bayern Munich,Manchester United,4,3,UEFA Champions League,2023,0,
+2023-09-20,Galatasaray,F.C. København,2,2,UEFA Champions League,2023,0,
+2023-09-20,Benfica,RB Salzburg,0,2,UEFA Champions League,2023,0,
+2023-09-20,Braga,Napoli,1,2,UEFA Champions League,2023,0,
+2023-09-20,Sevilla,Lens,1,1,UEFA Champions League,2023,0,
+2023-09-20,Real Sociedad,Internazionale,1,1,UEFA Champions League,2023,0,
+2023-09-20,Real Madrid,1. FC Union Berlin,1,0,UEFA Champions League,2023,0,
+2023-09-20,Arsenal,PSV Eindhoven,4,0,UEFA Champions League,2023,0,
+2023-09-21,Olympiacos,SC Freiburg,2,3,UEFA Europa League,2023,0,
+2023-09-21,Servette,Slavia Prague,0,2,UEFA Europa League,2023,0,
+2023-09-21,West Ham United,FK TSC,3,1,UEFA Europa League,2023,0,
+2023-09-21,Sparta Prague,Aris Limassol,3,2,UEFA Europa League,2023,0,
+2023-09-21,SK Sturm Graz,Sporting CP,1,2,UEFA Europa League,2023,0,
+2023-09-21,Rangers,Real Betis,1,0,UEFA Europa League,2023,0,
+2023-09-21,Brighton & Hove Albion,AEK Athens,2,3,UEFA Europa League,2023,0,
+2023-09-21,Atalanta,Raków Czestochowa,2,0,UEFA Europa League,2023,0,
+2023-09-21,Ajax Amsterdam,Marseille,3,3,UEFA Europa League,2023,0,
+2023-09-21,FK Qarabag,Molde,1,0,UEFA Europa League,2023,0,
+2023-09-21,LASK Linz,Liverpool,1,3,UEFA Europa League,2023,0,
+2023-09-21,Panathinaikos,Villarreal,2,0,UEFA Europa League,2023,0,
+2023-09-21,Sheriff Tiraspol,AS Roma,1,2,UEFA Europa League,2023,0,
+2023-09-21,Stade Rennais,Maccabi Haifa,3,0,UEFA Europa League,2023,0,
+2023-09-21,Union St.-Gilloise,Toulouse,1,1,UEFA Europa League,2023,0,
+2023-09-21,Bayer Leverkusen,BK Häcken,4,0,UEFA Europa League,2023,0,
+2023-10-03,PSV Eindhoven,Sevilla,2,2,UEFA Champions League,2023,0,
+2023-10-03,Manchester United,Galatasaray,2,3,UEFA Champions League,2023,0,
+2023-10-03,RB Salzburg,Real Sociedad,0,2,UEFA Champions League,2023,0,
+2023-10-03,Napoli,Real Madrid,2,3,UEFA Champions League,2023,0,
+2023-10-03,F.C. København,Bayern Munich,1,2,UEFA Champions League,2023,0,
+2023-10-03,Lens,Arsenal,2,1,UEFA Champions League,2023,0,
+2023-10-03,Internazionale,Benfica,1,0,UEFA Champions League,2023,0,
+2023-10-03,1. FC Union Berlin,Braga,2,3,UEFA Champions League,2023,0,
+2023-10-04,FC Porto,Barcelona,0,1,UEFA Champions League,2023,0,
+2023-10-04,Borussia Dortmund,AC Milan,0,0,UEFA Champions League,2023,0,
+2023-10-04,Newcastle United,Paris Saint-Germain,4,1,UEFA Champions League,2023,0,
+2023-10-04,RB Leipzig,Manchester City,1,3,UEFA Champions League,2023,0,
+2023-10-04,Atlético Madrid,Feyenoord Rotterdam,3,2,UEFA Champions League,2023,0,
+2023-10-04,Antwerp,Shakhtar Donetsk,2,3,UEFA Champions League,2023,0,
+2023-10-04,Red Star Belgrade,Young Boys,2,2,UEFA Champions League,2023,0,
+2023-10-04,Celtic,Lazio,1,2,UEFA Champions League,2023,0,
+2023-10-05,Maccabi Haifa,Panathinaikos,0,0,UEFA Europa League,2023,0,
+2023-10-05,Marseille,Brighton & Hove Albion,2,2,UEFA Europa League,2023,0,
+2023-10-05,BK Häcken,FK Qarabag,0,1,UEFA Europa League,2023,0,
+2023-10-05,Villarreal,Stade Rennais,1,0,UEFA Europa League,2023,0,
+2023-10-05,Toulouse,LASK Linz,1,0,UEFA Europa League,2023,0,
+2023-10-05,Slavia Prague,Sheriff Tiraspol,6,0,UEFA Europa League,2023,0,
+2023-10-05,Molde,Bayer Leverkusen,1,2,UEFA Europa League,2023,0,
+2023-10-05,Liverpool,Union St.-Gilloise,2,0,UEFA Europa League,2023,0,
+2023-10-05,AEK Athens,Ajax Amsterdam,1,1,UEFA Europa League,2023,0,
+2023-10-05,Sporting CP,Atalanta,1,2,UEFA Europa League,2023,0,
+2023-10-05,SC Freiburg,West Ham United,1,2,UEFA Europa League,2023,0,
+2023-10-05,Aris Limassol,Rangers,2,1,UEFA Europa League,2023,0,
+2023-10-05,AS Roma,Servette,4,0,UEFA Europa League,2023,0,
+2023-10-05,Raków Czestochowa,SK Sturm Graz,0,1,UEFA Europa League,2023,0,
+2023-10-05,Real Betis,Sparta Prague,2,1,UEFA Europa League,2023,0,
+2023-10-05,FK TSC,Olympiacos,2,2,UEFA Europa League,2023,0,
+2023-10-24,Sevilla,Arsenal,1,2,UEFA Champions League,2023,0,
+2023-10-24,Lens,PSV Eindhoven,1,1,UEFA Champions League,2023,0,
+2023-10-24,Braga,Real Madrid,1,2,UEFA Champions League,2023,0,
+2023-10-24,Internazionale,RB Salzburg,2,1,UEFA Champions League,2023,0,
+2023-10-24,1. FC Union Berlin,Napoli,0,1,UEFA Champions League,2023,0,
+2023-10-24,Galatasaray,Bayern Munich,1,3,UEFA Champions League,2023,0,
+2023-10-24,Benfica,Real Sociedad,0,1,UEFA Champions League,2023,0,
+2023-10-24,Manchester United,F.C. København,1,0,UEFA Champions League,2023,0,
+2023-10-25,Celtic,Atlético Madrid,2,2,UEFA Champions League,2023,0,
+2023-10-25,Paris Saint-Germain,AC Milan,3,0,UEFA Champions League,2023,0,
+2023-10-25,RB Leipzig,Red Star Belgrade,3,1,UEFA Champions League,2023,0,
+2023-10-25,Young Boys,Manchester City,1,3,UEFA Champions League,2023,0,
+2023-10-25,Feyenoord Rotterdam,Lazio,3,1,UEFA Champions League,2023,0,
+2023-10-25,Antwerp,FC Porto,1,4,UEFA Champions League,2023,0,
+2023-10-25,Barcelona,Shakhtar Donetsk,2,1,UEFA Champions League,2023,0,
+2023-10-25,Newcastle United,Borussia Dortmund,0,1,UEFA Champions League,2023,0,
+2023-10-26,FK TSC,SC Freiburg,1,3,UEFA Europa League,2023,0,
+2023-10-26,Sparta Prague,Rangers,0,0,UEFA Europa League,2023,0,
+2023-10-26,Union St.-Gilloise,LASK Linz,2,1,UEFA Europa League,2023,0,
+2023-10-26,Sheriff Tiraspol,Servette,1,1,UEFA Europa League,2023,0,
+2023-10-26,Liverpool,Toulouse,5,1,UEFA Europa League,2023,0,
+2023-10-26,Aris Limassol,Real Betis,0,1,UEFA Europa League,2023,0,
+2023-10-26,Marseille,AEK Athens,3,1,UEFA Europa League,2023,0,
+2023-10-26,Bayer Leverkusen,FK Qarabag,5,1,UEFA Europa League,2023,0,
+2023-10-26,Raków Czestochowa,Sporting CP,1,1,UEFA Europa League,2023,0,
+2023-10-26,SK Sturm Graz,Atalanta,2,2,UEFA Europa League,2023,0,
+2023-10-26,AS Roma,Slavia Prague,2,0,UEFA Europa League,2023,0,
+2023-10-26,Brighton & Hove Albion,Ajax Amsterdam,2,0,UEFA Europa League,2023,0,
+2023-10-26,Panathinaikos,Stade Rennais,1,2,UEFA Europa League,2023,0,
+2023-10-26,Olympiacos,West Ham United,2,1,UEFA Europa League,2023,0,
+2023-10-26,Molde,BK Häcken,5,1,UEFA Europa League,2023,0,
+2023-11-07,Atlético Madrid,Celtic,6,0,UEFA Champions League,2023,0,
+2023-11-07,FC Porto,Antwerp,2,0,UEFA Champions League,2023,0,
+2023-11-07,Borussia Dortmund,Newcastle United,2,0,UEFA Champions League,2023,0,
+2023-11-07,Red Star Belgrade,RB Leipzig,1,2,UEFA Champions League,2023,0,
+2023-11-07,Lazio,Feyenoord Rotterdam,1,0,UEFA Champions League,2023,0,
+2023-11-07,AC Milan,Paris Saint-Germain,2,1,UEFA Champions League,2023,0,
+2023-11-07,Shakhtar Donetsk,Barcelona,1,0,UEFA Champions League,2023,0,
+2023-11-07,Manchester City,Young Boys,3,0,UEFA Champions League,2023,0,
+2023-11-08,Bayern Munich,Galatasaray,2,1,UEFA Champions League,2023,0,
+2023-11-08,Real Sociedad,Benfica,3,1,UEFA Champions League,2023,0,
+2023-11-08,Arsenal,Sevilla,2,0,UEFA Champions League,2023,0,
+2023-11-08,Real Madrid,Braga,3,0,UEFA Champions League,2023,0,
+2023-11-08,PSV Eindhoven,Lens,1,0,UEFA Champions League,2023,0,
+2023-11-08,Napoli,1. FC Union Berlin,1,1,UEFA Champions League,2023,0,
+2023-11-08,F.C. København,Manchester United,4,3,UEFA Champions League,2023,0,
+2023-11-08,RB Salzburg,Internazionale,0,1,UEFA Champions League,2023,0,
+2023-11-09,Atalanta,SK Sturm Graz,1,0,UEFA Europa League,2023,0,
+2023-11-09,Real Betis,Aris Limassol,4,1,UEFA Europa League,2023,0,
+2023-11-09,SC Freiburg,FK TSC,5,0,UEFA Europa League,2023,0,
+2023-11-09,West Ham United,Olympiacos,1,0,UEFA Europa League,2023,0,
+2023-11-09,BK Häcken,Molde,1,3,UEFA Europa League,2023,0,
+2023-11-09,Rangers,Sparta Prague,2,1,UEFA Europa League,2023,0,
+2023-11-09,Stade Rennais,Panathinaikos,3,1,UEFA Europa League,2023,0,
+2023-11-09,AEK Athens,Marseille,0,2,UEFA Europa League,2023,0,
+2023-11-09,LASK Linz,Union St.-Gilloise,3,0,UEFA Europa League,2023,0,
+2023-11-09,Slavia Prague,AS Roma,2,0,UEFA Europa League,2023,0,
+2023-11-09,Servette,Sheriff Tiraspol,2,1,UEFA Europa League,2023,0,
+2023-11-09,Maccabi Haifa,Villarreal,1,2,UEFA Europa League,2023,0,
+2023-11-09,Sporting CP,Raków Czestochowa,2,1,UEFA Europa League,2023,0,
+2023-11-09,FK Qarabag,Bayer Leverkusen,0,1,UEFA Europa League,2023,0,
+2023-11-09,Ajax Amsterdam,Brighton & Hove Albion,0,2,UEFA Europa League,2023,0,
+2023-11-09,Toulouse,Liverpool,3,2,UEFA Europa League,2023,0,
+2023-11-28,Lazio,Celtic,2,0,UEFA Champions League,2023,0,
+2023-11-28,AC Milan,Borussia Dortmund,1,3,UEFA Champions League,2023,0,
+2023-11-28,Paris Saint-Germain,Newcastle United,1,1,UEFA Champions League,2023,0,
+2023-11-28,Shakhtar Donetsk,Antwerp,1,0,UEFA Champions League,2023,0,
+2023-11-28,Barcelona,FC Porto,2,1,UEFA Champions League,2023,0,
+2023-11-28,Young Boys,Red Star Belgrade,2,0,UEFA Champions League,2023,0,
+2023-11-28,Feyenoord Rotterdam,Atlético Madrid,1,3,UEFA Champions League,2023,0,
+2023-11-28,Manchester City,RB Leipzig,3,2,UEFA Champions League,2023,0,
+2023-11-29,Galatasaray,Manchester United,3,3,UEFA Champions League,2023,0,
+2023-11-29,Real Madrid,Napoli,4,2,UEFA Champions League,2023,0,
+2023-11-29,Real Sociedad,RB Salzburg,0,0,UEFA Champions League,2023,0,
+2023-11-29,Sevilla,PSV Eindhoven,2,3,UEFA Champions League,2023,0,
+2023-11-29,Arsenal,Lens,6,0,UEFA Champions League,2023,0,
+2023-11-29,Benfica,Internazionale,3,3,UEFA Champions League,2023,0,
+2023-11-29,Braga,1. FC Union Berlin,1,1,UEFA Champions League,2023,0,
+2023-11-29,Bayern Munich,F.C. København,0,0,UEFA Champions League,2023,0,
+2023-11-30,SC Freiburg,Olympiacos,5,0,UEFA Europa League,2023,0,
+2023-11-30,Liverpool,LASK Linz,4,0,UEFA Europa League,2023,0,
+2023-11-30,BK Häcken,Bayer Leverkusen,0,2,UEFA Europa League,2023,0,
+2023-11-30,Sparta Prague,Real Betis,1,0,UEFA Europa League,2023,0,
+2023-11-30,SK Sturm Graz,Raków Czestochowa,0,1,UEFA Europa League,2023,0,
+2023-11-30,Atalanta,Sporting CP,1,1,UEFA Europa League,2023,0,
+2023-11-30,Maccabi Haifa,Stade Rennais,0,3,UEFA Europa League,2023,0,
+2023-11-30,FK TSC,West Ham United,0,1,UEFA Europa League,2023,0,
+2023-11-30,Servette,AS Roma,1,1,UEFA Europa League,2023,0,
+2023-11-30,Toulouse,Union St.-Gilloise,0,0,UEFA Europa League,2023,0,
+2023-11-30,Sheriff Tiraspol,Slavia Prague,2,3,UEFA Europa League,2023,0,
+2023-11-30,Rangers,Aris Limassol,1,1,UEFA Europa League,2023,0,
+2023-11-30,Marseille,Ajax Amsterdam,4,3,UEFA Europa League,2023,0,
+2023-11-30,Molde,FK Qarabag,2,2,UEFA Europa League,2023,0,
+2023-11-30,Villarreal,Panathinaikos,3,2,UEFA Europa League,2023,0,
+2023-11-30,AEK Athens,Brighton & Hove Albion,0,1,UEFA Europa League,2023,0,
+2023-12-06,Villarreal,Maccabi Haifa,0,0,UEFA Europa League,2023,0,
+2023-12-12,1. FC Union Berlin,Real Madrid,2,3,UEFA Champions League,2023,0,
+2023-12-12,Lens,Sevilla,2,1,UEFA Champions League,2023,0,
+2023-12-12,PSV Eindhoven,Arsenal,1,1,UEFA Champions League,2023,0,
+2023-12-12,Manchester United,Bayern Munich,0,1,UEFA Champions League,2023,0,
+2023-12-12,F.C. København,Galatasaray,1,0,UEFA Champions League,2023,0,
+2023-12-12,Internazionale,Real Sociedad,0,0,UEFA Champions League,2023,0,
+2023-12-12,Napoli,Braga,2,0,UEFA Champions League,2023,0,
+2023-12-12,RB Salzburg,Benfica,1,3,UEFA Champions League,2023,0,
+2023-12-13,RB Leipzig,Young Boys,2,1,UEFA Champions League,2023,0,
+2023-12-13,FC Porto,Shakhtar Donetsk,5,3,UEFA Champions League,2023,0,
+2023-12-13,Newcastle United,AC Milan,1,2,UEFA Champions League,2023,0,
+2023-12-13,Antwerp,Barcelona,3,2,UEFA Champions League,2023,0,
+2023-12-13,Celtic,Feyenoord Rotterdam,2,1,UEFA Champions League,2023,0,
+2023-12-13,Borussia Dortmund,Paris Saint-Germain,1,1,UEFA Champions League,2023,0,
+2023-12-13,Atlético Madrid,Lazio,2,0,UEFA Champions League,2023,0,
+2023-12-13,Red Star Belgrade,Manchester City,2,3,UEFA Champions League,2023,0,
+2023-12-14,Real Betis,Rangers,2,3,UEFA Europa League,2023,0,
+2023-12-14,Stade Rennais,Villarreal,2,3,UEFA Europa League,2023,0,
+2023-12-14,AS Roma,Sheriff Tiraspol,3,0,UEFA Europa League,2023,0,
+2023-12-14,Sporting CP,SK Sturm Graz,3,0,UEFA Europa League,2023,0,
+2023-12-14,Olympiacos,FK TSC,5,2,UEFA Europa League,2023,0,
+2023-12-14,Brighton & Hove Albion,Marseille,1,0,UEFA Europa League,2023,0,
+2023-12-14,Ajax Amsterdam,AEK Athens,3,1,UEFA Europa League,2023,0,
+2023-12-14,Aris Limassol,Sparta Prague,1,3,UEFA Europa League,2023,0,
+2023-12-14,Slavia Prague,Servette,4,0,UEFA Europa League,2023,0,
+2023-12-14,West Ham United,SC Freiburg,2,0,UEFA Europa League,2023,0,
+2023-12-14,Panathinaikos,Maccabi Haifa,1,2,UEFA Europa League,2023,0,
+2023-12-14,LASK Linz,Toulouse,1,2,UEFA Europa League,2023,0,
+2023-12-14,FK Qarabag,BK Häcken,2,1,UEFA Europa League,2023,0,
+2023-12-14,Raków Czestochowa,Atalanta,0,4,UEFA Europa League,2023,0,
+2023-12-14,Bayer Leverkusen,Molde,5,1,UEFA Europa League,2023,0,
+2023-12-14,Union St.-Gilloise,Liverpool,2,1,UEFA Europa League,2023,0,
+2024-02-13,F.C. København,Manchester City,1,3,UEFA Champions League,2023,1,1st Leg
+2024-02-13,RB Leipzig,Real Madrid,0,1,UEFA Champions League,2023,1,1st Leg
+2024-02-14,Lazio,Bayern Munich,1,0,UEFA Champions League,2023,1,1st Leg
+2024-02-14,Paris Saint-Germain,Real Sociedad,2,0,UEFA Champions League,2023,1,1st Leg
+2024-02-15,Lens,SC Freiburg,0,0,UEFA Europa League,2023,1,1st Leg
+2024-02-15,Benfica,Toulouse,2,1,UEFA Europa League,2023,1,1st Leg
+2024-02-15,AC Milan,Stade Rennais,3,0,UEFA Europa League,2023,1,1st Leg
+2024-02-15,Young Boys,Sporting CP,1,3,UEFA Europa League,2023,1,1st Leg
+2024-02-15,Galatasaray,Sparta Prague,3,2,UEFA Europa League,2023,1,1st Leg
+2024-02-15,Feyenoord Rotterdam,AS Roma,1,1,UEFA Europa League,2023,1,1st Leg
+2024-02-15,Shakhtar Donetsk,Marseille,2,2,UEFA Europa League,2023,1,1st Leg
+2024-02-15,Braga,FK Qarabag,2,4,UEFA Europa League,2023,1,1st Leg
+2024-02-20,PSV Eindhoven,Borussia Dortmund,1,1,UEFA Champions League,2023,1,1st Leg
+2024-02-20,Internazionale,Atlético Madrid,1,0,UEFA Champions League,2023,1,1st Leg
+2024-02-21,FC Porto,Arsenal,1,0,UEFA Champions League,2023,1,1st Leg
+2024-02-21,Napoli,Barcelona,1,1,UEFA Champions League,2023,1,1st Leg
+2024-02-22,AS Roma,Feyenoord Rotterdam,1,1,UEFA Europa League,2023,2,2nd Leg - Tied on aggregate - AS Roma advance 4-2 on penalties
+2024-02-22,SC Freiburg,Lens,3,2,UEFA Europa League,2023,2,2nd Leg - SC Freiburg advance 3-2 on aggregate
+2024-02-22,Marseille,Shakhtar Donetsk,3,1,UEFA Europa League,2023,2,2nd Leg - Marseille advance 5-3 on aggregate
+2024-02-22,Toulouse,Benfica,0,0,UEFA Europa League,2023,2,2nd Leg - Benfica advance 2-1 on aggregate
+2024-02-22,Sporting CP,Young Boys,1,1,UEFA Europa League,2023,2,2nd Leg - Sporting CP advance 4-2 on aggregate
+2024-02-22,Stade Rennais,AC Milan,3,2,UEFA Europa League,2023,2,2nd Leg - AC Milan advance 5-3 on aggregate
+2024-02-22,Sparta Prague,Galatasaray,4,1,UEFA Europa League,2023,2,2nd Leg - Sparta Prague advance 6-4 on aggregate
+2024-02-22,FK Qarabag,Braga,2,3,UEFA Europa League,2023,2,2nd Leg - FK Qarabag advance 6-5 on aggregate
+2024-03-05,Bayern Munich,Lazio,3,0,UEFA Champions League,2023,2,2nd Leg - Bayern Munich advance 3-1 on aggregate
+2024-03-05,Real Sociedad,Paris Saint-Germain,1,2,UEFA Champions League,2023,2,2nd Leg - Paris Saint-Germain advance 4-1 on aggregate
+2024-03-06,Manchester City,F.C. København,3,1,UEFA Champions League,2023,2,2nd Leg - Manchester City advance 6-2 on aggregate
+2024-03-06,Real Madrid,RB Leipzig,1,1,UEFA Champions League,2023,2,2nd Leg - Real Madrid advance 2-1 on aggregate
+2024-03-06,Sporting CP,Atalanta,1,1,UEFA Europa League,2023,1,1st Leg
+2024-03-07,Marseille,Villarreal,4,0,UEFA Europa League,2023,1,1st Leg
+2024-03-07,SC Freiburg,West Ham United,1,0,UEFA Europa League,2023,1,1st Leg
+2024-03-07,AS Roma,Brighton & Hove Albion,4,0,UEFA Europa League,2023,1,1st Leg
+2024-03-07,AC Milan,Slavia Prague,4,2,UEFA Europa League,2023,1,1st Leg
+2024-03-07,Sparta Prague,Liverpool,1,5,UEFA Europa League,2023,1,1st Leg
+2024-03-07,FK Qarabag,Bayer Leverkusen,2,2,UEFA Europa League,2023,1,1st Leg
+2024-03-07,Benfica,Rangers,2,2,UEFA Europa League,2023,1,1st Leg
+2024-03-12,Arsenal,FC Porto,1,0,UEFA Champions League,2023,2,2nd Leg - Tied on aggregate - Arsenal advance 4-2 on penalties
+2024-03-12,Barcelona,Napoli,3,1,UEFA Champions League,2023,2,2nd Leg - Barcelona advance 4-2 on aggregate
+2024-03-13,Atlético Madrid,Internazionale,2,1,UEFA Champions League,2023,2,2nd Leg - Tied on aggregate - Atlético Madrid advance 3-2 on penalties
+2024-03-13,Borussia Dortmund,PSV Eindhoven,2,0,UEFA Champions League,2023,2,2nd Leg - Borussia Dortmund advance 3-1 on aggregate
+2024-03-14,Bayer Leverkusen,FK Qarabag,3,2,UEFA Europa League,2023,2,2nd Leg - Bayer Leverkusen advance 5-4 on aggregate
+2024-03-14,Slavia Prague,AC Milan,1,3,UEFA Europa League,2023,2,2nd Leg - AC Milan advance 7-3 on aggregate
+2024-03-14,West Ham United,SC Freiburg,5,0,UEFA Europa League,2023,2,2nd Leg - West Ham United advance 5-1 on aggregate
+2024-03-14,Rangers,Benfica,0,1,UEFA Europa League,2023,2,2nd Leg - Benfica advance 3-2 on aggregate
+2024-03-14,Liverpool,Sparta Prague,6,1,UEFA Europa League,2023,2,2nd Leg - Liverpool advance 11-2 on aggregate
+2024-03-14,Villarreal,Marseille,3,1,UEFA Europa League,2023,2,2nd Leg - Marseille advance 5-3 on aggregate
+2024-03-14,Brighton & Hove Albion,AS Roma,1,0,UEFA Europa League,2023,2,2nd Leg - AS Roma advance 4-1 on aggregate
+2024-03-14,Atalanta,Sporting CP,2,1,UEFA Europa League,2023,2,2nd Leg - Atalanta advance 3-2 on aggregate
+2024-04-09,Real Madrid,Manchester City,3,3,UEFA Champions League,2023,1,1st Leg
+2024-04-09,Arsenal,Bayern Munich,2,2,UEFA Champions League,2023,1,1st Leg
+2024-04-10,Atlético Madrid,Borussia Dortmund,2,1,UEFA Champions League,2023,1,1st Leg
+2024-04-10,Paris Saint-Germain,Barcelona,2,3,UEFA Champions League,2023,1,1st Leg
+2024-04-11,Liverpool,Atalanta,0,3,UEFA Europa League,2023,1,1st Leg
+2024-04-11,AC Milan,AS Roma,0,1,UEFA Europa League,2023,1,1st Leg
+2024-04-11,Bayer Leverkusen,West Ham United,2,0,UEFA Europa League,2023,1,1st Leg
+2024-04-11,Benfica,Marseille,2,1,UEFA Europa League,2023,1,1st Leg
+2024-04-16,Barcelona,Paris Saint-Germain,1,4,UEFA Champions League,2023,2,2nd Leg - Paris Saint-Germain advance 6-4 on aggregate
+2024-04-16,Borussia Dortmund,Atlético Madrid,4,2,UEFA Champions League,2023,2,2nd Leg - Borussia Dortmund advance 5-4 on aggregate
+2024-04-17,Bayern Munich,Arsenal,1,0,UEFA Champions League,2023,2,2nd Leg - Bayern Munich advance 3-2 on aggregate
+2024-04-17,Manchester City,Real Madrid,1,1,UEFA Champions League,2023,2,2nd Leg - Tied on aggregate - Real Madrid advance 4-3 on penalties
+2024-04-18,Marseille,Benfica,1,0,UEFA Europa League,2023,2,2nd Leg - Tied on aggregate - Marseille advance 4-2 on penalties
+2024-04-18,Atalanta,Liverpool,0,1,UEFA Europa League,2023,2,2nd Leg - Atalanta advance 3-1 on aggregate
+2024-04-18,AS Roma,AC Milan,2,1,UEFA Europa League,2023,2,2nd Leg - AS Roma advance 3-1 on aggregate
+2024-04-18,West Ham United,Bayer Leverkusen,1,1,UEFA Europa League,2023,2,2nd Leg - Bayer Leverkusen advance 3-1 on aggregate
+2024-04-30,Bayern Munich,Real Madrid,2,2,UEFA Champions League,2023,1,1st Leg
+2024-05-01,Borussia Dortmund,Paris Saint-Germain,1,0,UEFA Champions League,2023,1,1st Leg
+2024-05-02,Marseille,Atalanta,1,1,UEFA Europa League,2023,1,1st Leg
+2024-05-02,AS Roma,Bayer Leverkusen,0,2,UEFA Europa League,2023,1,1st Leg
+2024-05-07,Paris Saint-Germain,Borussia Dortmund,0,1,UEFA Champions League,2023,2,2nd Leg - Borussia Dortmund advance 2-0 on aggregate
+2024-05-08,Real Madrid,Bayern Munich,2,1,UEFA Champions League,2023,2,2nd Leg - Real Madrid advance 4-3 on aggregate
+2024-05-09,Atalanta,Marseille,3,0,UEFA Europa League,2023,2,2nd Leg - Atalanta advance 4-1 on aggregate
+2024-05-09,Bayer Leverkusen,AS Roma,2,2,UEFA Europa League,2023,2,2nd Leg - Bayer Leverkusen advance 4-2 on aggregate
+2024-05-22,Atalanta,Bayer Leverkusen,3,0,UEFA Europa League,2023,0,
+2024-06-01,Borussia Dortmund,Real Madrid,0,2,UEFA Champions League,2023,0,
+2024-09-17,Juventus,PSV Eindhoven,3,1,UEFA Champions League,2024,0,
+2024-09-17,Young Boys,Aston Villa,0,3,UEFA Champions League,2024,0,
+2024-09-17,Real Madrid,VfB Stuttgart,3,1,UEFA Champions League,2024,0,
+2024-09-17,AC Milan,Liverpool,1,3,UEFA Champions League,2024,0,
+2024-09-17,Bayern Munich,Dinamo Zagreb,9,2,UEFA Champions League,2024,0,
+2024-09-17,Sporting CP,Lille,2,0,UEFA Champions League,2024,0,
+2024-09-18,Bologna,Shakhtar Donetsk,0,0,UEFA Champions League,2024,0,
+2024-09-18,Paris Saint-Germain,Girona,1,0,UEFA Champions League,2024,0,
+2024-09-18,Manchester City,Internazionale,0,0,UEFA Champions League,2024,0,
+2024-09-18,Club Brugge,Borussia Dortmund,0,3,UEFA Champions League,2024,0,
+2024-09-18,Celtic,Slovan Bratislava,5,1,UEFA Champions League,2024,0,
+2024-09-18,Sparta Prague,RB Salzburg,3,0,UEFA Champions League,2024,0,
+2024-09-19,Atalanta,Arsenal,0,0,UEFA Champions League,2024,0,
+2024-09-19,Brest,SK Sturm Graz,2,1,UEFA Champions League,2024,0,
+2024-09-19,Red Star Belgrade,Benfica,1,2,UEFA Champions League,2024,0,
+2024-09-19,AS Monaco,Barcelona,2,1,UEFA Champions League,2024,0,
+2024-09-19,Feyenoord Rotterdam,Bayer Leverkusen,0,4,UEFA Champions League,2024,0,
+2024-09-19,Atlético Madrid,RB Leipzig,2,1,UEFA Champions League,2024,0,
+2024-09-25,Ludogorets Razgrad,Slavia Prague,0,2,UEFA Europa League,2024,0,
+2024-09-25,FC Midtjylland,TSG Hoffenheim,1,1,UEFA Europa League,2024,0,
+2024-09-25,Galatasaray,PAOK Salonika,3,1,UEFA Europa League,2024,0,
+2024-09-25,Anderlecht,Ferencvaros,2,1,UEFA Europa League,2024,0,
+2024-09-25,AZ Alkmaar,IF Elfsborg,3,2,UEFA Europa League,2024,0,
+2024-09-25,Nice,Real Sociedad,1,1,UEFA Europa League,2024,0,
+2024-09-25,Manchester United,FC Twente,1,1,UEFA Europa League,2024,0,
+2024-09-25,Dynamo Kyiv,Lazio,0,3,UEFA Europa League,2024,0,
+2024-09-25,Bodo/Glimt,FC Porto,3,2,UEFA Europa League,2024,0,
+2024-09-26,Ajax Amsterdam,Besiktas,4,0,UEFA Europa League,2024,0,
+2024-09-26,Malmö FF,Rangers,0,2,UEFA Europa League,2024,0,
+2024-09-26,Fenerbahce,Union St.-Gilloise,2,1,UEFA Europa League,2024,0,
+2024-09-26,AS Roma,Athletic Club,1,1,UEFA Europa League,2024,0,
+2024-09-26,Lyon,Olympiacos,2,0,UEFA Europa League,2024,0,
+2024-09-26,Eintracht Frankfurt,Viktoria Plzen,3,3,UEFA Europa League,2024,0,
+2024-09-26,FCSB,Rigas Futbola Skola,4,1,UEFA Europa League,2024,0,
+2024-09-26,Braga,Maccabi Tel-Aviv,2,1,UEFA Europa League,2024,0,
+2024-09-26,Tottenham Hotspur,FK Qarabag,3,0,UEFA Europa League,2024,0,
+2024-10-01,RB Salzburg,Brest,0,4,UEFA Champions League,2024,0,
+2024-10-01,Arsenal,Paris Saint-Germain,2,0,UEFA Champions League,2024,0,
+2024-10-01,VfB Stuttgart,Sparta Prague,1,1,UEFA Champions League,2024,0,
+2024-10-01,Bayer Leverkusen,AC Milan,1,0,UEFA Champions League,2024,0,
+2024-10-01,Borussia Dortmund,Celtic,7,1,UEFA Champions League,2024,0,
+2024-10-01,Internazionale,Red Star Belgrade,4,0,UEFA Champions League,2024,0,
+2024-10-01,PSV Eindhoven,Sporting CP,1,1,UEFA Champions League,2024,0,
+2024-10-01,Barcelona,Young Boys,5,0,UEFA Champions League,2024,0,
+2024-10-01,Slovan Bratislava,Manchester City,0,4,UEFA Champions League,2024,0,
+2024-10-02,Liverpool,Bologna,2,0,UEFA Champions League,2024,0,
+2024-10-02,Lille,Real Madrid,1,0,UEFA Champions League,2024,0,
+2024-10-02,Girona,Feyenoord Rotterdam,2,3,UEFA Champions League,2024,0,
+2024-10-02,Shakhtar Donetsk,Atalanta,0,3,UEFA Champions League,2024,0,
+2024-10-02,SK Sturm Graz,Club Brugge,0,1,UEFA Champions League,2024,0,
+2024-10-02,Benfica,Atlético Madrid,4,0,UEFA Champions League,2024,0,
+2024-10-02,Dinamo Zagreb,AS Monaco,2,2,UEFA Champions League,2024,0,
+2024-10-02,RB Leipzig,Juventus,2,3,UEFA Champions League,2024,0,
+2024-10-02,Aston Villa,Bayern Munich,1,0,UEFA Champions League,2024,0,
+2024-10-03,Union St.-Gilloise,Bodo/Glimt,0,0,UEFA Europa League,2024,0,
+2024-10-03,Rangers,Lyon,1,4,UEFA Europa League,2024,0,
+2024-10-03,PAOK Salonika,FCSB,0,1,UEFA Europa League,2024,0,
+2024-10-03,IF Elfsborg,AS Roma,1,0,UEFA Europa League,2024,0,
+2024-10-03,FC Twente,Fenerbahce,1,1,UEFA Europa League,2024,0,
+2024-10-03,FC Porto,Manchester United,3,3,UEFA Europa League,2024,0,
+2024-10-03,Besiktas,Eintracht Frankfurt,1,3,UEFA Europa League,2024,0,
+2024-10-03,Viktoria Plzen,Ludogorets Razgrad,0,0,UEFA Europa League,2024,0,
+2024-10-03,Athletic Club,AZ Alkmaar,2,0,UEFA Europa League,2024,0,
+2024-10-03,Lazio,Nice,4,1,UEFA Europa League,2024,0,
+2024-10-03,TSG Hoffenheim,Dynamo Kyiv,2,0,UEFA Europa League,2024,0,
+2024-10-03,Ferencvaros,Tottenham Hotspur,1,2,UEFA Europa League,2024,0,
+2024-10-03,Maccabi Tel-Aviv,FC Midtjylland,0,2,UEFA Europa League,2024,0,
+2024-10-03,FK Qarabag,Malmö FF,1,2,UEFA Europa League,2024,0,
+2024-10-03,Real Sociedad,Anderlecht,1,2,UEFA Europa League,2024,0,
+2024-10-03,Rigas Futbola Skola,Galatasaray,2,2,UEFA Europa League,2024,0,
+2024-10-03,Slavia Prague,Ajax Amsterdam,1,1,UEFA Europa League,2024,0,
+2024-10-03,Olympiacos,Braga,3,0,UEFA Europa League,2024,0,
+2024-10-22,SK Sturm Graz,Sporting CP,0,2,UEFA Champions League,2024,0,
+2024-10-22,Aston Villa,Bologna,2,0,UEFA Champions League,2024,0,
+2024-10-22,Juventus,VfB Stuttgart,0,1,UEFA Champions League,2024,0,
+2024-10-22,Real Madrid,Borussia Dortmund,5,2,UEFA Champions League,2024,0,
+2024-10-22,Girona,Slovan Bratislava,2,0,UEFA Champions League,2024,0,
+2024-10-22,Arsenal,Shakhtar Donetsk,1,0,UEFA Champions League,2024,0,
+2024-10-22,Paris Saint-Germain,PSV Eindhoven,1,1,UEFA Champions League,2024,0,
+2024-10-22,AS Monaco,Red Star Belgrade,5,1,UEFA Champions League,2024,0,
+2024-10-22,AC Milan,Club Brugge,3,1,UEFA Champions League,2024,0,
+2024-10-23,RB Leipzig,Liverpool,0,1,UEFA Champions League,2024,0,
+2024-10-23,Young Boys,Internazionale,0,1,UEFA Champions League,2024,0,
+2024-10-23,Braga,Bodo/Glimt,1,2,UEFA Europa League,2024,0,
+2024-10-23,RB Salzburg,Dinamo Zagreb,0,2,UEFA Champions League,2024,0,
+2024-10-23,Benfica,Feyenoord Rotterdam,1,3,UEFA Champions League,2024,0,
+2024-10-23,Manchester City,Sparta Prague,5,0,UEFA Champions League,2024,0,
+2024-10-23,Barcelona,Bayern Munich,4,1,UEFA Champions League,2024,0,
+2024-10-23,Atalanta,Celtic,0,0,UEFA Champions League,2024,0,
+2024-10-23,Galatasaray,IF Elfsborg,4,3,UEFA Europa League,2024,0,
+2024-10-23,Atlético Madrid,Lille,1,3,UEFA Champions League,2024,0,
+2024-10-23,Brest,Bayer Leverkusen,1,1,UEFA Champions League,2024,0,
+2024-10-24,Eintracht Frankfurt,Rigas Futbola Skola,1,0,UEFA Europa League,2024,0,
+2024-10-24,Maccabi Tel-Aviv,Real Sociedad,1,2,UEFA Europa League,2024,0,
+2024-10-24,Ferencvaros,Nice,1,0,UEFA Europa League,2024,0,
+2024-10-24,FC Porto,TSG Hoffenheim,2,0,UEFA Europa League,2024,0,
+2024-10-24,Athletic Club,Slavia Prague,1,0,UEFA Europa League,2024,0,
+2024-10-24,Anderlecht,Ludogorets Razgrad,2,0,UEFA Europa League,2024,0,
+2024-10-24,AS Roma,Dynamo Kyiv,1,0,UEFA Europa League,2024,0,
+2024-10-24,Fenerbahce,Manchester United,1,1,UEFA Europa League,2024,0,
+2024-10-24,Malmö FF,Olympiacos,0,1,UEFA Europa League,2024,0,
+2024-10-24,PAOK Salonika,Viktoria Plzen,2,2,UEFA Europa League,2024,0,
+2024-10-24,Rangers,FCSB,4,0,UEFA Europa League,2024,0,
+2024-10-24,Tottenham Hotspur,AZ Alkmaar,1,0,UEFA Europa League,2024,0,
+2024-10-24,FK Qarabag,Ajax Amsterdam,0,3,UEFA Europa League,2024,0,
+2024-10-24,Lyon,Besiktas,0,1,UEFA Europa League,2024,0,
+2024-10-24,FC Twente,Lazio,0,2,UEFA Europa League,2024,0,
+2024-10-24,FC Midtjylland,Union St.-Gilloise,1,0,UEFA Europa League,2024,0,
+2024-11-05,Borussia Dortmund,SK Sturm Graz,1,0,UEFA Champions League,2024,0,
+2024-11-05,Celtic,RB Leipzig,3,1,UEFA Champions League,2024,0,
+2024-11-05,Lille,Juventus,1,1,UEFA Champions League,2024,0,
+2024-11-05,Slovan Bratislava,Dinamo Zagreb,1,4,UEFA Champions League,2024,0,
+2024-11-05,PSV Eindhoven,Girona,4,0,UEFA Champions League,2024,0,
+2024-11-05,Sporting CP,Manchester City,4,1,UEFA Champions League,2024,0,
+2024-11-05,Bologna,AS Monaco,0,1,UEFA Champions League,2024,0,
+2024-11-05,Liverpool,Bayer Leverkusen,4,0,UEFA Champions League,2024,0,
+2024-11-05,Real Madrid,AC Milan,1,3,UEFA Champions League,2024,0,
+2024-11-06,Shakhtar Donetsk,Young Boys,2,1,UEFA Champions League,2024,0,
+2024-11-06,Feyenoord Rotterdam,RB Salzburg,1,3,UEFA Champions League,2024,0,
+2024-11-06,VfB Stuttgart,Atalanta,0,2,UEFA Champions League,2024,0,
+2024-11-06,Club Brugge,Aston Villa,1,0,UEFA Champions League,2024,0,
+2024-11-06,Internazionale,Arsenal,1,0,UEFA Champions League,2024,0,
+2024-11-06,Red Star Belgrade,Barcelona,2,5,UEFA Champions League,2024,0,
+2024-11-06,Sparta Prague,Brest,1,2,UEFA Champions League,2024,0,
+2024-11-06,Bayern Munich,Benfica,1,0,UEFA Champions League,2024,0,
+2024-11-06,Besiktas,Malmö FF,2,1,UEFA Europa League,2024,0,
+2024-11-06,Paris Saint-Germain,Atlético Madrid,1,2,UEFA Champions League,2024,0,
+2024-11-07,IF Elfsborg,Braga,1,1,UEFA Europa League,2024,0,
+2024-11-07,Lazio,FC Porto,2,1,UEFA Europa League,2024,0,
+2024-11-07,Dynamo Kyiv,Ferencvaros,0,4,UEFA Europa League,2024,0,
+2024-11-07,AZ Alkmaar,Fenerbahce,3,1,UEFA Europa League,2024,0,
+2024-11-07,Ajax Amsterdam,Maccabi Tel-Aviv,5,0,UEFA Europa League,2024,0,
+2024-11-07,Union St.-Gilloise,AS Roma,1,1,UEFA Europa League,2024,0,
+2024-11-07,Rigas Futbola Skola,Anderlecht,1,1,UEFA Europa League,2024,0,
+2024-11-07,Olympiacos,Rangers,1,1,UEFA Europa League,2024,0,
+2024-11-07,Manchester United,PAOK Salonika,2,0,UEFA Europa League,2024,0,
+2024-11-07,Viktoria Plzen,Real Sociedad,2,1,UEFA Europa League,2024,0,
+2024-11-07,Eintracht Frankfurt,Slavia Prague,1,0,UEFA Europa League,2024,0,
+2024-11-07,Nice,FC Twente,2,2,UEFA Europa League,2024,0,
+2024-11-07,TSG Hoffenheim,Lyon,2,2,UEFA Europa League,2024,0,
+2024-11-07,Ludogorets Razgrad,Athletic Club,1,2,UEFA Europa League,2024,0,
+2024-11-07,FCSB,FC Midtjylland,2,0,UEFA Europa League,2024,0,
+2024-11-07,Bodo/Glimt,FK Qarabag,1,2,UEFA Europa League,2024,0,
+2024-11-07,Galatasaray,Tottenham Hotspur,3,2,UEFA Europa League,2024,0,
+2024-11-26,Barcelona,Brest,3,0,UEFA Champions League,2024,0,
+2024-11-26,Slovan Bratislava,AC Milan,2,3,UEFA Champions League,2024,0,
+2024-11-26,Sparta Prague,Atlético Madrid,0,6,UEFA Champions League,2024,0,
+2024-11-26,Bayern Munich,Paris Saint-Germain,1,0,UEFA Champions League,2024,0,
+2024-11-26,Bayer Leverkusen,RB Salzburg,5,0,UEFA Champions League,2024,0,
+2024-11-26,Sporting CP,Arsenal,1,5,UEFA Champions League,2024,0,
+2024-11-26,Manchester City,Feyenoord Rotterdam,3,3,UEFA Champions League,2024,0,
+2024-11-26,Young Boys,Atalanta,1,6,UEFA Champions League,2024,0,
+2024-11-26,Internazionale,RB Leipzig,1,0,UEFA Champions League,2024,0,
+2024-11-27,Aston Villa,Juventus,0,0,UEFA Champions League,2024,0,
+2024-11-27,PSV Eindhoven,Shakhtar Donetsk,3,2,UEFA Champions League,2024,0,
+2024-11-27,Liverpool,Real Madrid,2,0,UEFA Champions League,2024,0,
+2024-11-27,Dinamo Zagreb,Borussia Dortmund,0,3,UEFA Champions League,2024,0,
+2024-11-27,Celtic,Club Brugge,1,1,UEFA Champions League,2024,0,
+2024-11-27,SK Sturm Graz,Girona,1,0,UEFA Champions League,2024,0,
+2024-11-27,AS Monaco,Benfica,2,3,UEFA Champions League,2024,0,
+2024-11-27,Bologna,Lille,1,2,UEFA Champions League,2024,0,
+2024-11-27,Red Star Belgrade,VfB Stuttgart,5,1,UEFA Champions League,2024,0,
+2024-11-28,Real Sociedad,Ajax Amsterdam,2,0,UEFA Europa League,2024,0,
+2024-11-28,Anderlecht,FC Porto,2,2,UEFA Europa League,2024,0,
+2024-11-28,Slavia Prague,Fenerbahce,1,2,UEFA Europa League,2024,0,
+2024-11-28,AZ Alkmaar,Galatasaray,1,1,UEFA Europa League,2024,0,
+2024-11-28,Manchester United,Bodo/Glimt,3,2,UEFA Europa League,2024,0,
+2024-11-28,FCSB,Olympiacos,0,0,UEFA Europa League,2024,0,
+2024-11-28,Tottenham Hotspur,AS Roma,2,2,UEFA Europa League,2024,0,
+2024-11-28,FC Twente,Union St.-Gilloise,0,1,UEFA Europa League,2024,0,
+2024-11-28,Nice,Rangers,1,4,UEFA Europa League,2024,0,
+2024-11-28,Dynamo Kyiv,Viktoria Plzen,1,2,UEFA Europa League,2024,0,
+2024-11-28,FK Qarabag,Lyon,1,4,UEFA Europa League,2024,0,
+2024-11-28,Lazio,Ludogorets Razgrad,0,0,UEFA Europa League,2024,0,
+2024-11-28,Besiktas,Maccabi Tel-Aviv,1,3,UEFA Europa League,2024,0,
+2024-11-28,Rigas Futbola Skola,PAOK Salonika,0,2,UEFA Europa League,2024,0,
+2024-11-28,Braga,TSG Hoffenheim,3,0,UEFA Europa League,2024,0,
+2024-11-28,FC Midtjylland,Eintracht Frankfurt,1,2,UEFA Europa League,2024,0,
+2024-11-28,Ferencvaros,Malmö FF,4,1,UEFA Europa League,2024,0,
+2024-11-28,Athletic Club,IF Elfsborg,3,0,UEFA Europa League,2024,0,
+2024-12-10,Atalanta,Real Madrid,2,3,UEFA Champions League,2024,0,
+2024-12-10,Shakhtar Donetsk,Bayern Munich,1,5,UEFA Champions League,2024,0,
+2024-12-10,Bayer Leverkusen,Internazionale,1,0,UEFA Champions League,2024,0,
+2024-12-10,Dinamo Zagreb,Celtic,0,0,UEFA Champions League,2024,0,
+2024-12-10,RB Leipzig,Aston Villa,2,3,UEFA Champions League,2024,0,
+2024-12-10,RB Salzburg,Paris Saint-Germain,0,3,UEFA Champions League,2024,0,
+2024-12-10,Brest,PSV Eindhoven,1,0,UEFA Champions League,2024,0,
+2024-12-10,Club Brugge,Sporting CP,2,1,UEFA Champions League,2024,0,
+2024-12-10,Girona,Liverpool,0,1,UEFA Champions League,2024,0,
+2024-12-11,Benfica,Bologna,0,0,UEFA Champions League,2024,0,
+2024-12-11,Juventus,Manchester City,2,0,UEFA Champions League,2024,0,
+2024-12-11,Borussia Dortmund,Barcelona,2,3,UEFA Champions League,2024,0,
+2024-12-11,Arsenal,AS Monaco,3,0,UEFA Champions League,2024,0,
+2024-12-11,Atlético Madrid,Slovan Bratislava,3,1,UEFA Champions League,2024,0,
+2024-12-11,Lille,SK Sturm Graz,3,2,UEFA Champions League,2024,0,
+2024-12-11,Fenerbahce,Athletic Club,0,2,UEFA Europa League,2024,0,
+2024-12-11,Feyenoord Rotterdam,Sparta Prague,4,2,UEFA Champions League,2024,0,
+2024-12-11,VfB Stuttgart,Young Boys,5,1,UEFA Champions League,2024,0,
+2024-12-11,AC Milan,Red Star Belgrade,2,1,UEFA Champions League,2024,0,
+2024-12-12,Union St.-Gilloise,Nice,2,1,UEFA Europa League,2024,0,
+2024-12-12,Ajax Amsterdam,Lazio,1,3,UEFA Europa League,2024,0,
+2024-12-12,AS Roma,Braga,3,0,UEFA Europa League,2024,0,
+2024-12-12,Ludogorets Razgrad,AZ Alkmaar,2,2,UEFA Europa League,2024,0,
+2024-12-12,Olympiacos,FC Twente,0,0,UEFA Europa League,2024,0,
+2024-12-12,PAOK Salonika,Ferencvaros,5,0,UEFA Europa League,2024,0,
+2024-12-12,TSG Hoffenheim,FCSB,0,0,UEFA Europa League,2024,0,
+2024-12-12,FC Porto,FC Midtjylland,2,0,UEFA Europa League,2024,0,
+2024-12-12,Malmö FF,Galatasaray,2,2,UEFA Europa League,2024,0,
+2024-12-12,IF Elfsborg,FK Qarabag,1,0,UEFA Europa League,2024,0,
+2024-12-12,Lyon,Eintracht Frankfurt,3,2,UEFA Europa League,2024,0,
+2024-12-12,Maccabi Tel-Aviv,Rigas Futbola Skola,2,1,UEFA Europa League,2024,0,
+2024-12-12,Rangers,Tottenham Hotspur,1,1,UEFA Europa League,2024,0,
+2024-12-12,Real Sociedad,Dynamo Kyiv,3,0,UEFA Europa League,2024,0,
+2024-12-12,Slavia Prague,Anderlecht,1,2,UEFA Europa League,2024,0,
+2024-12-12,Viktoria Plzen,Manchester United,1,2,UEFA Europa League,2024,0,
+2024-12-12,Bodo/Glimt,Besiktas,2,1,UEFA Europa League,2024,0,
+2025-01-21,Atalanta,SK Sturm Graz,5,0,UEFA Champions League,2024,0,
+2025-01-21,Galatasaray,Dynamo Kyiv,3,3,UEFA Europa League,2024,0,
+2025-01-21,Bologna,Borussia Dortmund,2,1,UEFA Champions League,2024,0,
+2025-01-21,AS Monaco,Aston Villa,1,0,UEFA Champions League,2024,0,
+2025-01-21,Club Brugge,Juventus,0,0,UEFA Champions League,2024,0,
+2025-01-21,Atlético Madrid,Bayer Leverkusen,2,1,UEFA Champions League,2024,0,
+2025-01-21,Liverpool,Lille,2,1,UEFA Champions League,2024,0,
+2025-01-21,Red Star Belgrade,PSV Eindhoven,2,3,UEFA Champions League,2024,0,
+2025-01-21,Benfica,Barcelona,4,5,UEFA Champions League,2024,0,
+2025-01-21,Slovan Bratislava,VfB Stuttgart,1,3,UEFA Champions League,2024,0,
+2025-01-22,Sparta Prague,Internazionale,0,1,UEFA Champions League,2024,0,
+2025-01-22,Arsenal,Dinamo Zagreb,3,0,UEFA Champions League,2024,0,
+2025-01-22,Celtic,Young Boys,1,0,UEFA Champions League,2024,0,
+2025-01-22,AC Milan,Girona,1,0,UEFA Champions League,2024,0,
+2025-01-22,Real Madrid,RB Salzburg,5,1,UEFA Champions League,2024,0,
+2025-01-22,Besiktas,Athletic Club,4,1,UEFA Europa League,2024,0,
+2025-01-22,RB Leipzig,Sporting CP,2,1,UEFA Champions League,2024,0,
+2025-01-22,Feyenoord Rotterdam,Bayern Munich,3,0,UEFA Champions League,2024,0,
+2025-01-22,Paris Saint-Germain,Manchester City,4,2,UEFA Champions League,2024,0,
+2025-01-22,Shakhtar Donetsk,Brest,2,0,UEFA Champions League,2024,0,
+2025-01-23,Viktoria Plzen,Anderlecht,2,0,UEFA Europa League,2024,0,
+2025-01-23,Eintracht Frankfurt,Ferencvaros,2,0,UEFA Europa League,2024,0,
+2025-01-23,Fenerbahce,Lyon,0,0,UEFA Europa League,2024,0,
+2025-01-23,FC Porto,Olympiacos,0,1,UEFA Europa League,2024,0,
+2025-01-23,FK Qarabag,FCSB,2,3,UEFA Europa League,2024,0,
+2025-01-23,IF Elfsborg,Nice,1,0,UEFA Europa League,2024,0,
+2025-01-23,Lazio,Real Sociedad,3,1,UEFA Europa League,2024,0,
+2025-01-23,Malmö FF,FC Twente,2,3,UEFA Europa League,2024,0,
+2025-01-23,PAOK Salonika,Slavia Prague,2,0,UEFA Europa League,2024,0,
+2025-01-23,AZ Alkmaar,AS Roma,1,0,UEFA Europa League,2024,0,
+2025-01-23,Bodo/Glimt,Maccabi Tel-Aviv,3,1,UEFA Europa League,2024,0,
+2025-01-23,Manchester United,Rangers,2,1,UEFA Europa League,2024,0,
+2025-01-23,Ludogorets Razgrad,FC Midtjylland,0,2,UEFA Europa League,2024,0,
+2025-01-23,Union St.-Gilloise,Braga,2,1,UEFA Europa League,2024,0,
+2025-01-23,TSG Hoffenheim,Tottenham Hotspur,2,3,UEFA Europa League,2024,0,
+2025-01-23,Rigas Futbola Skola,Ajax Amsterdam,1,0,UEFA Europa League,2024,0,
+2025-01-29,Manchester City,Club Brugge,3,1,UEFA Champions League,2024,0,
+2025-01-29,Young Boys,Red Star Belgrade,0,1,UEFA Champions League,2024,0,
+2025-01-29,VfB Stuttgart,Paris Saint-Germain,1,4,UEFA Champions League,2024,0,
+2025-01-29,Sporting CP,Bologna,1,1,UEFA Champions League,2024,0,
+2025-01-29,SK Sturm Graz,RB Leipzig,1,0,UEFA Champions League,2024,0,
+2025-01-29,RB Salzburg,Atlético Madrid,1,4,UEFA Champions League,2024,0,
+2025-01-29,PSV Eindhoven,Liverpool,3,2,UEFA Champions League,2024,0,
+2025-01-29,Bayern Munich,Slovan Bratislava,3,1,UEFA Champions League,2024,0,
+2025-01-29,Juventus,Benfica,0,2,UEFA Champions League,2024,0,
+2025-01-29,Internazionale,AS Monaco,3,0,UEFA Champions League,2024,0,
+2025-01-29,Dinamo Zagreb,AC Milan,2,1,UEFA Champions League,2024,0,
+2025-01-29,Brest,Real Madrid,0,3,UEFA Champions League,2024,0,
+2025-01-29,Borussia Dortmund,Shakhtar Donetsk,3,1,UEFA Champions League,2024,0,
+2025-01-29,Bayer Leverkusen,Sparta Prague,2,0,UEFA Champions League,2024,0,
+2025-01-29,Barcelona,Atalanta,2,2,UEFA Champions League,2024,0,
+2025-01-29,Aston Villa,Celtic,4,2,UEFA Champions League,2024,0,
+2025-01-29,Lille,Feyenoord Rotterdam,6,1,UEFA Champions League,2024,0,
+2025-01-29,Girona,Arsenal,1,2,UEFA Champions League,2024,0,
+2025-01-30,Nice,Bodo/Glimt,1,1,UEFA Europa League,2024,0,
+2025-01-30,Ajax Amsterdam,Galatasaray,2,1,UEFA Europa League,2024,0,
+2025-01-30,Anderlecht,TSG Hoffenheim,3,4,UEFA Europa League,2024,0,
+2025-01-30,Olympiacos,FK Qarabag,3,0,UEFA Europa League,2024,0,
+2025-01-30,Slavia Prague,Malmö FF,2,2,UEFA Europa League,2024,0,
+2025-01-30,Tottenham Hotspur,IF Elfsborg,3,0,UEFA Europa League,2024,0,
+2025-01-30,Lyon,Ludogorets Razgrad,1,1,UEFA Europa League,2024,0,
+2025-01-30,Rangers,Union St.-Gilloise,2,1,UEFA Europa League,2024,0,
+2025-01-30,Ferencvaros,AZ Alkmaar,4,3,UEFA Europa League,2024,0,
+2025-01-30,Athletic Club,Viktoria Plzen,3,1,UEFA Europa League,2024,0,
+2025-01-30,FC Twente,Besiktas,1,0,UEFA Europa League,2024,0,
+2025-01-30,FC Midtjylland,Fenerbahce,2,2,UEFA Europa League,2024,0,
+2025-01-30,Maccabi Tel-Aviv,FC Porto,0,1,UEFA Europa League,2024,0,
+2025-01-30,Braga,Lazio,1,0,UEFA Europa League,2024,0,
+2025-01-30,Real Sociedad,PAOK Salonika,2,0,UEFA Europa League,2024,0,
+2025-01-30,Dynamo Kyiv,Rigas Futbola Skola,1,0,UEFA Europa League,2024,0,
+2025-01-30,AS Roma,Eintracht Frankfurt,2,0,UEFA Europa League,2024,0,
+2025-01-30,FCSB,Manchester United,0,2,UEFA Europa League,2024,0,
+2025-02-11,Manchester City,Real Madrid,2,3,UEFA Champions League,2024,1,1st Leg
+2025-02-11,Sporting CP,Borussia Dortmund,0,3,UEFA Champions League,2024,1,1st Leg
+2025-02-11,Juventus,PSV Eindhoven,2,1,UEFA Champions League,2024,1,1st Leg
+2025-02-11,Brest,Paris Saint-Germain,0,3,UEFA Champions League,2024,1,1st Leg
+2025-02-12,Club Brugge,Atalanta,2,1,UEFA Champions League,2024,1,1st Leg
+2025-02-12,AS Monaco,Benfica,0,1,UEFA Champions League,2024,1,1st Leg
+2025-02-12,Celtic,Bayern Munich,1,2,UEFA Champions League,2024,1,1st Leg
+2025-02-12,Feyenoord Rotterdam,AC Milan,1,0,UEFA Champions League,2024,1,1st Leg
+2025-02-13,FC Midtjylland,Real Sociedad,1,2,UEFA Europa League,2024,1,1st Leg
+2025-02-13,PAOK Salonika,FCSB,1,2,UEFA Europa League,2024,1,1st Leg
+2025-02-13,FC Porto,AS Roma,1,1,UEFA Europa League,2024,1,1st Leg
+2025-02-13,FC Twente,Bodo/Glimt,2,1,UEFA Europa League,2024,1,1st Leg
+2025-02-13,Union St.-Gilloise,Ajax Amsterdam,0,2,UEFA Europa League,2024,1,1st Leg
+2025-02-13,Fenerbahce,Anderlecht,3,0,UEFA Europa League,2024,1,1st Leg
+2025-02-13,Ferencvaros,Viktoria Plzen,1,0,UEFA Europa League,2024,1,1st Leg
+2025-02-13,AZ Alkmaar,Galatasaray,4,1,UEFA Europa League,2024,1,1st Leg
+2025-02-18,Atalanta,Club Brugge,1,3,UEFA Champions League,2024,2,2nd Leg - Club Brugge advance 5-2 on aggregate
+2025-02-18,AC Milan,Feyenoord Rotterdam,1,1,UEFA Champions League,2024,2,2nd Leg - Feyenoord Rotterdam advance 2-1 on aggregate
+2025-02-18,Bayern Munich,Celtic,1,1,UEFA Champions League,2024,2,2nd Leg - Bayern Munich advance 3-2 on aggregate
+2025-02-18,Benfica,AS Monaco,3,3,UEFA Champions League,2024,2,2nd Leg - Benfica advance 4-3 on aggregate
+2025-02-19,Borussia Dortmund,Sporting CP,0,0,UEFA Champions League,2024,2,2nd Leg - Borussia Dortmund advance 3-0 on aggregate
+2025-02-19,Paris Saint-Germain,Brest,7,0,UEFA Champions League,2024,2,2nd Leg - Paris Saint-Germain advance 10-0 on aggregate
+2025-02-19,PSV Eindhoven,Juventus,3,1,UEFA Champions League,2024,2,2nd Leg - PSV Eindhoven advance 4-3 on aggregate
+2025-02-19,Real Madrid,Manchester City,3,1,UEFA Champions League,2024,2,2nd Leg - Real Madrid advance 6-3 on aggregate
+2025-02-20,AS Roma,FC Porto,3,2,UEFA Europa League,2024,2,2nd Leg - AS Roma advance 4-3 on aggregate
+2025-02-20,Galatasaray,AZ Alkmaar,2,2,UEFA Europa League,2024,2,2nd Leg - AZ Alkmaar advance 6-3 on aggregate
+2025-02-20,Bodo/Glimt,FC Twente,5,2,UEFA Europa League,2024,2,2nd Leg - Bodo/Glimt advance 6-4 on aggregate
+2025-02-20,FCSB,PAOK Salonika,2,0,UEFA Europa League,2024,2,2nd Leg - FCSB advance 4-1 on aggregate
+2025-02-20,Anderlecht,Fenerbahce,2,2,UEFA Europa League,2024,2,2nd Leg - Fenerbahce advance 5-2 on aggregate
+2025-02-20,Ajax Amsterdam,Union St.-Gilloise,1,2,UEFA Europa League,2024,2,2nd Leg - Ajax Amsterdam advance 3-2 on aggregate
+2025-02-20,Viktoria Plzen,Ferencvaros,3,0,UEFA Europa League,2024,2,2nd Leg - Viktoria Plzen advance 3-1 on aggregate
+2025-02-20,Real Sociedad,FC Midtjylland,5,2,UEFA Europa League,2024,2,2nd Leg - Real Sociedad advance 7-3 on aggregate
+2025-03-04,Borussia Dortmund,Lille,1,1,UEFA Champions League,2024,1,1st Leg
+2025-03-04,Real Madrid,Atlético Madrid,2,1,UEFA Champions League,2024,1,1st Leg
+2025-03-04,Club Brugge,Aston Villa,1,3,UEFA Champions League,2024,1,1st Leg
+2025-03-04,PSV Eindhoven,Arsenal,1,7,UEFA Champions League,2024,1,1st Leg
+2025-03-05,Feyenoord Rotterdam,Internazionale,0,2,UEFA Champions League,2024,1,1st Leg
+2025-03-05,Bayern Munich,Bayer Leverkusen,3,0,UEFA Champions League,2024,1,1st Leg
+2025-03-05,Benfica,Barcelona,0,1,UEFA Champions League,2024,1,1st Leg
+2025-03-05,Paris Saint-Germain,Liverpool,0,1,UEFA Champions League,2024,1,1st Leg
+2025-03-06,Ajax Amsterdam,Eintracht Frankfurt,1,2,UEFA Europa League,2024,1,1st Leg
+2025-03-06,Fenerbahce,Rangers,1,3,UEFA Europa League,2024,1,1st Leg
+2025-03-06,Bodo/Glimt,Olympiacos,3,0,UEFA Europa League,2024,1,1st Leg
+2025-03-06,FCSB,Lyon,1,3,UEFA Europa League,2024,1,1st Leg
+2025-03-06,Real Sociedad,Manchester United,1,1,UEFA Europa League,2024,1,1st Leg
+2025-03-06,AZ Alkmaar,Tottenham Hotspur,1,0,UEFA Europa League,2024,1,1st Leg
+2025-03-06,AS Roma,Athletic Club,2,1,UEFA Europa League,2024,1,1st Leg
+2025-03-06,Viktoria Plzen,Lazio,1,2,UEFA Europa League,2024,1,1st Leg
+2025-03-11,Liverpool,Paris Saint-Germain,0,1,UEFA Champions League,2024,2,2nd Leg - Tied on aggregate - Paris Saint-Germain advance 4-1 on penalties
+2025-03-11,Barcelona,Benfica,3,1,UEFA Champions League,2024,2,2nd Leg - Barcelona advance 4-1 on aggregate
+2025-03-11,Bayer Leverkusen,Bayern Munich,0,2,UEFA Champions League,2024,2,2nd Leg - Bayern Munich advance 5-0 on aggregate
+2025-03-11,Internazionale,Feyenoord Rotterdam,2,1,UEFA Champions League,2024,2,2nd Leg - Internazionale advance 4-1 on aggregate
+2025-03-12,Aston Villa,Club Brugge,3,0,UEFA Champions League,2024,2,2nd Leg - Aston Villa advance 6-1 on aggregate
+2025-03-12,Atlético Madrid,Real Madrid,1,0,UEFA Champions League,2024,2,2nd Leg - Tied on aggregate - Real Madrid advance 4-2 on penalties
+2025-03-12,Lille,Borussia Dortmund,1,2,UEFA Champions League,2024,2,2nd Leg - Borussia Dortmund advance 3-2 on aggregate
+2025-03-12,Arsenal,PSV Eindhoven,2,2,UEFA Champions League,2024,2,2nd Leg - Arsenal advance 9-3 on aggregate
+2025-03-13,Manchester United,Real Sociedad,4,1,UEFA Europa League,2024,2,2nd Leg - Manchester United advance 5-2 on aggregate
+2025-03-13,Tottenham Hotspur,AZ Alkmaar,3,1,UEFA Europa League,2024,2,2nd Leg - Tottenham Hotspur advance 3-2 on aggregate
+2025-03-13,Athletic Club,AS Roma,3,1,UEFA Europa League,2024,2,2nd Leg - Athletic Club advance 4-3 on aggregate
+2025-03-13,Eintracht Frankfurt,Ajax Amsterdam,4,1,UEFA Europa League,2024,2,2nd Leg - Eintracht Frankfurt advance 6-2 on aggregate
+2025-03-13,Olympiacos,Bodo/Glimt,2,1,UEFA Europa League,2024,2,2nd Leg - Bodo/Glimt advance 4-2 on aggregate
+2025-03-13,Lyon,FCSB,4,0,UEFA Europa League,2024,2,2nd Leg - Lyon advance 7-1 on aggregate
+2025-03-13,Lazio,Viktoria Plzen,1,1,UEFA Europa League,2024,2,2nd Leg - Lazio advance 3-2 on aggregate
+2025-03-13,Rangers,Fenerbahce,0,2,UEFA Europa League,2024,2,2nd Leg - Tied on aggregate - Rangers advance 3-2 on penalties
+2025-04-08,Bayern Munich,Internazionale,1,2,UEFA Champions League,2024,1,1st Leg
+2025-04-08,Arsenal,Real Madrid,3,0,UEFA Champions League,2024,1,1st Leg
+2025-04-09,Barcelona,Borussia Dortmund,4,0,UEFA Champions League,2024,1,1st Leg
+2025-04-09,Paris Saint-Germain,Aston Villa,3,1,UEFA Champions League,2024,1,1st Leg
+2025-04-10,Bodo/Glimt,Lazio,2,0,UEFA Europa League,2024,1,1st Leg
+2025-04-10,Tottenham Hotspur,Eintracht Frankfurt,1,1,UEFA Europa League,2024,1,1st Leg
+2025-04-10,Lyon,Manchester United,2,2,UEFA Europa League,2024,1,1st Leg
+2025-04-10,Rangers,Athletic Club,0,0,UEFA Europa League,2024,1,1st Leg
+2025-04-15,Borussia Dortmund,Barcelona,3,1,UEFA Champions League,2024,2,2nd Leg - Barcelona advance 5-3 on aggregate
+2025-04-15,Aston Villa,Paris Saint-Germain,3,2,UEFA Champions League,2024,2,2nd Leg - Paris Saint-Germain advance 5-4 on aggregate
+2025-04-16,Real Madrid,Arsenal,1,2,UEFA Champions League,2024,2,2nd Leg - Arsenal advance 5-1 on aggregate
+2025-04-16,Internazionale,Bayern Munich,2,2,UEFA Champions League,2024,2,2nd Leg - Internazionale advance 4-3 on aggregate
+2025-04-17,Athletic Club,Rangers,2,0,UEFA Europa League,2024,2,2nd Leg - Athletic Club advance 2-0 on aggregate
+2025-04-17,Lazio,Bodo/Glimt,3,1,UEFA Europa League,2024,2,2nd Leg - Tied on aggregate - Bodo/Glimt advance 3-2 on penalties
+2025-04-17,Manchester United,Lyon,5,4,UEFA Europa League,2024,2,2nd Leg - Manchester United advance 7-6 on aggregate
+2025-04-17,Eintracht Frankfurt,Tottenham Hotspur,0,1,UEFA Europa League,2024,2,2nd Leg - Tottenham Hotspur advance 2-1 on aggregate
+2025-04-29,Arsenal,Paris Saint-Germain,0,1,UEFA Champions League,2024,1,1st Leg
+2025-04-30,Barcelona,Internazionale,3,3,UEFA Champions League,2024,1,1st Leg
+2025-05-01,Athletic Club,Manchester United,0,3,UEFA Europa League,2024,1,1st Leg
+2025-05-01,Tottenham Hotspur,Bodo/Glimt,3,1,UEFA Europa League,2024,1,1st Leg
+2025-05-06,Internazionale,Barcelona,4,3,UEFA Champions League,2024,2,2nd Leg - Internazionale advance 7-6 on aggregate
+2025-05-07,Paris Saint-Germain,Arsenal,2,1,UEFA Champions League,2024,2,2nd Leg - Paris Saint-Germain advance 3-1 on aggregate
+2025-05-08,Bodo/Glimt,Tottenham Hotspur,0,2,UEFA Europa League,2024,2,2nd Leg - Tottenham Hotspur advance 5-1 on aggregate
+2025-05-08,Manchester United,Athletic Club,4,1,UEFA Europa League,2024,2,2nd Leg - Manchester United advance 7-1 on aggregate
+2025-05-21,Tottenham Hotspur,Manchester United,1,0,UEFA Europa League,2024,0,
+2025-05-31,Paris Saint-Germain,Internazionale,5,0,UEFA Champions League,2024,0,
+2025-09-16,Tottenham Hotspur,Villarreal,1,0,UEFA Champions League,2025,0,
+2025-09-16,Real Madrid,Marseille,2,1,UEFA Champions League,2025,0,
+2025-09-16,Juventus,Borussia Dortmund,4,4,UEFA Champions League,2025,0,
+2025-09-16,Benfica,FK Qarabag,2,3,UEFA Champions League,2025,0,
+2025-09-16,PSV Eindhoven,Union St.-Gilloise,1,3,UEFA Champions League,2025,0,
+2025-09-16,Athletic Club,Arsenal,0,2,UEFA Champions League,2025,0,
+2025-09-17,Olympiacos,Pafos,0,0,UEFA Champions League,2025,0,
+2025-09-17,Slavia Prague,Bodo/Glimt,2,2,UEFA Champions League,2025,0,
+2025-09-17,Ajax Amsterdam,Internazionale,0,2,UEFA Champions League,2025,0,
+2025-09-17,Bayern Munich,Chelsea,3,1,UEFA Champions League,2025,0,
+2025-09-17,Liverpool,Atlético Madrid,3,2,UEFA Champions League,2025,0,
+2025-09-17,Paris Saint-Germain,Atalanta,4,0,UEFA Champions League,2025,0,
+2025-09-18,Sporting CP,Kairat Almaty,4,1,UEFA Champions League,2025,0,
+2025-09-18,Newcastle United,Barcelona,1,2,UEFA Champions League,2025,0,
+2025-09-18,Manchester City,Napoli,2,0,UEFA Champions League,2025,0,
+2025-09-18,Club Brugge,AS Monaco,4,1,UEFA Champions League,2025,0,
+2025-09-18,F.C. København,Bayer Leverkusen,2,2,UEFA Champions League,2025,0,
+2025-09-18,Eintracht Frankfurt,Galatasaray,5,1,UEFA Champions League,2025,0,
+2025-09-24,FC Midtjylland,SK Sturm Graz,2,0,UEFA Europa League,2025,0,
+2025-09-24,PAOK Salonika,Maccabi Tel-Aviv,0,0,UEFA Europa League,2025,0,
+2025-09-24,Braga,Feyenoord Rotterdam,1,0,UEFA Europa League,2025,0,
+2025-09-24,Malmö FF,Ludogorets Razgrad,1,2,UEFA Europa League,2025,0,
+2025-09-24,Nice,AS Roma,1,2,UEFA Europa League,2025,0,
+2025-09-24,Dinamo Zagreb,Fenerbahce,3,1,UEFA Europa League,2025,0,
+2025-09-24,Red Star Belgrade,Celtic,1,1,UEFA Europa League,2025,0,
+2025-09-24,SC Freiburg,FC Basel,2,1,UEFA Europa League,2025,0,
+2025-09-24,Real Betis,Nottingham Forest,2,2,UEFA Europa League,2025,0,
+2025-09-25,Go Ahead Eagles,FCSB,0,1,UEFA Europa League,2025,0,
+2025-09-25,Lille,SK Brann,2,1,UEFA Europa League,2025,0,
+2025-09-25,Young Boys,Panathinaikos,1,4,UEFA Europa League,2025,0,
+2025-09-25,Ferencvaros,Viktoria Plzen,1,1,UEFA Europa League,2025,0,
+2025-09-25,Rangers,Racing Genk,0,1,UEFA Europa League,2025,0,
+2025-09-25,RB Salzburg,FC Porto,0,1,UEFA Europa League,2025,0,
+2025-09-25,VfB Stuttgart,Celta Vigo,2,1,UEFA Europa League,2025,0,
+2025-09-25,Aston Villa,Bologna,1,0,UEFA Europa League,2025,0,
+2025-09-25,FC Utrecht,Lyon,0,1,UEFA Europa League,2025,0,
+2025-09-30,Marseille,Ajax Amsterdam,4,0,UEFA Champions League,2025,0,
+2025-09-30,Atlético Madrid,Eintracht Frankfurt,5,1,UEFA Champions League,2025,0,
+2025-09-30,Bodo/Glimt,Tottenham Hotspur,2,2,UEFA Champions League,2025,0,
+2025-09-30,Chelsea,Benfica,1,0,UEFA Champions League,2025,0,
+2025-09-30,Galatasaray,Liverpool,1,0,UEFA Champions League,2025,0,
+2025-09-30,Internazionale,Slavia Prague,3,0,UEFA Champions League,2025,0,
+2025-09-30,Pafos,Bayern Munich,1,5,UEFA Champions League,2025,0,
+2025-09-30,Kairat Almaty,Real Madrid,0,5,UEFA Champions League,2025,0,
+2025-09-30,Atalanta,Club Brugge,2,1,UEFA Champions League,2025,0,
+2025-10-01,Barcelona,Paris Saint-Germain,1,2,UEFA Champions League,2025,0,
+2025-10-01,Napoli,Sporting CP,2,1,UEFA Champions League,2025,0,
+2025-10-01,FK Qarabag,F.C. København,2,0,UEFA Champions League,2025,0,
+2025-10-01,Union St.-Gilloise,Newcastle United,0,4,UEFA Champions League,2025,0,
+2025-10-01,Arsenal,Olympiacos,2,0,UEFA Champions League,2025,0,
+2025-10-01,Borussia Dortmund,Athletic Club,4,1,UEFA Champions League,2025,0,
+2025-10-01,Bayer Leverkusen,PSV Eindhoven,1,1,UEFA Champions League,2025,0,
+2025-10-01,Villarreal,Juventus,2,2,UEFA Champions League,2025,0,
+2025-10-01,AS Monaco,Manchester City,2,2,UEFA Champions League,2025,0,
+2025-10-02,SK Sturm Graz,Rangers,2,1,UEFA Europa League,2025,0,
+2025-10-02,Racing Genk,Ferencvaros,0,1,UEFA Europa League,2025,0,
+2025-10-02,Nottingham Forest,FC Midtjylland,2,3,UEFA Europa League,2025,0,
+2025-10-02,Maccabi Tel-Aviv,Dinamo Zagreb,1,3,UEFA Europa League,2025,0,
+2025-10-02,Lyon,RB Salzburg,2,0,UEFA Europa League,2025,0,
+2025-10-02,Feyenoord Rotterdam,Aston Villa,0,2,UEFA Europa League,2025,0,
+2025-10-02,FC Basel,VfB Stuttgart,2,0,UEFA Europa League,2025,0,
+2025-10-02,Bologna,SC Freiburg,1,1,UEFA Europa League,2025,0,
+2025-10-02,FC Porto,Red Star Belgrade,2,1,UEFA Europa League,2025,0,
+2025-10-02,FCSB,Young Boys,0,2,UEFA Europa League,2025,0,
+2025-10-02,Fenerbahce,Nice,2,1,UEFA Europa League,2025,0,
+2025-10-02,Ludogorets Razgrad,Real Betis,0,2,UEFA Europa League,2025,0,
+2025-10-02,Panathinaikos,Go Ahead Eagles,1,2,UEFA Europa League,2025,0,
+2025-10-02,SK Brann,FC Utrecht,1,0,UEFA Europa League,2025,0,
+2025-10-02,Viktoria Plzen,Malmö FF,3,0,UEFA Europa League,2025,0,
+2025-10-02,Celta Vigo,PAOK Salonika,3,1,UEFA Europa League,2025,0,
+2025-10-02,AS Roma,Lille,0,1,UEFA Europa League,2025,0,
+2025-10-02,Celtic,Braga,0,2,UEFA Europa League,2025,0,
+2025-10-21,Barcelona,Olympiacos,6,1,UEFA Champions League,2025,0,
+2025-10-21,Villarreal,Manchester City,0,2,UEFA Champions League,2025,0,
+2025-10-21,Union St.-Gilloise,Internazionale,0,4,UEFA Champions League,2025,0,
+2025-10-21,PSV Eindhoven,Napoli,6,2,UEFA Champions League,2025,0,
+2025-10-21,Newcastle United,Benfica,3,0,UEFA Champions League,2025,0,
+2025-10-21,F.C. København,Borussia Dortmund,2,4,UEFA Champions League,2025,0,
+2025-10-21,Bayer Leverkusen,Paris Saint-Germain,2,7,UEFA Champions League,2025,0,
+2025-10-21,Arsenal,Atlético Madrid,4,0,UEFA Champions League,2025,0,
+2025-10-21,Kairat Almaty,Pafos,0,0,UEFA Champions League,2025,0,
+2025-10-22,Athletic Club,FK Qarabag,3,1,UEFA Champions League,2025,0,
+2025-10-22,Eintracht Frankfurt,Liverpool,1,5,UEFA Champions League,2025,0,
+2025-10-22,Chelsea,Ajax Amsterdam,5,1,UEFA Champions League,2025,0,
+2025-10-22,Bayern Munich,Club Brugge,4,0,UEFA Champions League,2025,0,
+2025-10-22,Atalanta,Slavia Prague,0,0,UEFA Champions League,2025,0,
+2025-10-22,AS Monaco,Tottenham Hotspur,0,0,UEFA Champions League,2025,0,
+2025-10-22,Galatasaray,Bodo/Glimt,3,1,UEFA Champions League,2025,0,
+2025-10-22,Real Madrid,Juventus,1,0,UEFA Champions League,2025,0,
+2025-10-22,Sporting CP,Marseille,2,1,UEFA Champions League,2025,0,
+2025-10-23,Fenerbahce,VfB Stuttgart,1,0,UEFA Europa League,2025,0,
+2025-10-23,Go Ahead Eagles,Aston Villa,2,1,UEFA Europa League,2025,0,
+2025-10-23,Young Boys,Ludogorets Razgrad,3,2,UEFA Europa League,2025,0,
+2025-10-23,SC Freiburg,FC Utrecht,2,0,UEFA Europa League,2025,0,
+2025-10-23,Nottingham Forest,FC Porto,2,0,UEFA Europa League,2025,0,
+2025-10-23,Malmö FF,Dinamo Zagreb,1,1,UEFA Europa League,2025,0,
+2025-10-23,Maccabi Tel-Aviv,FC Midtjylland,0,3,UEFA Europa League,2025,0,
+2025-10-23,Lille,PAOK Salonika,3,4,UEFA Europa League,2025,0,
+2025-10-23,Feyenoord Rotterdam,Panathinaikos,3,1,UEFA Europa League,2025,0,
+2025-10-23,Celtic,SK Sturm Graz,2,1,UEFA Europa League,2025,0,
+2025-10-23,Celta Vigo,Nice,2,1,UEFA Europa League,2025,0,
+2025-10-23,AS Roma,Viktoria Plzen,1,2,UEFA Europa League,2025,0,
+2025-10-23,SK Brann,Rangers,3,0,UEFA Europa League,2025,0,
+2025-10-23,RB Salzburg,Ferencvaros,2,3,UEFA Europa League,2025,0,
+2025-10-23,FCSB,Bologna,1,2,UEFA Europa League,2025,0,
+2025-10-23,Braga,Red Star Belgrade,2,0,UEFA Europa League,2025,0,
+2025-10-23,Lyon,FC Basel,2,0,UEFA Europa League,2025,0,
+2025-10-23,Racing Genk,Real Betis,0,0,UEFA Europa League,2025,0,
+2025-11-04,Slavia Prague,Arsenal,0,3,UEFA Champions League,2025,0,
+2025-11-04,Napoli,Eintracht Frankfurt,0,0,UEFA Champions League,2025,0,
+2025-11-04,Bodo/Glimt,AS Monaco,0,1,UEFA Champions League,2025,0,
+2025-11-04,Juventus,Sporting CP,1,1,UEFA Champions League,2025,0,
+2025-11-04,Liverpool,Real Madrid,1,0,UEFA Champions League,2025,0,
+2025-11-04,Olympiacos,PSV Eindhoven,1,1,UEFA Champions League,2025,0,
+2025-11-04,Paris Saint-Germain,Bayern Munich,1,2,UEFA Champions League,2025,0,
+2025-11-04,Tottenham Hotspur,F.C. København,4,0,UEFA Champions League,2025,0,
+2025-11-04,Atlético Madrid,Union St.-Gilloise,3,1,UEFA Champions League,2025,0,
+2025-11-05,Newcastle United,Athletic Club,2,0,UEFA Champions League,2025,0,
+2025-11-05,Marseille,Atalanta,0,1,UEFA Champions League,2025,0,
+2025-11-05,Manchester City,Borussia Dortmund,4,1,UEFA Champions League,2025,0,
+2025-11-05,Internazionale,Kairat Almaty,2,1,UEFA Champions League,2025,0,
+2025-11-05,Club Brugge,Barcelona,3,3,UEFA Champions League,2025,0,
+2025-11-05,Benfica,Bayer Leverkusen,0,1,UEFA Champions League,2025,0,
+2025-11-05,Ajax Amsterdam,Galatasaray,0,3,UEFA Champions League,2025,0,
+2025-11-05,Pafos,Villarreal,1,0,UEFA Champions League,2025,0,
+2025-11-05,FK Qarabag,Chelsea,2,2,UEFA Champions League,2025,0,
+2025-11-06,Dinamo Zagreb,Celta Vigo,0,3,UEFA Europa League,2025,0,
+2025-11-06,FC Basel,FCSB,3,1,UEFA Europa League,2025,0,
+2025-11-06,FC Midtjylland,Celtic,3,1,UEFA Europa League,2025,0,
+2025-11-06,FC Utrecht,FC Porto,1,1,UEFA Europa League,2025,0,
+2025-11-06,Malmö FF,Panathinaikos,0,1,UEFA Europa League,2025,0,
+2025-11-06,Nice,SC Freiburg,1,3,UEFA Europa League,2025,0,
+2025-11-06,RB Salzburg,Go Ahead Eagles,2,0,UEFA Europa League,2025,0,
+2025-11-06,Red Star Belgrade,Lille,1,0,UEFA Europa League,2025,0,
+2025-11-06,SK Sturm Graz,Nottingham Forest,0,0,UEFA Europa League,2025,0,
+2025-11-06,Aston Villa,Maccabi Tel-Aviv,2,0,UEFA Europa League,2025,0,
+2025-11-06,Bologna,SK Brann,0,0,UEFA Europa League,2025,0,
+2025-11-06,PAOK Salonika,Young Boys,4,0,UEFA Europa League,2025,0,
+2025-11-06,Ferencvaros,Ludogorets Razgrad,3,1,UEFA Europa League,2025,0,
+2025-11-06,Rangers,AS Roma,0,2,UEFA Europa League,2025,0,
+2025-11-06,Real Betis,Lyon,2,0,UEFA Europa League,2025,0,
+2025-11-06,VfB Stuttgart,Feyenoord Rotterdam,2,0,UEFA Europa League,2025,0,
+2025-11-06,Viktoria Plzen,Fenerbahce,0,0,UEFA Europa League,2025,0,
+2025-11-06,Braga,Racing Genk,3,4,UEFA Europa League,2025,0,
+2025-11-25,Bodo/Glimt,Juventus,2,3,UEFA Champions League,2025,0,
+2025-11-25,Borussia Dortmund,Villarreal,4,0,UEFA Champions League,2025,0,
+2025-11-25,Chelsea,Barcelona,3,0,UEFA Champions League,2025,0,
+2025-11-25,Manchester City,Bayer Leverkusen,0,2,UEFA Champions League,2025,0,
+2025-11-25,Marseille,Newcastle United,2,1,UEFA Champions League,2025,0,
+2025-11-25,Napoli,FK Qarabag,2,0,UEFA Champions League,2025,0,
+2025-11-25,Slavia Prague,Athletic Club,0,0,UEFA Champions League,2025,0,
+2025-11-25,Galatasaray,Union St.-Gilloise,0,1,UEFA Champions League,2025,0,
+2025-11-25,Ajax Amsterdam,Benfica,0,2,UEFA Champions League,2025,0,
+2025-11-26,F.C. København,Kairat Almaty,3,2,UEFA Champions League,2025,0,
+2025-11-26,Arsenal,Bayern Munich,3,1,UEFA Champions League,2025,0,
+2025-11-26,Eintracht Frankfurt,Atalanta,0,3,UEFA Champions League,2025,0,
+2025-11-26,Sporting CP,Club Brugge,3,0,UEFA Champions League,2025,0,
+2025-11-26,Paris Saint-Germain,Tottenham Hotspur,5,3,UEFA Champions League,2025,0,
+2025-11-26,Olympiacos,Real Madrid,3,4,UEFA Champions League,2025,0,
+2025-11-26,Liverpool,PSV Eindhoven,1,4,UEFA Champions League,2025,0,
+2025-11-26,Pafos,AS Monaco,2,2,UEFA Champions League,2025,0,
+2025-11-26,Atlético Madrid,Internazionale,2,1,UEFA Champions League,2025,0,
+2025-11-27,Maccabi Tel-Aviv,Lyon,0,6,UEFA Europa League,2025,0,
+2025-11-27,Aston Villa,Young Boys,2,1,UEFA Europa League,2025,0,
+2025-11-27,AS Roma,FC Midtjylland,2,1,UEFA Europa League,2025,0,
+2025-11-27,Red Star Belgrade,FCSB,1,0,UEFA Europa League,2025,0,
+2025-11-27,Real Betis,FC Utrecht,2,1,UEFA Europa League,2025,0,
+2025-11-27,Rangers,Braga,1,1,UEFA Europa League,2025,0,
+2025-11-27,Panathinaikos,SK Sturm Graz,2,1,UEFA Europa League,2025,0,
+2025-11-27,Nottingham Forest,Malmö FF,3,0,UEFA Europa League,2025,0,
+2025-11-27,Go Ahead Eagles,VfB Stuttgart,0,4,UEFA Europa League,2025,0,
+2025-11-27,Racing Genk,FC Basel,2,1,UEFA Europa League,2025,0,
+2025-11-27,Viktoria Plzen,SC Freiburg,0,0,UEFA Europa League,2025,0,
+2025-11-27,PAOK Salonika,SK Brann,1,1,UEFA Europa League,2025,0,
+2025-11-27,Ludogorets Razgrad,Celta Vigo,3,2,UEFA Europa League,2025,0,
+2025-11-27,Lille,Dinamo Zagreb,4,0,UEFA Europa League,2025,0,
+2025-11-27,Feyenoord Rotterdam,Celtic,1,3,UEFA Europa League,2025,0,
+2025-11-27,Fenerbahce,Ferencvaros,1,1,UEFA Europa League,2025,0,
+2025-11-27,FC Porto,Nice,3,0,UEFA Europa League,2025,0,
+2025-11-27,Bologna,RB Salzburg,4,1,UEFA Europa League,2025,0,
+2025-12-09,Tottenham Hotspur,Slavia Prague,3,0,UEFA Champions League,2025,0,
+2025-12-09,Kairat Almaty,Olympiacos,0,1,UEFA Champions League,2025,0,
+2025-12-09,Bayern Munich,Sporting CP,3,1,UEFA Champions League,2025,0,
+2025-12-09,AS Monaco,Galatasaray,1,0,UEFA Champions League,2025,0,
+2025-12-09,Atalanta,Chelsea,2,1,UEFA Champions League,2025,0,
+2025-12-09,Barcelona,Eintracht Frankfurt,2,1,UEFA Champions League,2025,0,
+2025-12-09,Internazionale,Liverpool,0,1,UEFA Champions League,2025,0,
+2025-12-09,Union St.-Gilloise,Marseille,2,3,UEFA Champions League,2025,0,
+2025-12-09,PSV Eindhoven,Atlético Madrid,2,3,UEFA Champions League,2025,0,
+2025-12-10,Athletic Club,Paris Saint-Germain,0,0,UEFA Champions League,2025,0,
+2025-12-10,Villarreal,F.C. København,2,3,UEFA Champions League,2025,0,
+2025-12-10,FK Qarabag,Ajax Amsterdam,2,4,UEFA Champions League,2025,0,
+2025-12-10,Benfica,Napoli,2,0,UEFA Champions League,2025,0,
+2025-12-10,Borussia Dortmund,Bodo/Glimt,2,2,UEFA Champions League,2025,0,
+2025-12-10,Club Brugge,Arsenal,0,3,UEFA Champions League,2025,0,
+2025-12-10,Juventus,Pafos,2,0,UEFA Champions League,2025,0,
+2025-12-10,Real Madrid,Manchester City,1,2,UEFA Champions League,2025,0,
+2025-12-10,Bayer Leverkusen,Newcastle United,2,2,UEFA Champions League,2025,0,
+2025-12-11,FC Utrecht,Nottingham Forest,1,2,UEFA Europa League,2025,0,
+2025-12-11,FC Midtjylland,Racing Genk,1,0,UEFA Europa League,2025,0,
+2025-12-11,Dinamo Zagreb,Real Betis,1,3,UEFA Europa League,2025,0,
+2025-12-11,Ferencvaros,Rangers,2,1,UEFA Europa League,2025,0,
+2025-12-11,Nice,Braga,0,1,UEFA Europa League,2025,0,
+2025-12-11,VfB Stuttgart,Maccabi Tel-Aviv,4,1,UEFA Europa League,2025,0,
+2025-12-11,Ludogorets Razgrad,PAOK Salonika,3,3,UEFA Europa League,2025,0,
+2025-12-11,SK Brann,Fenerbahce,0,4,UEFA Europa League,2025,0,
+2025-12-11,Panathinaikos,Viktoria Plzen,0,0,UEFA Europa League,2025,0,
+2025-12-11,Lyon,Go Ahead Eagles,2,1,UEFA Europa League,2025,0,
+2025-12-11,FCSB,Feyenoord Rotterdam,4,3,UEFA Europa League,2025,0,
+2025-12-11,SC Freiburg,RB Salzburg,1,0,UEFA Europa League,2025,0,
+2025-12-11,FC Basel,Aston Villa,1,2,UEFA Europa League,2025,0,
+2025-12-11,Celtic,AS Roma,0,3,UEFA Europa League,2025,0,
+2025-12-11,Celta Vigo,Bologna,1,2,UEFA Europa League,2025,0,
+2025-12-11,Young Boys,Lille,1,0,UEFA Europa League,2025,0,
+2025-12-11,FC Porto,Malmö FF,2,1,UEFA Europa League,2025,0,
+2025-12-11,SK Sturm Graz,Red Star Belgrade,0,1,UEFA Europa League,2025,0,
+2026-01-20,Villarreal,Ajax Amsterdam,1,2,UEFA Champions League,2025,0,
+2026-01-20,F.C. København,Napoli,1,1,UEFA Champions League,2025,0,
+2026-01-20,Internazionale,Arsenal,1,3,UEFA Champions League,2025,0,
+2026-01-20,Olympiacos,Bayer Leverkusen,2,0,UEFA Champions League,2025,0,
+2026-01-20,Real Madrid,AS Monaco,6,1,UEFA Champions League,2025,0,
+2026-01-20,Sporting CP,Paris Saint-Germain,2,1,UEFA Champions League,2025,0,
+2026-01-20,Tottenham Hotspur,Borussia Dortmund,2,0,UEFA Champions League,2025,0,
+2026-01-20,Bodo/Glimt,Manchester City,3,1,UEFA Champions League,2025,0,
+2026-01-20,Kairat Almaty,Club Brugge,1,4,UEFA Champions League,2025,0,
+2026-01-21,FK Qarabag,Eintracht Frankfurt,3,2,UEFA Champions League,2025,0,
+2026-01-21,Atalanta,Athletic Club,2,3,UEFA Champions League,2025,0,
+2026-01-21,Bayern Munich,Union St.-Gilloise,2,0,UEFA Champions League,2025,0,
+2026-01-21,Chelsea,Pafos,1,0,UEFA Champions League,2025,0,
+2026-01-21,Marseille,Liverpool,0,3,UEFA Champions League,2025,0,
+2026-01-21,Newcastle United,PSV Eindhoven,3,0,UEFA Champions League,2025,0,
+2026-01-21,Slavia Prague,Barcelona,2,4,UEFA Champions League,2025,0,
+2026-01-21,Galatasaray,Atlético Madrid,1,1,UEFA Champions League,2025,0,
+2026-01-21,Juventus,Benfica,2,0,UEFA Champions League,2025,0,
+2026-01-22,RB Salzburg,FC Basel,3,1,UEFA Europa League,2025,0,
+2026-01-22,SC Freiburg,Maccabi Tel-Aviv,1,0,UEFA Europa League,2025,0,
+2026-01-22,Fenerbahce,Aston Villa,0,1,UEFA Europa League,2025,0,
+2026-01-22,Feyenoord Rotterdam,SK Sturm Graz,3,0,UEFA Europa League,2025,0,
+2026-01-22,Malmö FF,Red Star Belgrade,0,1,UEFA Europa League,2025,0,
+2026-01-22,PAOK Salonika,Real Betis,2,0,UEFA Europa League,2025,0,
+2026-01-22,FC Utrecht,Racing Genk,0,2,UEFA Europa League,2025,0,
+2026-01-22,SK Brann,FC Midtjylland,3,3,UEFA Europa League,2025,0,
+2026-01-22,Young Boys,Lyon,0,1,UEFA Europa League,2025,0,
+2026-01-22,Viktoria Plzen,FC Porto,1,1,UEFA Europa League,2025,0,
+2026-01-22,Braga,Nottingham Forest,1,0,UEFA Europa League,2025,0,
+2026-01-22,Celta Vigo,Lille,2,1,UEFA Europa League,2025,0,
+2026-01-22,Dinamo Zagreb,FCSB,4,1,UEFA Europa League,2025,0,
+2026-01-22,Ferencvaros,Panathinaikos,1,1,UEFA Europa League,2025,0,
+2026-01-22,Nice,Go Ahead Eagles,3,1,UEFA Europa League,2025,0,
+2026-01-22,Rangers,Ludogorets Razgrad,1,0,UEFA Europa League,2025,0,
+2026-01-22,AS Roma,VfB Stuttgart,2,0,UEFA Europa League,2025,0,
+2026-01-22,Bologna,Celtic,2,2,UEFA Europa League,2025,0,
+2026-01-28,AS Monaco,Juventus,0,0,UEFA Champions League,2025,0,
+2026-01-28,Athletic Club,Sporting CP,2,3,UEFA Champions League,2025,0,
+2026-01-28,Atlético Madrid,Bodo/Glimt,1,2,UEFA Champions League,2025,0,
+2026-01-28,Ajax Amsterdam,Olympiacos,1,2,UEFA Champions League,2025,0,
+2026-01-28,Arsenal,Kairat Almaty,3,2,UEFA Champions League,2025,0,
+2026-01-28,Barcelona,F.C. København,4,1,UEFA Champions League,2025,0,
+2026-01-28,Liverpool,FK Qarabag,6,0,UEFA Champions League,2025,0,
+2026-01-28,Benfica,Real Madrid,4,2,UEFA Champions League,2025,0,
+2026-01-28,Bayer Leverkusen,Villarreal,3,0,UEFA Champions League,2025,0,
+2026-01-28,Union St.-Gilloise,Atalanta,1,0,UEFA Champions League,2025,0,
+2026-01-28,Paris Saint-Germain,Newcastle United,1,1,UEFA Champions League,2025,0,
+2026-01-28,Pafos,Slavia Prague,4,1,UEFA Champions League,2025,0,
+2026-01-28,PSV Eindhoven,Bayern Munich,1,2,UEFA Champions League,2025,0,
+2026-01-28,Manchester City,Galatasaray,2,0,UEFA Champions League,2025,0,
+2026-01-28,Eintracht Frankfurt,Tottenham Hotspur,0,2,UEFA Champions League,2025,0,
+2026-01-28,Club Brugge,Marseille,3,0,UEFA Champions League,2025,0,
+2026-01-28,Borussia Dortmund,Internazionale,0,2,UEFA Champions League,2025,0,
+2026-01-28,Napoli,Chelsea,2,3,UEFA Champions League,2025,0,
+2026-01-29,FC Porto,Rangers,3,1,UEFA Europa League,2025,0,
+2026-01-29,Aston Villa,RB Salzburg,3,2,UEFA Europa League,2025,0,
+2026-01-29,Celtic,FC Utrecht,4,2,UEFA Europa League,2025,0,
+2026-01-29,FC Basel,Viktoria Plzen,0,1,UEFA Europa League,2025,0,
+2026-01-29,FC Midtjylland,Dinamo Zagreb,2,0,UEFA Europa League,2025,0,
+2026-01-29,FCSB,Fenerbahce,1,1,UEFA Europa League,2025,0,
+2026-01-29,Panathinaikos,AS Roma,1,1,UEFA Europa League,2025,0,
+2026-01-29,Lille,SC Freiburg,1,0,UEFA Europa League,2025,0,
+2026-01-29,Ludogorets Razgrad,Nice,1,0,UEFA Europa League,2025,0,
+2026-01-29,Lyon,PAOK Salonika,4,2,UEFA Europa League,2025,0,
+2026-01-29,Maccabi Tel-Aviv,Bologna,0,3,UEFA Europa League,2025,0,
+2026-01-29,Racing Genk,Malmö FF,2,1,UEFA Europa League,2025,0,
+2026-01-29,Real Betis,Feyenoord Rotterdam,2,1,UEFA Europa League,2025,0,
+2026-01-29,Go Ahead Eagles,Braga,0,0,UEFA Europa League,2025,0,
+2026-01-29,Nottingham Forest,Ferencvaros,4,0,UEFA Europa League,2025,0,
+2026-01-29,SK Sturm Graz,SK Brann,1,0,UEFA Europa League,2025,0,
+2026-01-29,Red Star Belgrade,Celta Vigo,1,1,UEFA Europa League,2025,0,
+2026-01-29,VfB Stuttgart,Young Boys,3,2,UEFA Europa League,2025,0,
+2026-02-17,Galatasaray,Juventus,5,2,UEFA Champions League,2025,1,1st Leg
+2026-02-17,Borussia Dortmund,Atalanta,2,0,UEFA Champions League,2025,1,1st Leg
+2026-02-17,Benfica,Real Madrid,0,1,UEFA Champions League,2025,1,1st Leg
+2026-02-17,AS Monaco,Paris Saint-Germain,2,3,UEFA Champions League,2025,1,1st Leg
+2026-02-18,Olympiacos,Bayer Leverkusen,0,2,UEFA Champions League,2025,1,1st Leg
+2026-02-18,Club Brugge,Atlético Madrid,3,3,UEFA Champions League,2025,1,1st Leg
+2026-02-18,Bodo/Glimt,Internazionale,3,1,UEFA Champions League,2025,1,1st Leg
+2026-02-18,FK Qarabag,Newcastle United,1,6,UEFA Champions League,2025,1,1st Leg
+2026-02-19,Dinamo Zagreb,Racing Genk,1,3,UEFA Europa League,2025,1,1st Leg
+2026-02-19,Celtic,VfB Stuttgart,1,4,UEFA Europa League,2025,1,1st Leg
+2026-02-19,Fenerbahce,Nottingham Forest,0,3,UEFA Europa League,2025,1,1st Leg
+2026-02-19,PAOK Salonika,Celta Vigo,1,2,UEFA Europa League,2025,1,1st Leg
+2026-02-19,SK Brann,Bologna,0,1,UEFA Europa League,2025,1,1st Leg
+2026-02-19,Lille,Red Star Belgrade,0,1,UEFA Europa League,2025,1,1st Leg
+2026-02-19,Ludogorets Razgrad,Ferencvaros,2,1,UEFA Europa League,2025,1,1st Leg
+2026-02-19,Panathinaikos,Viktoria Plzen,2,2,UEFA Europa League,2025,1,1st Leg
+2026-02-24,Bayer Leverkusen,Olympiacos,0,0,UEFA Champions League,2025,2,2nd Leg - Bayer Leverkusen advance 2-0 on aggregate
+2026-02-24,Atlético Madrid,Club Brugge,4,1,UEFA Champions League,2025,2,2nd Leg - Atlético Madrid advance 7-4 on aggregate
+2026-02-24,Internazionale,Bodo/Glimt,1,2,UEFA Champions League,2025,2,2nd Leg - Bodo/Glimt advance 5-2 on aggregate
+2026-02-24,Newcastle United,FK Qarabag,3,2,UEFA Champions League,2025,2,2nd Leg - Newcastle United advance 9-3 on aggregate
+2026-02-25,Real Madrid,Benfica,2,1,UEFA Champions League,2025,2,2nd Leg - Real Madrid advance 3-1 on aggregate
+2026-02-25,Paris Saint-Germain,AS Monaco,2,2,UEFA Champions League,2025,2,2nd Leg - Paris Saint-Germain advance 5-4 on aggregate
+2026-02-25,Juventus,Galatasaray,3,2,UEFA Champions League,2025,2,2nd Leg - Galatasaray advance 7-5 on aggregate
+2026-02-25,Atalanta,Borussia Dortmund,4,1,UEFA Champions League,2025,2,2nd Leg - Atalanta advance 4-3 on aggregate
+2026-02-26,Red Star Belgrade,Lille,0,2,UEFA Europa League,2025,2,2nd Leg - Lille advance 2-1 on aggregate
+2026-02-26,VfB Stuttgart,Celtic,0,1,UEFA Europa League,2025,2,2nd Leg - VfB Stuttgart advance 4-2 on aggregate
+2026-02-26,Racing Genk,Dinamo Zagreb,3,3,UEFA Europa League,2025,2,2nd Leg - Racing Genk advance 6-4 on aggregate
+2026-02-26,Nottingham Forest,Fenerbahce,1,2,UEFA Europa League,2025,2,2nd Leg - Nottingham Forest advance 4-2 on aggregate
+2026-02-26,Celta Vigo,PAOK Salonika,1,0,UEFA Europa League,2025,2,2nd Leg - Celta Vigo advance 3-1 on aggregate
+2026-02-26,Bologna,SK Brann,1,0,UEFA Europa League,2025,2,2nd Leg - Bologna advance 2-0 on aggregate
+2026-02-26,Ferencvaros,Ludogorets Razgrad,2,0,UEFA Europa League,2025,2,2nd Leg - Ferencvaros advance 3-2 on aggregate
+2026-02-26,Viktoria Plzen,Panathinaikos,1,1,UEFA Europa League,2025,2,2nd Leg - Tied on aggregate - Panathinaikos advance 4-3 on penalties
+2026-03-10,Atalanta,Bayern Munich,1,6,UEFA Champions League,2025,1,1st Leg
+2026-03-10,Atlético Madrid,Tottenham Hotspur,5,2,UEFA Champions League,2025,1,1st Leg
+2026-03-10,Newcastle United,Barcelona,1,1,UEFA Champions League,2025,1,1st Leg
+2026-03-10,Galatasaray,Liverpool,1,0,UEFA Champions League,2025,1,1st Leg
+2026-03-11,Bayer Leverkusen,Arsenal,1,1,UEFA Champions League,2025,1,1st Leg
+2026-03-11,Paris Saint-Germain,Chelsea,5,2,UEFA Champions League,2025,1,1st Leg
+2026-03-11,Real Madrid,Manchester City,3,0,UEFA Champions League,2025,1,1st Leg
+2026-03-11,Bodo/Glimt,Sporting CP,3,0,UEFA Champions League,2025,1,1st Leg
+2026-03-12,VfB Stuttgart,FC Porto,1,2,UEFA Europa League,2025,1,1st Leg
+2026-03-12,Panathinaikos,Real Betis,1,0,UEFA Europa League,2025,1,1st Leg
+2026-03-12,Lille,Aston Villa,0,1,UEFA Europa League,2025,1,1st Leg
+2026-03-12,Bologna,AS Roma,1,1,UEFA Europa League,2025,1,1st Leg
+2026-03-12,Ferencvaros,Braga,2,0,UEFA Europa League,2025,1,1st Leg
+2026-03-12,Racing Genk,SC Freiburg,1,0,UEFA Europa League,2025,1,1st Leg
+2026-03-12,Celta Vigo,Lyon,1,1,UEFA Europa League,2025,1,1st Leg
+2026-03-12,Nottingham Forest,FC Midtjylland,0,1,UEFA Europa League,2025,1,1st Leg
+2026-03-17,Sporting CP,Bodo/Glimt,5,0,UEFA Champions League,2025,2,2nd Leg - Sporting CP advance 5-3 on aggregate
+2026-03-17,Arsenal,Bayer Leverkusen,2,0,UEFA Champions League,2025,2,2nd Leg - Arsenal advance 3-1 on aggregate
+2026-03-17,Chelsea,Paris Saint-Germain,0,3,UEFA Champions League,2025,2,2nd Leg - Paris Saint-Germain advance 8-2 on aggregate
+2026-03-17,Manchester City,Real Madrid,1,2,UEFA Champions League,2025,2,2nd Leg - Real Madrid advance 5-1 on aggregate
+2026-03-18,Bayern Munich,Atalanta,4,1,UEFA Champions League,2025,2,2nd Leg - Bayern Munich advance 10-2 on aggregate
+2026-03-18,Liverpool,Galatasaray,4,0,UEFA Champions League,2025,2,2nd Leg - Liverpool advance 4-1 on aggregate
+2026-03-18,Tottenham Hotspur,Atlético Madrid,3,2,UEFA Champions League,2025,2,2nd Leg - Atlético Madrid advance 7-5 on aggregate
+2026-03-18,Barcelona,Newcastle United,7,2,UEFA Champions League,2025,2,2nd Leg - Barcelona advance 8-3 on aggregate
+2026-03-18,Braga,Ferencvaros,4,0,UEFA Europa League,2025,2,2nd Leg - Braga advance 4-2 on aggregate
+2026-03-19,Real Betis,Panathinaikos,4,0,UEFA Europa League,2025,2,2nd Leg - Real Betis advance 4-1 on aggregate
+2026-03-19,FC Porto,VfB Stuttgart,2,0,UEFA Europa League,2025,2,2nd Leg - FC Porto advance 4-1 on aggregate
+2026-03-19,Aston Villa,Lille,2,0,UEFA Europa League,2025,2,2nd Leg - Aston Villa advance 3-0 on aggregate
+2026-03-19,AS Roma,Bologna,3,4,UEFA Europa League,2025,2,2nd Leg - Bologna advance 5-4 on aggregate
+2026-03-19,SC Freiburg,Racing Genk,5,1,UEFA Europa League,2025,2,2nd Leg - SC Freiburg advance 5-2 on aggregate
+2026-03-19,Lyon,Celta Vigo,0,2,UEFA Europa League,2025,2,2nd Leg - Celta Vigo advance 3-1 on aggregate
+2026-03-19,FC Midtjylland,Nottingham Forest,1,2,UEFA Europa League,2025,2,2nd Leg - Tied on aggregate - Nottingham Forest advance 3-0 on penalties
+2026-04-07,Real Madrid,Bayern Munich,1,2,UEFA Champions League,2025,1,1st Leg
+2026-04-07,Sporting CP,Arsenal,0,1,UEFA Champions League,2025,1,1st Leg
+2026-04-08,Braga,Real Betis,1,1,UEFA Europa League,2025,1,1st Leg
+2026-04-08,Paris Saint-Germain,Liverpool,2,0,UEFA Champions League,2025,1,1st Leg
+2026-04-08,Barcelona,Atlético Madrid,0,2,UEFA Champions League,2025,1,1st Leg
+2026-04-09,Bologna,Aston Villa,1,3,UEFA Europa League,2025,1,1st Leg
+2026-04-09,SC Freiburg,Celta Vigo,3,0,UEFA Europa League,2025,1,1st Leg
+2026-04-09,FC Porto,Nottingham Forest,1,1,UEFA Europa League,2025,1,1st Leg
+2026-04-14,Liverpool,Paris Saint-Germain,0,2,UEFA Champions League,2025,2,2nd Leg - Paris Saint-Germain advance 4-0 on aggregate
+2026-04-14,Atlético Madrid,Barcelona,1,2,UEFA Champions League,2025,2,2nd Leg - Atlético Madrid advance 3-2 on aggregate
+2026-04-15,Bayern Munich,Real Madrid,4,3,UEFA Champions League,2025,2,2nd Leg - Bayern Munich advance 6-4 on aggregate
+2026-04-15,Arsenal,Sporting CP,0,0,UEFA Champions League,2025,2,2nd Leg - Arsenal advance 1-0 on aggregate
+2026-04-16,Celta Vigo,SC Freiburg,1,3,UEFA Europa League,2025,2,2nd Leg - SC Freiburg advance 6-1 on aggregate
+2026-04-16,Aston Villa,Bologna,4,0,UEFA Europa League,2025,2,2nd Leg - Aston Villa advance 7-1 on aggregate
+2026-04-16,Nottingham Forest,FC Porto,1,0,UEFA Europa League,2025,2,2nd Leg - Nottingham Forest advance 2-1 on aggregate
+2026-04-16,Real Betis,Braga,2,4,UEFA Europa League,2025,2,2nd Leg - Braga advance 5-3 on aggregate
+2026-04-28,Paris Saint-Germain,Bayern Munich,5,4,UEFA Champions League,2025,1,1st Leg
+2026-04-29,Atlético Madrid,Arsenal,1,1,UEFA Champions League,2025,1,1st Leg
+2026-04-30,Braga,SC Freiburg,2,1,UEFA Europa League,2025,1,1st Leg
+2026-04-30,Nottingham Forest,Aston Villa,1,0,UEFA Europa League,2025,1,1st Leg
+2026-05-05,Arsenal,Atlético Madrid,1,0,UEFA Champions League,2025,2,2nd Leg - Arsenal advance 2-1 on aggregate
+2026-05-06,Bayern Munich,Paris Saint-Germain,1,1,UEFA Champions League,2025,2,2nd Leg - Paris Saint-Germain advance 6-5 on aggregate
+2026-05-07,SC Freiburg,Braga,3,1,UEFA Europa League,2025,2,2nd Leg - SC Freiburg advance 4-3 on aggregate
+2026-05-07,Aston Villa,Nottingham Forest,4,0,UEFA Europa League,2025,2,2nd Leg - Aston Villa advance 4-1 on aggregate
+2026-05-20,SC Freiburg,Aston Villa,0,3,UEFA Europa League,2025,0,
+2026-05-30,Paris Saint-Germain,Arsenal,1,1,UEFA Champions League,2025,0,Paris Saint-Germain win 4-3 on penalties

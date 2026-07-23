@@ -1553,6 +1553,50 @@ def test_clubpredict_model_cache_and_sane_probs():
     assert r["xg_home"] > 0 and r["xg_away"] > 0
 
 
+def test_eurodata_ledger():
+    """E2 欧战账本：统一 match 模型 schema、赛事归属、两回合配对不变量、决赛中立场、
+    队名映射对齐 football-data 拼写、已知决赛比分与史实一致。"""
+    import os as _os
+    import eurodata
+    if not _os.path.exists(eurodata.RAW_CSV):
+        pytest.skip("欧战账本未回收（运行 python3 eurodata.py）")
+    df = eurodata.load()
+    core = {"date", "home_team", "away_team", "home_score", "away_score", "tournament", "neutral"}
+    assert core <= set(df.columns) and {"season", "leg", "tie_id"} <= set(df.columns)
+    assert set(df.tournament) == {"UEFA Champions League", "UEFA Europa League"}
+    # 覆盖：欧冠四季完整（旧制 125 = 96 小组 + 29 淘汰；24-25 新制 189）
+    ucl = df[df.tournament == "UEFA Champions League"].groupby("season").size()
+    assert dict(ucl) == {2021: 125, 2022: 125, 2023: 125, 2024: 189, 2025: 189}
+    uel = df[df.tournament == "UEFA Europa League"].groupby("season").size()
+    assert all(uel.get(y, 0) >= 100 for y in (2021, 2022, 2023, 2024, 2025))  # 网络缺口如实容忍下限
+    # 决赛=每季每赛事一场，中立场；已知决赛比分核对
+    fins = df[df.neutral]
+    assert len(fins) == 10
+    f2526 = fins[(fins.season == 2025) & (fins.tournament == "UEFA Champions League")].iloc[0]
+    assert (f2526.home_team, f2526.away_team, f2526.home_score, f2526.away_score) == \
+        ("Paris SG", "Arsenal", 1, 1) and "penalties" in str(f2526.agg_note)
+    f2425 = fins[(fins.season == 2024) & (fins.tournament == "UEFA Champions League")].iloc[0]
+    assert (f2425.home_team, f2425.away_team, f2425.home_score, f2425.away_score) == \
+        ("Paris SG", "Inter", 5, 0)
+    f2122 = fins[(fins.season == 2021) & (fins.tournament == "UEFA Champions League")].iloc[0]
+    assert {f2122.home_team, f2122.away_team} == {"Real Madrid", "Liverpool"} \
+        and f2122.home_score + f2122.away_score == 1
+    # 两回合配对不变量：每 tie 恰 2 场、leg={1,2}、主客互换
+    two = df[df.tie_id.notna()]
+    assert len(two) >= 200 and len(two) % 2 == 0
+    for tid, g in two.groupby("tie_id"):
+        assert len(g) == 2 and set(g.leg) == {1, 2}
+        a, b = g.iloc[0], g.iloc[1]
+        assert {a.home_team, a.away_team} == {b.home_team, b.away_team}
+        assert a.home_team == b.away_team
+    # 映射：五大俱乐部用 football-data 拼写（ESPN 原名不残留）
+    names = set(df.home_team) | set(df.away_team)
+    assert "Man City" in names and "Inter" in names and "Paris SG" in names
+    assert "Internazionale" not in names and "Manchester City" not in names
+    import teams_zh
+    assert teams_zh.disp("Inter") != "Inter"                     # 映射后中文可用
+
+
 def test_clubdata_rollover_resilience(monkeypatch):
     """D1 跨赛季装载回归：26-27 翻季视角下四类场景不炸/正确报错。
     注意 season_codes 的 end_year 默认值在 def 时绑定——真实 +1 流程=改源码常量后
