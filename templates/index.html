@@ -891,13 +891,27 @@ function renderExplainer(d){
 
 // ===== 竞彩复盘 tab（手动录入 + 三方对账，复用 /api/jc_review）=====
 let _jcCur=null;   // 当前场上下文 {home_en,away_en,date,preview}
+// C7 联赛入口：同一 jc 组件 DOM 搬移复用（零复制）。_jcEvent 决定 API 的 ?event=（wc 不带参，
+// 请求与既往逐字节一致）；jcRestoreHome 在任何会覆写容器的渲染前把组件归位，防节点被销毁。
+let _jcEvent='wc2026', _jcOrig=null;
+function jcRestoreHome(){
+  const sec=document.getElementById('jcreview'); if(!sec) return;
+  if(!_jcOrig) _jcOrig={parent:sec.parentNode, next:sec.nextElementSibling};
+  if(sec.parentNode!==_jcOrig.parent){
+    _jcOrig.parent.insertBefore(sec, _jcOrig.next);
+    sec.style.display='none';
+    ['jc_home','jc_away'].forEach(id=>{ const el=document.getElementById(id); if(el) el.setAttribute('list','teams'); });
+  }
+  _jcEvent='wc2026';
+}
+function _jcUrl(qs){ const ev=_jcEvent==='wc2026'?'':( (qs?'&':'?')+'event='+_jcEvent); return '/api/jc_review'+(qs||'')+ev; }
 function jcInit(){ $('#jcres').innerHTML='<div class="card muted">填入两队 + 日期，点「读取本场」开始录入复盘。</div>'; }
 async function jcLoad(){
   const home=($('#jc_home').value||'').trim(), away=($('#jc_away').value||'').trim(), date=($('#jc_date').value||'').trim();
   if(!home||!away||!date){ $('#jcres').innerHTML='<div class="card muted">请填两队 + 日期。</div>'; return; }
   $('#jcres').innerHTML='<div class="card spin">读取模型冻结预测中…</div>';
   try{
-    const r=await fetch(`/api/jc_review?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&date=${encodeURIComponent(date)}`);
+    const r=await fetch(_jcUrl(`?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&date=${encodeURIComponent(date)}`));
     const d=await r.json();
     if(!r.ok||d.error){ $('#jcres').innerHTML=`<div class="card muted">${d.error||'读取失败'}</div>`; return; }
     _jcCur={home_en:d.model_preview.home_en,away_en:d.model_preview.away_en,date,preview:d.model_preview};
@@ -955,7 +969,7 @@ async function jcSubmitPrematch(){
     fav_is_home:favIsHome,line:parseFloat($('#jc_line').value)||0,
     o_fav:parseFloat($('#jc_ofav').value),o_dog:parseFloat($('#jc_odog').value),
     is_knockout:_jcCur.preview.is_knockout,my_pick:pick,my_note:($('#jc_note').value||'').trim()};
-  const r=await fetch('/api/jc_review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const r=await fetch(_jcUrl(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d=await r.json();
   if(!r.ok||d.error){ alert(d.error||'录入失败'); return; }
   jcLoad();  // 重载：显示读盘卡 + 赛后填分区 + 对账
@@ -1004,7 +1018,7 @@ async function jcSubmitResult(){
   const h90=$('#jc_h90').value, a90=$('#jc_a90').value;
   if(h90===''||a90===''){ alert('请填两队 90 分钟进球'); return; }
   if(!/^\d+$/.test(h90)||!/^\d+$/.test(a90)){ alert('90 分钟比分必须是非负整数'); return; }
-  const r=await fetch('/api/jc_review',{method:'POST',headers:{'Content-Type':'application/json'},
+  const r=await fetch(_jcUrl(),{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'result',date:_jcCur.date,home:_jcCur.home_en,away:_jcCur.away_en,h90:Number(h90),a90:Number(a90)})});
   const d=await r.json();
   if(!r.ok||d.error){ alert(d.error||'结算失败'); return; }
@@ -2635,6 +2649,7 @@ function selectEvent(key, tab, qs){
   if(tabs) tabs.style.display = isWC ? '' : 'none';
   $('#eventview').style.display = isWC ? 'none' : 'block';
   if(isWC){
+    jcRestoreHome();                                 // 回世界杯前归位 jc 组件（防随 eventview 清空被销毁）
     $('#eventview').innerHTML = '';
     const t = document.querySelector(`.tab[data-t="${tab||'verify'}"]`) || document.querySelector('.tab[data-t="verify"]');
     if(t) t.click();
@@ -2944,6 +2959,7 @@ function evShowTab(key, tk){
   document.querySelectorAll('#ev_tabs .tab').forEach(x=>x.classList.toggle('on', x.dataset.t===tk));
   history.replaceState(null,'','#'+key+'/'+tk);
   const c=$('#ev_content'); if(!c) return;
+  jcRestoreHome();                                   // jc 组件若在本容器内，先归位再覆写，防节点销毁
   const meta=(EVENTS_META||[]).find(e=>e.key===key)||{};
   const isClub=(meta.universe||'').startsWith('club');
   const buildPh = msg=>{ c.innerHTML = evEmptyCard(msg); };
@@ -2977,11 +2993,22 @@ function evShowTab(key, tk){
     evGet(key,'overview').then(o=>{ c.innerHTML=evExplainCards(o); })
       .catch(()=>{ c.innerHTML=evExplainCards(null); });
   } else if(tk==='jc'){
-    buildPh('竞彩复盘联赛入口按功能同步清单 C7 推进中，当前未接线（世界杯侧竞彩复盘不受影响）。');
+    // C7：搬移同一 jc 组件进联赛容器（appendChild 移动而非复制，无重复 ID）
+    _jcEvent=key;
+    c.innerHTML=`<div class="card muted" style="margin-top:10px;font-size:12.5px">竞彩复盘联赛入口：与世界杯同一复盘组件与红线
+      （单场三方对账、无胜率/无跨场聚合、90 分钟手填结算），复盘账本按赛事独立存储（jc_review_${key}.json）。</div>`;
+    const sec=document.getElementById('jcreview');
+    if(!_jcOrig) _jcOrig={parent:sec.parentNode, next:sec.nextElementSibling};
+    c.appendChild(sec); sec.style.display='block';
+    ['jc_home','jc_away'].forEach((id,i)=>{ const el=document.getElementById(id);
+      el.removeAttribute('list'); el.placeholder='输入球队（中文或英文）'; el.value=''; });
+    const jd=document.getElementById('jc_date'); if(jd) jd.value='2026-05-24';
+    jcInit();
   }
 }
 async function renderEventView(key, tab){
   const v = $('#eventview'); if(!v) return;
+  jcRestoreHome();                                   // 视图整体重建前归位 jc 组件
   await loadEvents();
   const meta = (EVENTS_META||[]).find(e=>e.key===key) || {key, name:key, status:'', kind:'', universe:''};
   const isClub = (meta.universe||'').startsWith('club');

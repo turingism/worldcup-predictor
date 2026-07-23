@@ -1735,6 +1735,34 @@ def test_club_matchup_detail_api(client):
     assert d2["facts"]["h2h"]["n"] >= 0                            # 结构存在即可（不写死有无交锋）
 
 
+def test_jc_review_club_entry(client, tmp_path, monkeypatch):
+    """C7 竞彩复盘联赛入口：club 分支隔离存储、neutral=False 口径、录入→填分→对账闭环；
+    红线沿用：is_knockout 恒 False、记录无任何「率」/ROI 字段。"""
+    import jc_review as jc
+    store = str(tmp_path / "jc_epl.json")
+    monkeypatch.setattr(jc, "store_path", lambda k="wc2026": store)
+    d = client.get("/api/jc_review?event=epl2526&home=阿森纳&away=曼城").get_json()
+    mp = d["model_preview"]
+    assert mp["home_en"] == "Arsenal" and mp["is_knockout"] is False
+    assert abs(mp["p_home"] + mp["p_draw"] + mp["p_away"] - 1.0) < 1e-6
+    cp = client.get("/api/club/predict?event=epl2526&home=阿森纳&away=曼城").get_json()
+    assert abs(mp["p_home"] - cp["p_home"]) < 1e-3          # 与单场预测同模型同 neutral=False 口径
+    r = client.post("/api/jc_review?event=epl2526", json={
+        "action": "prematch", "date": "2026-05-24", "home": "阿森纳", "away": "曼城",
+        "fav_is_home": True, "line": 1, "o_fav": 2.1, "o_dog": 1.75, "my_pick": "skip"}).get_json()
+    assert r["ok"] and r["record"]["is_knockout"] is False and r["reading"]
+    r2 = client.post("/api/jc_review?event=epl2526", json={
+        "action": "result", "date": "2026-05-24", "home": "阿森纳", "away": "曼城",
+        "h90": 2, "a90": 1}).get_json()
+    assert r2["ok"] and r2["reconcile"]
+    saved = jc.load_all(store)
+    key = jc.match_key("2026-05-24", "Arsenal", "Man City")
+    assert key in saved                                      # 写入隔离存储（monkeypatch tmp）
+    assert not any("rate" in k or "roi" in k.lower() for k in saved[key])   # schema 断壁
+    # 未知球队诚实拒绝（本联赛池解析）
+    assert client.get("/api/jc_review?event=epl2526&home=皇马&away=曼城").status_code == 400
+
+
 def test_club_market_api(client):
     """C5 市场对标：三方 summary 结构、样本概率归一、诚实口径字段在位。"""
     d = client.get("/api/club/market?event=epl2526").get_json()

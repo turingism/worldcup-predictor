@@ -509,3 +509,43 @@ E）前仍须完成。
 ### 遗留问题
 - C7 竞彩复盘联赛入口为下轮项（阶段 C 最后一项）：扩展方式接入
   jc_review（store_path 已按 event 隔离，P1-③ 就绪），不改世界杯逻辑（红线 2）。
+
+## 2026-07-23（第九轮）C7 竞彩复盘联赛入口——阶段 C 七项全清
+
+### 做了什么（红线 2 合规：jc_review.py 与 wc 端点逻辑零改动）
+- **后端扩展分支** `_api_jc_review_club`：/api/jc_review 顶部按 event universe
+  分流，club 事件走新分支——俱乐部模型按本联赛池解析（错拼给建议、跨联赛
+  诚实拒绝）、neutral=False（联赛主客场）、is_knockout 恒 False（联赛无加时，
+  竞彩 90 分钟口径天然一致）、存储 jc.store_path(event)（jc_review_<key>.json
+  按赛事隔离，P1-③ 通道首次实装）。jc_review.py 纯函数经既有 path 参数调用，
+  文件零改动；wc 分支代码原样。红线最严区全部沿用（无率/无跨场聚合/手填
+  90 分钟/schema 断壁）。
+- **前端组件搬移复用（零复制零重复 ID）**：联赛 jc Tab 把世界杯 #jcreview
+  节点 appendChild 搬入联赛容器（移动非复制），`_jcEvent` 参数化三个 fetch
+  站点（wc 不带 ?event=，请求与既往逐字节一致）；`jcRestoreHome()` 在一切
+  会覆写容器的渲染路径（evShowTab/renderEventView/selectEvent-isWC）先归位
+  组件，防节点随 innerHTML 覆写被销毁；club 模式摘除国家队 datalist、清空
+  预填，回 wc 时恢复。
+
+### 验证
+- test_core 新增 `test_jc_review_club_entry`（monkeypatch 隔离存储：GET 预览
+  neutral=False 且与 /api/club/predict 同口径 <1e-3、录入→填分→对账闭环、
+  is_knockout=False、记录无「率」/ROI 字段（schema 断壁）、未知球队 400），
+  全量 **146 passed**（wc jc 旧测试全绿=世界杯逻辑零回归）。
+- golden diff 五确定性端点逐字节一致。
+- 截图：`docs/evidence/c7-seriea-jc.png`（意甲 jc Tab：组件搬入 + 独立账本
+  提示 + 俱乐部输入模式）、`c7-wc2026-jc-regression.png`（世界杯 jc Tab：
+  组件归位，南非/加拿大默认值与文案原样零回归）。
+
+### 阶段 C 收口清单
+C1 看板（c1-epl-dashboard）/ C2 对阵分析（c2-seriea-matchup）/ C3 赛季推演
+（c3-epl-seasonsim）/ C4 夺冠概率（c4-epl-champ）/ C5 市场对标
+（c5-laliga-market）/ C6 机制解读（c6-ligue1-explain）/ C7 竞彩复盘
+（c7-seriea-jc）——七项全部有 evidence 截图与 wc 回归证据（C5 的 wc 截图
+以静态证据替代，见第七轮）。**阶段 C 宣告完成。**
+
+### 遗留问题 / 下轮起点
+- 下一阶段按推进序=阶段 D 运维自动化（8 月初英超开赛前硬期限）：D1 _CUR_END
+  口径核查（26-27 开赛后才 +1，当前 2026 正确，先做跨赛季装载回归测试）→
+  D2 每日抓取脚本 → D3 fixtures 未来赛程。阶段 B 仍顺延欧战前。
+- events「25-26」命名待拍板；26-27 季前待附加赛名单（运行闸在位）。

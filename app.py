@@ -393,7 +393,8 @@ def api_club_predict():
 for _k, _e in eventsmod.EVENTS.items():
     if _e["universe"].startswith("club_"):
         _EVENT_WIRED.setdefault(_k, set()).update({"/api/club/overview", "/api/club/predict",
-                                                   "/api/club/seasonsim", "/api/club/market"})
+                                                   "/api/club/seasonsim", "/api/club/market",
+                                                   "/api/jc_review"})
 _EVENT_WIRED.setdefault("nl2026", set()).update({"/api/predict"})
 
 
@@ -672,6 +673,83 @@ def api_explainer():
     return jsonify(card)
 
 
+def _api_jc_review_club(key, ev, jc):
+    """C7 竞彩复盘联赛入口（红线 2：扩展分支，jc_review.py 与 wc 端点逻辑零改动）。
+    与 wc 分支的口径差异：俱乐部模型按联赛池解析、neutral=False（联赛主客场）、
+    is_knockout 恒 False（联赛无加时，竞彩 90 分钟口径天然一致）、存储走
+    store_path(event) 按赛事隔离。红线最严区沿用：无率/无跨场聚合/手填 90 分钟。"""
+    import clubpredict
+    code = _club_code(ev)
+    path = jc.store_path(key)
+    with _CLUB_MODEL_LOCK:
+        m = clubpredict.get_club_model(code, verbose=False)
+    pool = {code: clubpredict._league_teams((code,))[code]}
+
+    def _resolve(q):
+        got, sugg = clubpredict.resolve((q or "").strip(), pool)
+        if got is None:
+            raise KeyError(f"找不到球队「{q}」" + (f"（你是想找：{' / '.join(sugg)}）" if sugg else ""))
+        return got[0]
+
+    if request.method == "GET":
+        home = request.args.get("home", "").strip()
+        away = request.args.get("away", "").strip()
+        date = request.args.get("date", "").strip()
+        out = {}
+        if home and away:
+            try:
+                h = _resolve(home); a = _resolve(away)
+            except KeyError as e:
+                return jsonify({"error": str(e).strip("'\"")}), 400
+            pr = m.predict(h, a, neutral=False)
+            out["model_preview"] = {
+                "home_en": h, "away_en": a,
+                "home_disp": teams_zh.disp(h), "away_disp": teams_zh.disp(a),
+                "p_home": pr["p_home"], "p_draw": pr["p_draw"], "p_away": pr["p_away"],
+                "pred_score": f"{int(round(pr['xg_home']))}-{int(round(pr['xg_away']))}",
+                "is_knockout": False}
+            if date:
+                rec = jc.load_all(path).get(jc.match_key(date, h, a))
+                if rec:
+                    out["record"] = rec
+                    out["reconcile"] = jc.reconcile(rec)
+                    out["reading"] = jc.reading_card(rec)
+        return jsonify(out)
+
+    body = request.get_json(silent=True) or {}
+    act = body.get("action")
+    try:
+        if act == "prematch":
+            h = _resolve(body["home"]); a = _resolve(body["away"])
+            *_, M = m.score_matrix(h, a, neutral=False)
+            pr = m.predict(h, a, neutral=False)
+            fav_is_home = bool(body["fav_is_home"]); line = float(body["line"])
+            s = managermod.settle_line(managermod._margin_pmf(M), fav_is_home, line)
+            denom = s["win"] + s["lose"]
+            model_cover = s["win"] / denom if denom > 1e-9 else s["win"]
+            rec = jc.upsert_prematch(
+                body["date"], h, a, teams_zh.disp(h), teams_zh.disp(a),
+                False,                                   # 联赛恒非淘汰赛
+                fav_is_home, line, float(body["o_fav"]), float(body["o_dog"]),
+                model_cover, {"h": pr["p_home"], "d": pr["p_draw"], "a": pr["p_away"]},
+                f"{int(round(pr['xg_home']))}-{int(round(pr['xg_away']))}",
+                body["my_pick"], body.get("my_note", ""),
+                frozen_at=dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), path=path)
+            return jsonify({"ok": True, "record": rec, "reading": jc.reading_card(rec),
+                            "reconcile": jc.reconcile(rec)})
+        if act == "result":
+            h = _resolve(body["home"]); a = _resolve(body["away"])
+            rc = jc.enter_result(body["date"], h, a, body["h90"], body["a90"], path=path)
+            return jsonify({"ok": True, "reconcile": rc})
+        return jsonify({"error": "未知 action"}), 400
+    except KeyError as e:
+        return jsonify({"error": f"缺字段或未知球队：{e}"}), 400
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:  # noqa
+        return jsonify({"error": f"操作失败：{e}"}), 500
+
+
 @app.route("/api/jc_review", methods=["GET", "POST"])
 def api_jc_review():
     """竞彩让球长期复盘（手动录入 + 赛后三方对账）。详见 CLAUDE.md「竞彩复盘系统」红线。
@@ -680,6 +758,9 @@ def api_jc_review():
     POST action=result   → 赛后手填 90 分钟比分 → 单场三方对账。
     只让球 cover；赛后比分手填 90 分钟（不复用 results.csv 含加时口径）。零下注指令。"""
     import jc_review as jc
+    _key, _ev = _event()
+    if _ev and _ev["universe"].startswith("club_"):
+        return _api_jc_review_club(_key, _ev, jc)      # C7 联赛入口：扩展分支，wc 路径零改动
     if request.method == "GET":
         home = request.args.get("home", "").strip()
         away = request.args.get("away", "").strip()
