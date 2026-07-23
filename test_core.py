@@ -1536,6 +1536,59 @@ def test_clubpredict_model_cache_and_sane_probs():
     assert r["xg_home"] > 0 and r["xg_away"] > 0
 
 
+def test_clubdata_rollover_resilience(monkeypatch):
+    """D1 跨赛季装载回归：26-27 翻季视角下四类场景不炸/正确报错。
+    注意 season_codes 的 end_year 默认值在 def 时绑定——真实 +1 流程=改源码常量后
+    重启进程，测试里用显式参数/monkeypatch season_codes，勿 monkeypatch _CUR_END。"""
+    import os as _os
+    import urllib.request as _ur
+    import urllib.error as _ue
+    import clubdata
+
+    # ① 季码窗口滚动正确（+1 后）
+    assert clubdata.season_codes(7, 2027) == ["2021", "2122", "2223", "2324",
+                                              "2425", "2526", "2627"]
+
+    # ② refresh 下载失败但缓存在位：沿用缓存不炸（fetch 层韧性）
+    def _no_net(url, tmp):
+        raise _ue.HTTPError(url, 404, "Not Found", None, None)
+    monkeypatch.setattr(_ur, "urlretrieve", _no_net)
+    p = clubdata.fetch("E0", "2526", refresh=True)
+    assert _os.path.exists(p)
+
+    # ③ 新季 CSV 未发布（404 且无缓存）：load 降级只用历史季，数据面不变
+    codes27 = ["2021", "2122", "2223", "2324", "2425", "2526", "2627"]
+    monkeypatch.setattr(clubdata, "season_codes", lambda n, end_year=2027: codes27)
+    df = clubdata.load("E0")
+    assert len(df) > 2000 and str(df.date.max().date()) == "2026-05-24"
+
+    # ④ 新季 CSV 存在但为 0 字节（发布空窗）：同样降级，用后清理
+    junk = _os.path.join(clubdata.CLUB_DIR, "E0_2627.csv")
+    try:
+        open(junk, "w").close()
+        df2 = clubdata.load("E0")
+        assert str(df2.date.max().date()) == "2026-05-24"
+    finally:
+        _os.remove(junk)
+
+    # ⑤ 历史季损坏必须硬报错（缓存该在位，坏了要暴露不容许静默降级）
+    real_fetch = clubdata.fetch
+    def _bad_mid(code, season, refresh=False):
+        if season == "2324":
+            raise RuntimeError("历史季缓存损坏（模拟）")
+        return real_fetch(code, season, refresh=refresh)
+    monkeypatch.setattr(clubdata, "fetch", _bad_mid)
+    with pytest.raises(RuntimeError):
+        clubdata.load("E0")
+
+    # ⑥ 新季初期残段下游正常（standings 小样本、终局判定不成立）
+    import clubsim
+    part = df[(df.date >= "2025-07-01") & (df.date <= "2025-09-30")]
+    st = clubsim.standings(part)
+    assert 0 < len(st) <= 20 and all(1 <= r["played"] <= 8 for r in st)
+    assert not all(r["played"] == 2 * (len(st) - 1) for r in st)   # overview complete=False 前提
+
+
 def test_clubdata_feeder_mapping():
     """赛季模拟 feeder 映射：S5 全覆盖、feeder 码合法且自身不是 S 级。"""
     import clubdata

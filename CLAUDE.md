@@ -28,7 +28,11 @@
 - **「25-26 赛季 8 月开赛/8 月滚入/记得 _CUR_END+1」系口径错误**：2025-26 赛季（2025-08 至 2026-05）**已是踢完的史实赛季**，2026-07-19 已整季回补入库（十联赛实拉成功，数据至 2026-05-24，`_CUR_END=2026`）；**2026 年 8 月开赛的是 26-27 赛季**。下方旧接手条目中「25-26 季 8 月才开」「P2 在 25-26 开赛前」等表述以本条为准（P2 时限=26-27 开赛前）。
 - 连带：① events 注册表五联赛条目 key/显示名「25-26」实为 26-27 窗口——**更名留用户裁决**（账本未写入前成本最低）；② 季前 preseason JSON 已删（误标赛季产物），`club_preseason.py` 加闸待 26-27 升班马名单（直升队已知：E0←Coventry/Ipswich 等，见 progress.md 第五轮；**附加赛胜者需外部信息，未确认前标未验证**）；③ 25-26 真实终局已可从库直读（英超降级 West Ham/Burnley/Wolves 等）。
 
-## 📌 最新接手（2026-07-23 九 · C7 竞彩复盘联赛入口完成——**阶段 C 七项全清**，146 测试绿）
+## 📌 最新接手（2026-07-23 十 · 阶段 D 开工：D1 跨赛季装载韧性，147 测试绿）
+- **D1 完成（测试与韧性部分；+1 动作留待 8 月新季 CSV 落地）**：clubdata 三断点修复——新季 CSV 404/0 字节时 load 降级只用历史季（历史季坏仍硬报错）、fetch 刷新失败沿用缓存；`test_clubdata_rollover_resilience` 六断言全离线锁定。**暗坑**：season_codes 的 end_year 默认在 def 时绑定，+1 必须改源码常量+重启，monkeypatch _CUR_END 无效。147 全绿、golden diff 干净。
+- **下一步：D2 每日抓取脚本**——football-data.co.uk 增量（load refresh=True 只刷最新季，已具韧性）+ ESPN（live.py 世界杯口径已归档，联赛侧 ESPN 抓取待接：休赛期可先只做 football-data 增量 + fixtures 刷新，ESPN 联赛实时留待赛季开始，如实标注）；失败写日志（data/logs/ 或类似）；界面时间戳联动（overview data_through 已自动读帧）；**连续实际运行 2 次无报错才算完成**（验收需真实跑两次，勿用预期代替）。可用 launchd 或 cron 注册每日任务。之后 D3 fixtures 未来赛程卡片（load_fixtures 已在，休赛期空态处理）。
+
+## 📌 上一次接手（2026-07-23 九 · C7 竞彩复盘联赛入口完成——**阶段 C 七项全清**，146 测试绿）
 - **C7 完成（红线 2 合规）**：/api/jc_review 顶部按 universe 分流至 `_api_jc_review_club`（club 模型池解析/neutral=False/is_knockout 恒 False/store_path(event) 隔离账本首次实装），jc_review.py 与 wc 分支零改动；前端 jc 组件 **DOM 搬移复用**（appendChild 移动零复制，`_jcEvent` 参数化 fetch，wc 请求不带 event 逐字节一致，`jcRestoreHome()` 三处渲染路径防销毁）。146 全绿（wc jc 旧测试全绿）、golden diff 干净、c7 两截图入库。
 - **阶段 C 收口**：七项全部完成有证据（清单见 progress 第九轮）。**下一步：阶段 D 运维自动化（8 月初英超开赛硬期限）**——D1 跨赛季装载回归（_CUR_END=2026 当前正确，26-27 首轮 CSV 落地后 +1；先建跨赛季滚动测试防 8 月翻车）→ D2 每日抓取脚本（football-data 增量+ESPN，失败写日志，界面时间戳联动，连续实跑 2 次无报错才算完成）→ D3 fixtures 未来赛程预测卡片。阶段 B 顺延欧战前；events「25-26」更名待拍板。
 

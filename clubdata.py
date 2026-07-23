@@ -51,8 +51,16 @@ def fetch(code: str, season: str, refresh: bool = False) -> str:
     path = os.path.join(CLUB_DIR, f"{code}_{season}.csv")
     if refresh or not os.path.exists(path):
         tmp = path + ".tmp"
-        urllib.request.urlretrieve(URL.format(season=season, code=code), tmp)
-        os.replace(tmp, path)
+        try:
+            urllib.request.urlretrieve(URL.format(season=season, code=code), tmp)
+            os.replace(tmp, path)
+        except Exception:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+            if os.path.exists(path):     # 刷新失败但有缓存：沿用缓存，别把可用数据变不可用
+                print(f"[clubdata] {code}_{season} 刷新失败，沿用本地缓存")
+            else:
+                raise
     return path
 
 
@@ -76,10 +84,24 @@ def _read_one(path: str, code: str) -> pd.DataFrame:
 
 
 def load(code: str = "E0", seasons: int = 7, refresh: bool = False) -> pd.DataFrame:
-    """近 seasons 季合并帧（引擎 schema + 赔率列），按日期升序。refresh 只强刷最新一季。"""
+    """近 seasons 季合并帧（引擎 schema + 赔率列），按日期升序。refresh 只强刷最新一季。
+
+    跨赛季空窗韧性（D1）：_CUR_END +1 后、新季 CSV 尚未发布（404）或仅表头（空）
+    的窗口期，最新一季装载失败降级为告警、只用历史季——历史季失败仍硬报错
+    （缓存应在位，坏了必须暴露）。"""
     codes = season_codes(seasons)
-    frames = [_read_one(fetch(code, s, refresh=refresh and s == codes[-1]), code)
-              for s in codes]
+    frames = []
+    for s in codes:
+        try:
+            frames.append(_read_one(fetch(code, s, refresh=refresh and s == codes[-1]), code))
+        except Exception as e:  # noqa
+            if s == codes[-1]:
+                print(f"[clubdata] {code}_{s} 装载失败（{type(e).__name__}: {e}）；"
+                      f"跨赛季空窗降级，仅用历史 {len(frames)} 季")
+                continue
+            raise
+    if not frames:
+        raise RuntimeError(f"{code}: 无任何赛季数据可装载")
     return (pd.concat(frames, ignore_index=True)
             .sort_values("date").reset_index(drop=True))
 
