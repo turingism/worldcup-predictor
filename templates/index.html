@@ -2840,6 +2840,41 @@ function evChampCards(o, ss){
   }
   return t;
 }
+// C5 市场对标（bt_club_market 口径：as-of 防泄漏、Shin 去水、三方同场对比）
+function evMarketCards(mk){
+  if(mk.empty) return evEmptyCard(mk.reason||'市场对标数据未生成。');
+  const s=mk.summary, names={model:'模型（Dixon-Coles）', open:'B365 开盘', close:'B365 闭盘'};
+  const best=Object.keys(s).reduce((a,b)=>s[b].rps<s[a].rps?b:a);
+  const maxr=Math.max(...Object.values(s).map(x=>x.rps));
+  const rows=Object.keys(names).map(k=>{
+    const w=(s[k].rps/maxr*100).toFixed(1);
+    return `<tr${k===best?' style="background:rgba(46,160,67,.10)"':''}><td>${names[k]}${k===best?'（最优）':''}</td>
+      <td style="min-width:180px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;background:#21262d;border-radius:4px;height:10px"><div style="width:${w}%;height:100%;background:${k==='model'?'#58a6ff':'#d29922'};border-radius:4px"></div></div><b>${s[k].rps.toFixed(4)}</b></div></td>
+      <td>${(s[k].hit*100).toFixed(1)}%</td></tr>`;}).join('');
+  const gap=(s.model.rps-s.close.rps);
+  let t=`<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">${mk.season} 赛季 模型 vs 市场（${mk.n} 场同场对比）</h3>
+    <div style="overflow-x:auto"><table class="mgt"><tr><th>口径</th><th>RPS（越小越好）</th><th>胜平负命中率</th></tr>${rows}</table></div>
+    <div class="muted" style="margin-top:8px;font-size:12px">诚实层结论：闭盘 RPS 优于模型 ${(gap*100).toFixed(2)}pp——闭盘价格聚合了阵容、伤停与临场信息流，
+      公开历史比分模型结构上不可能稳定胜出（国家队侧同款结论）。本对标用于认清模型与市场的差距，禁止衍生任何投注建议。</div>
+    <div class="muted" style="margin-top:4px;font-size:11.5px">口径：B365 开/闭盘 Shin 去水；模型分段 as-of 训练防泄漏（hl=365）；
+      仅计模型可预测且开闭盘俱全场次（跳过 模型${mk.skipped_model} / 赔率${mk.skipped_odds} 场）；90 分钟结算。</div></div>`;
+  if(mk.sample && mk.sample.rows && mk.sample.rows.length){
+    const cell=(p,i,out,pick)=>`<td style="${i===out?'font-weight:bold;color:#3fb950':''}">${(p[i]*100).toFixed(1)}${pick===i?' *':''}</td>`;
+    const srows=mk.sample.rows.map(r=>{
+      const three=['model','open','close'].map((k,j)=>{
+        const pick=r[k].indexOf(Math.max(...r[k]));
+        return `<tr>${j===0?`<td rowspan="3" style="white-space:nowrap">${r.home_disp} ${r.score} ${r.away_disp}</td>`:''}
+          <td class="muted">${names[k].replace('（Dixon-Coles）','')}</td>${cell(r[k],0,r.out,pick)}${cell(r[k],1,r.out,pick)}${cell(r[k],2,r.out,pick)}</tr>`;
+      }).join('');
+      return three;
+    }).join('');
+    t+=`<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">赛季末周逐场对照（截至 ${mk.sample.date}）</h3>
+      <div style="overflow-x:auto"><table class="mgt"><tr><th>对阵与比分</th><th>口径</th><th>主胜%</th><th>平%</th><th>客胜%</th></tr>${srows}</table></div>
+      <div class="muted" style="margin-top:6px;font-size:11.5px">绿色加粗=实际赛果对应列；* =该口径的最大概率判（argmax）。</div></div>`;
+  }
+  t+=`<div class="muted" style="margin-top:8px;font-size:11.5px">计算于 ${mk.computed_at} · 来源 ${mk.source} · 数据截至 ${mk.data_through}</div>`;
+  return t;
+}
 function evSeasonSimCard(ss){
   if(ss.empty) return evEmptyCard(ss.reason||'赛季推演数据未生成。');
   const snaps = ss.snapshots, fin = ss.final;
@@ -2904,7 +2939,8 @@ function evShowTab(key, tk){
     Promise.all([evGet(key,'overview'), evGet(key,'seasonsim').catch(()=>({empty:true}))])
       .then(([o,ss])=>{ c.innerHTML=evChampCards(o,ss); }).catch(e=>buildPh('数据加载失败（'+e.message+'）。'));
   } else if(tk==='market'){
-    buildPh('市场对标（B365 开闭盘 1X2 vs 模型概率）按功能同步清单 C5 推进中，当前未接线。数据池已含 B365 开闭盘六列，接线后此处对照展示。');
+    c.innerHTML='<div class="card spin">加载中…</div>';
+    evGet(key,'market').then(mk=>{ c.innerHTML=evMarketCards(mk); }).catch(e=>buildPh('市场对标数据加载失败（'+e.message+'）。'));
   } else if(tk==='explain'){
     buildPh('机制解读（共用世界杯正文 + 联赛差异章节）按功能同步清单 C6 推进中，当前未接线。');
   } else if(tk==='jc'){

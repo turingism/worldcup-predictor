@@ -282,6 +282,26 @@ def api_club_seasonsim():
     return jsonify(d)
 
 
+@app.route("/api/club/market")
+def api_club_market():
+    """C5 市场对标：预计算 JSON 直读（模型 vs B365 开/闭盘，bt_club_market 口径）。"""
+    key, ev, err = _club_event_or_400()
+    if err:
+        return err
+    code = _club_code(ev)
+    path = os.path.join(os.path.dirname(__file__), "data", "club", f"market_{code}.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return jsonify({"event": key, "empty": True,
+                        "reason": "市场对标数据未生成（运行 python3 club_market.py 后显示）"})
+    for r in d.get("sample", {}).get("rows", []):
+        r["home_disp"], r["away_disp"] = teams_zh.disp(r["home"]), teams_zh.disp(r["away"])
+    d["event"] = key
+    return jsonify(d)
+
+
 @app.route("/api/club/predict")
 def api_club_predict():
     """联赛单场预测：与 clubpredict CLI 同一模型/同一计算，输出 JSON。"""
@@ -373,7 +393,7 @@ def api_club_predict():
 for _k, _e in eventsmod.EVENTS.items():
     if _e["universe"].startswith("club_"):
         _EVENT_WIRED.setdefault(_k, set()).update({"/api/club/overview", "/api/club/predict",
-                                                   "/api/club/seasonsim"})
+                                                   "/api/club/seasonsim", "/api/club/market"})
 _EVENT_WIRED.setdefault("nl2026", set()).update({"/api/predict"})
 
 

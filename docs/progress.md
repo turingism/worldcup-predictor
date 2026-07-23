@@ -445,3 +445,37 @@ E）前仍须完成。
 ### 遗留问题
 - C5 市场对标下轮项（B365 开闭盘六列已在帧，bt_club_market 口径）。
 - events「25-26」命名待拍板；26-27 季前待附加赛名单（运行闸在位）。
+
+## 2026-07-23（第七轮）C5 市场对标：B365 开/闭盘 vs 模型（bt_club_market 口径）
+
+### 做了什么
+- `club_market.py` 预计算：25-26 整季分两段 cutoff（25-08-01/26-01-01）as-of
+  训练防泄漏，B365 开/闭盘 Shin 去水，三方同场对比（口径沿用 bt_club_market，
+  差异仅覆盖窗改整季分段，脚本头注明）；只计模型可预测且开闭盘俱全场次，
+  跳过数如实入 JSON；展示样本=赛季末 7 天（末轮跨多日，单日过滤会漏场——
+  首版曾只出 1 场，已修）。产物 data/club/market_<code>.json。
+- `/api/club/market` 直读 + disp，缺文件显式空态；_EVENT_WIRED 注册。
+- 前端 `evMarketCards`：三方 RPS/命中率对比条（最优标绿）+ 诚实层结论文案
+  （闭盘聚合临场信息流，模型结构上不可能稳定胜出，禁止衍生投注建议）+
+  赛季末周逐场对照表（实际赛果列绿粗、argmax 星标）+ 全口径说明与时间戳。
+
+### 验证
+- 五联赛实跑：n=290-363/联赛，闭盘 RPS 全部 ≤ 模型（E0 .2028 vs .2090 等），
+  与 bt_club_market 三窗档案方向一致；D1/F1 开盘微好于闭盘，如实展示
+  「最优」标注按实际数值。
+- test_core 新增 `test_club_market_api`（结构/概率归一/跳过计数/诚实方向
+  哨兵断言：闭盘劣于模型超 0.2pp 时报警人工复核），全量 **145 passed**。
+- golden diff 五确定性端点逐字节一致。
+- 截图：`docs/evidence/c5-laliga-market.png`（西甲市场对标 Tab 全貌，含
+  瓦伦西亚 3-1 巴萨爆冷场三方全错、贝蒂斯场模型 69.2% 优于市场等真实细节）。
+- **wc2026 市场 Tab 回归证据（如实说明）**：该 Tab 首载会经后端拉 ESPN 实时
+  盘口，本机无代理 headless 环境下外网 SSL 握手失败导致截图挂起（既有环境
+  限制，非本轮引入）。以两项静态证据替代：① git diff 证明 wc 市场前端函数
+  （loadMarket/loadMarketDemo/#marketres）零改动（grep 命中为空）；② API
+  golden diff 干净。浏览器回归截图待有网环境补做，标注「未验证（截图）」。
+
+### 遗留问题
+- C6 机制解读下轮项（共用世界杯正文 + 联赛差异章节：独立拟合/联赛内相对值/
+  neutral=False/hl=365）。
+- macOS 无 timeout 命令、headless Chrome 偶发挂起——已固化「后台起 Chrome+
+  watchdog kill」截图模式。

@@ -1735,6 +1735,26 @@ def test_club_matchup_detail_api(client):
     assert d2["facts"]["h2h"]["n"] >= 0                            # 结构存在即可（不写死有无交锋）
 
 
+def test_club_market_api(client):
+    """C5 市场对标：三方 summary 结构、样本概率归一、诚实口径字段在位。"""
+    d = client.get("/api/club/market?event=epl2526").get_json()
+    if d.get("empty"):
+        pytest.skip("market JSON 未生成（运行 python3 club_market.py）")
+    assert d["season"] == "2025-26" and d["devig"] == "shin" and d["hl"] == 365
+    assert d["n"] >= 250 and d["skipped_model"] >= 0 and d["skipped_odds"] >= 0
+    for k in ("model", "open", "close"):
+        assert 0.05 < d["summary"][k]["rps"] < 0.35
+        assert 0.3 < d["summary"][k]["hit"] < 0.8
+    rows = d["sample"]["rows"]
+    assert rows and all(r["out"] in (0, 1, 2) for r in rows)
+    for r in rows:
+        for k in ("model", "open", "close"):
+            assert abs(sum(r[k]) - 1.0) < 0.02
+        assert r["home_disp"] and r["away_disp"] and "-" in r["score"]
+    # 已知诚实结论方向（bt_club_market 档案）：闭盘不劣于模型——方向反转应引起人工复核
+    assert d["summary"]["close"]["rps"] <= d["summary"]["model"]["rps"] + 0.002
+
+
 def test_club_seasonsim_api(client):
     """C3 赛季推演：快照概率归一、played 单调、终局=真实终表 0/1、disp 在位。"""
     d = client.get("/api/club/seasonsim?event=epl2526").get_json()
