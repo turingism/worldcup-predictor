@@ -272,6 +272,12 @@ def api_club_seasonsim():
     for blk in d["snapshots"] + [d["final"]]:
         for r in blk["rows"]:
             r["disp"] = teams_zh.disp(r["team"])
+    if d.get("title_series"):
+        d["title_series"]["disp"] = {t: teams_zh.disp(t) for t in d["title_series"]["teams"]}
+    for s in d.get("key_shifts", []):
+        s["disp"] = teams_zh.disp(s["team"])
+        for m_ in s["matches"]:
+            m_["opp_disp"] = teams_zh.disp(m_["opp"])
     d["event"] = key
     return jsonify(d)
 

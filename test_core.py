@@ -1755,6 +1755,26 @@ def test_club_seasonsim_api(client):
     # 演进叙事锚点：季前热门曼城，终局冠军阿森纳（回溯推演的核心可视化内容）
     pre = max(d["snapshots"][0]["rows"], key=lambda r: r["title"])
     assert pre["team"] in ("Man City", "Arsenal", "Liverpool")
+    # C4 冠军维度：周粒度 title 序列 + 关键场次影响
+    ts = d.get("title_series")
+    if not ts:
+        pytest.skip("title_series 未生成（旧版 seasonsim JSON，重跑 club_seasonsim.py）")
+    n = len(ts["as_of"])
+    assert n >= 30 and "Arsenal" in ts["teams"]
+    for t, ps in ts["teams"].items():
+        assert len(ps) == n and all(0.0 <= p <= 1.0 for p in ps)
+        assert ts["disp"][t]
+    ks = d["key_shifts"]
+    assert ks and all(abs(s["delta"]) >= 0.03 for s in ks)
+    deltas = [abs(s["delta"]) for s in ks]
+    assert deltas == sorted(deltas, reverse=True)                   # 按影响力降序
+    for s in ks:
+        i = ts["as_of"].index(s["from"])
+        assert ts["as_of"][i + 1] == s["to"]                        # 相邻周窗口
+        assert abs(ts["teams"][s["team"]][i + 1] - ts["teams"][s["team"]][i]
+                   - s["delta"]) < 1e-6                             # delta 与序列自洽
+        for m_ in s["matches"]:
+            assert m_["res"] in "WDL" and "-" in m_["score"] and m_["opp_disp"]
 
 
 def test_nl2026_predict_unlocked(client):

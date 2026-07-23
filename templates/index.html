@@ -2777,8 +2777,52 @@ function evBoardCards(o){
   } else t += evEmptyCard('暂无本季积分榜数据。');
   return t;
 }
-function evChampCards(o){
+// 公用 SVG 折线图（C3 赛季推演 / C4 夺冠概率共用；概率 0-1 纵轴，无外部库）
+function evLineChart(labels, seriesArr, opts){
+  const o=opts||{}, W=o.w||660, H=o.h||230, PL=44, PR=16, PT=12, PB=34, iw=W-PL-PR, ih=H-PT-PB;
+  const X=i=>PL+iw*i/Math.max(1,labels.length-1), Y=v=>PT+ih*(1-v);
+  let svg='';
+  for(const g of [0,0.25,0.5,0.75,1]) svg+=`<line x1="${PL}" y1="${Y(g)}" x2="${W-PR}" y2="${Y(g)}" stroke="#21262d"/><text x="${PL-6}" y="${Y(g)+4}" fill="#8b949e" font-size="10" text-anchor="end">${g*100}%</text>`;
+  const step=Math.max(1,Math.ceil(labels.length/9));
+  labels.forEach((lb,i)=>{ const isLast=i===labels.length-1;
+    if((i%step===0 && (isLast || labels.length-1-i>=step/2)) || isLast)
+      svg+=`<text x="${X(i)}" y="${H-14}" fill="#8b949e" font-size="9.5" text-anchor="middle">${lb}</text>`; });
+  const dots = labels.length<=14;
+  seriesArr.forEach(s=>{
+    const line=s.values.map((v,i)=>`${X(i)},${Y(v==null?0:v)}`).join(' ');
+    svg+=`<polyline points="${line}" fill="none" stroke="${s.color}" stroke-width="2"/>`;
+    if(dots) s.values.forEach((v,i)=>{ if(v!=null) svg+=`<circle cx="${X(i)}" cy="${Y(v)}" r="2.6" fill="${s.color}"/>`; });
+  });
+  const legend=seriesArr.map(s=>`<span style="margin-right:12px;font-size:12px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${s.color};margin-right:4px"></span>${s.name}</span>`).join('');
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;min-width:480px">${svg}</svg></div><div style="margin-top:2px">${legend}</div>`;
+}
+const EV_COLORS=['#3fb950','#58a6ff','#d29922','#f85149','#bc8cff','#8b949e'];
+function evChampCards(o, ss){
   let t='';
+  // C4 冠军维度深入①：周粒度冠军概率演进（seasonsim title_series，与 C3 粗粒度概览分工）
+  if(ss && !ss.empty && ss.title_series){
+    const tsr=ss.title_series;
+    const labels=tsr.as_of.map(a=>a.slice(5).replace('-','/'));
+    const teams=Object.keys(tsr.teams).sort((a,b)=>Math.max(...tsr.teams[b])-Math.max(...tsr.teams[a])).slice(0,6);
+    const series=teams.map((tm,k)=>({name:(tsr.disp&&tsr.disp[tm])||tm, color:EV_COLORS[k%EV_COLORS.length], values:tsr.teams[tm]}));
+    t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">冠军概率演进（周粒度 · ${tsr.sims} 次蒙特卡洛/周）</h3>
+      <div class="muted" style="font-size:12px">每周一时点回溯推演（防泄漏口径同赛季推演 Tab）；只展示任一时点夺冠概率≥1% 的球队。</div>
+      ${evLineChart(labels, series)}
+      <div class="muted" style="margin-top:6px;font-size:11.5px">计算于 ${ss.computed_at} · 来源 ${ss.source} · 数据截至 ${ss.data_through}</div></div>`;
+    // C4 ②：关键场次影响（相邻周概率跳变最大窗口 + 同窗赛果，非单场因果归因）
+    if(ss.key_shifts && ss.key_shifts.length){
+      const rows=ss.key_shifts.map(s=>{
+        const ms=s.matches.length?s.matches.map(m=>`${m.date.slice(5)} ${m.home?'主':'客'} vs ${m.opp_disp} <b>${m.score}</b>${m.res==='W'?'胜':m.res==='D'?'平':'负'}`).join('<br>'):'<span class="muted">窗口内无该队赛程（概率变动来自竞争对手赛果）</span>';
+        const c=s.delta>0?'#3fb950':'#f85149';
+        return `<tr><td>${s.disp}</td><td class="muted">${s.from.slice(5)}→${s.to.slice(5)}</td><td style="color:${c};font-weight:bold">${s.delta>0?'+':''}${(s.delta*100).toFixed(1)}pp</td><td style="font-size:12px">${ms}</td></tr>`;
+      }).join('');
+      t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">关键场次影响（夺冠概率单周最大跳变）</h3>
+        <div style="overflow-x:auto"><table class="mgt"><tr><th>球队</th><th>时间窗</th><th>Δ夺冠概率</th><th>同窗赛果</th></tr>${rows}</table></div>
+        <div class="muted" style="margin-top:6px;font-size:11.5px">口径：相邻周回溯快照的夺冠概率变化，列出该队同窗实际赛果；概率变动亦受竞争对手赛果影响，不作单场因果归因。</div></div>`;
+    }
+  } else {
+    t += evEmptyCard('冠军概率演进数据未生成（运行 python3 club_seasonsim.py 后显示）。');
+  }
   if(o.ranking){
     const rk=o.ranking.slice(0,10).map((r,i)=>`<tr><td>${i+1}</td><td>${r.disp}</td><td>${r.score>0?'+':''}${r.score.toFixed(3)}</td></tr>`).join('');
     t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">模型净实力榜 Top 10</h3>
@@ -2794,7 +2838,6 @@ function evChampCards(o){
   } else {
     t += evEmptyCard('26-27 季前模拟未生成：附加赛升班马名单尚未官方确认（club_preseason.py 运行闸拦截）。名单确认后此处出现季前夺冠概率。');
   }
-  t += evEmptyCard('冠军维度深入（概率演进、关键场次影响）按功能同步清单 C4 推进中；当前请先看「赛季推演」Tab 的争冠概率演进。');
   return t;
 }
 function evSeasonSimCard(ss){
@@ -2806,26 +2849,19 @@ function evSeasonSimCard(ss){
     .filter(r=>r[field]>0.0005)
     .map(r=>`<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12.5px">
       <span style="width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.disp}</span>${bar(r[field],color)}<b style="width:52px;text-align:right">${evPct(r[field])}</b></div>`).join('')||`<span class="muted">无显著概率球队</span>`;
-  // 演进曲线（SVG 折线，无外部库）：争冠概率随 as_of 演进，终局实况收口
+  // 演进曲线：粗粒度快照 + 终局收口（细粒度周曲线在「夺冠概率」Tab，两 Tab 分工）
   const pts = snaps.map(s=>({as_of:s.as_of, rows:s.rows})).concat([{as_of:fin.as_of+'（终局）', rows:fin.rows}]);
   const lead = new Set();
   [...snaps[0].rows].sort((a,b)=>b.title-a.title).slice(0,3).forEach(r=>lead.add(r.team));
   [...last.rows].sort((a,b)=>b.title-a.title).slice(0,3).forEach(r=>lead.add(r.team));
   fin.rows.filter(r=>r.title>0).forEach(r=>lead.add(r.team));
-  const colors=['#3fb950','#58a6ff','#d29922','#f85149','#bc8cff','#8b949e'];
   const teams=[...lead].slice(0,6);
-  const W=660,H=230,PL=44,PR=10,PT=12,PB=34, iw=W-PL-PR, ih=H-PT-PB;
-  const X=i=>PL+iw*i/(pts.length-1), Y=v=>PT+ih*(1-v);
-  let svg='';
-  for(const g of [0,0.25,0.5,0.75,1]) svg+=`<line x1="${PL}" y1="${Y(g)}" x2="${W-PR}" y2="${Y(g)}" stroke="#21262d"/><text x="${PL-6}" y="${Y(g)+4}" fill="#8b949e" font-size="10" text-anchor="end">${g*100}%</text>`;
-  pts.forEach((p,i)=>{ svg+=`<text x="${X(i)}" y="${H-14}" fill="#8b949e" font-size="9.5" text-anchor="middle">${p.as_of.slice(2,7).replace('-','/')}${p.as_of.includes('终局')?'终':''}</text>`; });
-  teams.forEach((tm,k)=>{
-    const line=pts.map((p,i)=>{ const r=p.rows.find(x=>x.team===tm); return `${X(i)},${Y(r?r.title:0)}`; }).join(' ');
-    svg+=`<polyline points="${line}" fill="none" stroke="${colors[k%colors.length]}" stroke-width="2"/>`;
-    pts.forEach((p,i)=>{ const r=p.rows.find(x=>x.team===tm); if(r) svg+=`<circle cx="${X(i)}" cy="${Y(r.title)}" r="2.6" fill="${colors[k%colors.length]}"/>`; });
+  const labels=pts.map(p=>p.as_of.slice(2,7).replace('-','/')+(p.as_of.includes('终局')?'终':''));
+  const series=teams.map((tm,k)=>{
+    const ref=last.rows.find(x=>x.team===tm)||fin.rows.find(x=>x.team===tm);
+    return {name:ref?ref.disp:tm, color:EV_COLORS[k%EV_COLORS.length],
+            values:pts.map(p=>{ const r=p.rows.find(x=>x.team===tm); return r?r.title:0; })};
   });
-  const legend=teams.map((tm,k)=>{ const r=last.rows.find(x=>x.team===tm)||fin.rows.find(x=>x.team===tm);
-    return `<span style="margin-right:12px;font-size:12px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${colors[k%colors.length]};margin-right:4px"></span>${r?r.disp:tm}</span>`; }).join('');
   return `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">${ss.season} 赛季推演（回溯模式 · ${ss.sims} 次蒙特卡洛/快照）</h3>
     <div class="muted" style="font-size:12px">口径：每个时点只用该时点前的比赛训练模型并推演剩余赛程（防泄漏），已赛=事实、未赛=抽样；终局为真实终表。晋级树状图在联赛赛制下的等价物即本推演（联赛无淘汰对阵树）。</div>
     <div style="display:flex;gap:22px;flex-wrap:wrap;margin-top:10px">
@@ -2833,9 +2869,8 @@ function evSeasonSimCard(ss){
       <div style="flex:1;min-width:230px"><h4 style="margin:0 0 4px">前四概率</h4>${barRows(last.rows,'top4','#58a6ff',6)}</div>
       <div style="flex:1;min-width:230px"><h4 style="margin:0 0 4px">降级概率</h4>${barRows(last.rows,'bottom3','#f85149',5)}</div>
     </div>
-    <h4 style="margin:12px 0 4px">争冠概率演进</h4>
-    <div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;min-width:480px">${svg}</svg></div>
-    <div style="margin-top:2px">${legend}</div>
+    <h4 style="margin:12px 0 4px">争冠概率演进（月粒度概览；周粒度详版见「夺冠概率」Tab）</h4>
+    ${evLineChart(labels, series)}
     <div class="muted" style="margin-top:8px;font-size:11.5px">计算于 ${ss.computed_at} · 来源 ${ss.source} · 数据截至 ${ss.data_through} · 研究/信息性质，非投注建议</div>
   </div>`;
 }
@@ -2866,7 +2901,8 @@ function evShowTab(key, tk){
     evGet(key,'seasonsim').then(ss=>{ c.innerHTML=evSeasonSimCard(ss); }).catch(e=>buildPh('赛季推演数据加载失败（'+e.message+'）。'));
   } else if(tk==='champ'){
     c.innerHTML='<div class="card spin">加载中…</div>';
-    evGet(key,'overview').then(o=>{ c.innerHTML=evChampCards(o); }).catch(e=>buildPh('数据加载失败（'+e.message+'）。'));
+    Promise.all([evGet(key,'overview'), evGet(key,'seasonsim').catch(()=>({empty:true}))])
+      .then(([o,ss])=>{ c.innerHTML=evChampCards(o,ss); }).catch(e=>buildPh('数据加载失败（'+e.message+'）。'));
   } else if(tk==='market'){
     buildPh('市场对标（B365 开闭盘 1X2 vs 模型概率）按功能同步清单 C5 推进中，当前未接线。数据池已含 B365 开闭盘六列，接线后此处对照展示。');
   } else if(tk==='explain'){

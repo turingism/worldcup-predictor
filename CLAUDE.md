@@ -28,7 +28,12 @@
 - **「25-26 赛季 8 月开赛/8 月滚入/记得 _CUR_END+1」系口径错误**：2025-26 赛季（2025-08 至 2026-05）**已是踢完的史实赛季**，2026-07-19 已整季回补入库（十联赛实拉成功，数据至 2026-05-24，`_CUR_END=2026`）；**2026 年 8 月开赛的是 26-27 赛季**。下方旧接手条目中「25-26 季 8 月才开」「P2 在 25-26 开赛前」等表述以本条为准（P2 时限=26-27 开赛前）。
 - 连带：① events 注册表五联赛条目 key/显示名「25-26」实为 26-27 窗口——**更名留用户裁决**（账本未写入前成本最低）；② 季前 preseason JSON 已删（误标赛季产物），`club_preseason.py` 加闸待 26-27 升班马名单（直升队已知：E0←Coventry/Ipswich 等，见 progress.md 第五轮；**附加赛胜者需外部信息，未确认前标未验证**）；③ 25-26 真实终局已可从库直读（英超降级 West Ham/Burnley/Wolves 等）。
 
-## 📌 最新接手（2026-07-23 五 · C3 赛季推演 + 联赛七 Tab 化 + 左侧纵向菜单，144 测试绿）
+## 📌 最新接手（2026-07-23 六 · C4 夺冠概率页完成，144 测试绿）
+- **C4 完成**：club_seasonsim.py +`build_title_series`（周一网格 42 点×3000 次防泄漏回溯）→ seasonsim JSON 增 `title_series`+`key_shifts`（相邻周 |Δ夺冠概率| Top 窗口+同窗真实赛果，≥3pp，非因果归因口径）→ 夺冠概率 Tab=周粒度演进曲线+关键场次表+实力榜+季前空态。公用 `evLineChart` 抽取（C3/C4 共用）。验收：144 全绿、golden diff 干净、E0 关键窗口叙事与真实赛果核对一致（新年阿森纳+23.4pp/曼城-22.2pp 等）、两截图（c4-epl-champ / c4-wc2026-champ-regression）。
+- **⚠️ 教训**：debug=False 不自动重载模板——改 templates/ 后必须重启实例再截图/验证（本轮曾截到旧模板）。
+- **下一步：C5 市场对标**（B365 开闭盘 1X2 vs 模型概率；帧内已有 B365H/D/A + B365CH/CD/CA 六列闭盘 100% 覆盖；口径沿用 bt_club_market——先查该脚本是否存在：grep bt_club_market，若无则以 docs/backtest.md 已落档的市场对标口径为准，冲突记录 progress）。后续 C6 机制解读 → C7 jc 联赛入口 → 阶段 D 运维（8 月初前）。部署流程：commit → kickstart → curl 验证。
+
+## 📌 上一次接手（2026-07-23 五 · C3 赛季推演 + 联赛七 Tab 化 + 左侧纵向菜单，144 测试绿）
 - **用户轮中指令已落地**：① 世界杯七 Tab 在各联赛可找到（按赛制优化：晋级树状图→赛季推演）；② 赛事切换=左侧纵向菜单（CSS grid 实现 DOM 零改动，≤760px 回退横滚）。联赛视图重构为 `LEAGUE_TABS` 七 Tab + `evShowTab` 按需加载（EV_DATA 缓存），C1/C2 内容归位 board/matchup Tab，C5/C6/C7 Tab 显式空态+原因，nl2026 仅 matchup 有内容。
 - **C3 完成**：`club_seasonsim.py`（五联赛×6 快照×5000 次 simulate_retro 防泄漏回溯 + 终局真实终表收口）→ `data/club/seasonsim_<code>.json` → `/api/club/seasonsim` → 赛季推演 Tab（争冠/前四/降级概率条 + 争冠 SVG 演进曲线）。验收：144 全绿、golden diff 干净、三截图（c3-epl-seasonsim / c3-sidebar-board / c3-wc2026-sidebar-regression）；E0 曼城季前 41.8% → 阿森纳终局反超叙事完整。
 - **下一步：C4 夺冠概率页**（冠军维度深入：概率演进细化+关键场次影响；可复用 seasonsim 快照数据推关键场次——如按 as_of 区间概率跳变定位）。后续 C5 市场对标（B365 六列已在帧）→ C6 机制解读 → C7 jc 联赛入口。生产部署流程：commit 后 `launchctl kickstart -k gui/501/com.melvin.worldcup-predictor` 并 curl 验证。
