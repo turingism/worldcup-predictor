@@ -650,3 +650,48 @@ launchd 每日 09:00，定时触发标未验证）/ D3 ✓（本轮）。**阶�
 - 长期跟踪：_CUR_END+1（8 月）/ launchd 定时触发观测（明日 09:00 后查
   data/logs/daily_launchd.out）/ events「25-26」更名待拍板 / 26-27 preseason
   待附加赛名单。
+
+## 2026-07-23（第十三轮）阶段 B 实体层统一表——B1/B2/B3 全清
+
+### B1 现状与迁移成本评估（保险丝核查）
+- 沿用第四/五轮档案：teams_zh 双命名空间语义达标，物理单表化为形式统一诉求，
+  用户已裁决「做」。本轮实施方案将成本从 M 级压到 S 级：**TEAMS 统一表为
+  唯一运行时事实源，CN/CLUB 降为派生兼容视图**——全部消费方（disp/to_en/
+  测试直引 CN/CLUB）零改动。
+- **保险丝核查：未触发**。改造只涉及 teams_zh.py 单文件，predictions_*.json
+  验证账本、jc_review_*.json 复盘账本的结构与路径零接触（git diff 佐证），
+  无需暂停等拍板。
+- **任务书数字冲突（红线 5）**：任务书「336 国家队 + 144 俱乐部」，实测
+  _NATIONAL_SRC=78（模型 257 队中有中文映射者；未映射回退英文为既有设计）、
+  _CLUB_SRC=155（五大+feeder 全覆盖，A3 后含升班马候选）。统一表按实际
+  规模构建，不虚构映射；测试断言按实测规模（≥70/≥150）。
+
+### B2 teams 统一表
+- teams_zh 重构：数据源段 `_NATIONAL_SRC`/`_CLUB_SRC`（authoring 用）→
+  构建 `TEAMS = {en: {zh, flag, universe}}`（构建期 assert 跨宇宙零撞名）→
+  派生视图 CN/CLUB + 新helpers `universe_of(en)` / `pool(universe)`；
+  disp/_R 反查改读 TEAMS（注册序 national 先于 club，与旧 (CN,CLUB) 序等价，
+  反查优先级不变）。双语映射双向保持；俱乐部池跨联赛共享/国家队池隔离语义
+  由既有测试 + 新测试双锁。
+
+### B3 账本层共用实现（任务书口径逐字验证）
+- 共用实现=manager.py 过程数据函数（第四轮裁决，一份两宇宙）。本轮按任务书
+  口径「分别用一场世界杯与一场联赛比赛验证输出正确性」重新实测（数据已含
+  决赛与 25-26 全季）：
+  - 世界杯场：Spain 近 6 轮 WWWWWW，最近一场 2026-07-19 决赛 1-0 Argentina
+    （真实）；西 vs 阿 h2h 近 5 次 西 4 胜 阿 1 胜（决赛入账后更新，真实）。
+  - 联赛场：Arsenal 近 6 轮 WWWWWL，最近一场 2026-05-24 客胜水晶宫 2-1
+    （与积分榜卡片末轮 水晶宫 1-2 阿森纳 一致）；阿 vs 曼城 1 胜 3 平 1 负。
+  - 既有锁定测试 test_matchfacts_shared_impl_both_universes /
+    test_team_pool_cross_league_and_isolation 全绿。
+
+### 验证
+test_core 新增 `test_teams_unified_table`（表源一致/池隔离/universe 判定/
+实测规模/双语往返 30 队抽验），全量 **149 passed**；golden diff 五端点
+逐字节一致（disp 输出与旧实现完全相同）。**阶段 B 宣告完成。**
+
+### 遗留问题 / 下轮起点
+- 下一阶段=阶段 E 欧战接入：E1 选型实测（ESPN API vs openfootball，欧冠+
+  欧联近 3-5 季，结论落 data-sources.md）——涉及外网实测，注意用代理回退
+  策略；若两源均不可达则做阶段内离线项并如实记录。
+- 长期跟踪不变：_CUR_END+1（8 月）/ launchd 观测 / events 更名 / 26-27 名单。

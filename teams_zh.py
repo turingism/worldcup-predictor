@@ -7,8 +7,8 @@
 """
 from __future__ import annotations
 
-# 英文 -> (中文, 国旗)
-CN: dict[str, tuple[str, str]] = {
+# 英文 -> (中文, 国旗)——国家队数据源段（authoring 用；运行时唯一事实源是下方 TEAMS）
+_NATIONAL_SRC: dict[str, tuple[str, str]] = {
     # —— 2026 世界杯 48 强 ——
     "Algeria": ("阿尔及利亚", "🇩🇿"),
     "Argentina": ("阿根廷", "🇦🇷"),
@@ -93,7 +93,8 @@ CN: dict[str, tuple[str, str]] = {
 
 # 俱乐部（多赛事扩展 P2：五大联赛近 7 季全部 144 队，键=football-data.co.uk 拼写）。
 # 独立于 CN——国家队与俱乐部命名空间分开（"Monaco" 等潜在撞名），旗帜=联赛归属国。
-CLUB: dict[str, tuple[str, str]] = {
+# 俱乐部数据源段（authoring 用；运行时唯一事实源是下方 TEAMS）
+_CLUB_SRC: dict[str, tuple[str, str]] = {
     # —— 英超（含近年升降级队）——
     "Arsenal": ("阿森纳", "🏴󠁧󠁢󠁥󠁮󠁧󠁿"), "Aston Villa": ("阿斯顿维拉", "🏴󠁧󠁢󠁥󠁮󠁧󠁿"),
     "Bournemouth": ("伯恩茅斯", "🏴󠁧󠁢󠁥󠁮󠁧󠁿"), "Brentford": ("布伦特福德", "🏴󠁧󠁢󠁥󠁮󠁧󠁿"),
@@ -180,21 +181,47 @@ CLUB: dict[str, tuple[str, str]] = {
 }
 
 
+# —— B2 实体层统一表：TEAMS = 唯一运行时事实源（universe: national|club）。——
+# 语义不变量（既有测试锁定）：两宇宙零撞名；俱乐部池跨联赛共享；国家队池隔离；
+# 双语映射 disp（en→中文显示）/ to_en（中文/显示串→en）双向可用；未收录回退英文。
+# 新增映射改上方 _NATIONAL_SRC / _CLUB_SRC 数据源段，勿直接改 TEAMS / 派生视图。
+TEAMS: dict[str, dict] = {}
+for _src, _u in ((_NATIONAL_SRC, "national"), (_CLUB_SRC, "club")):
+    for _en, (_zh, _flag) in _src.items():
+        assert _en not in TEAMS, f"跨宇宙撞名：{_en}"
+        TEAMS[_en] = {"zh": _zh, "flag": _flag, "universe": _u}
+
+
+def universe_of(en: str) -> str | None:
+    """该队所属宇宙：'national' / 'club' / None（未收录）。"""
+    v = TEAMS.get(en)
+    return v["universe"] if v else None
+
+
+def pool(universe: str) -> set[str]:
+    """按宇宙取池（俱乐部池跨联赛共享一池；国家队池独立）。"""
+    return {en for en, v in TEAMS.items() if v["universe"] == universe}
+
+
+# 派生兼容视图（历史消费方/测试零改动；数据源在 _SRC 段，运行时以 TEAMS 为准）
+CN: dict[str, tuple[str, str]] = {en: (v["zh"], v["flag"]) for en, v in TEAMS.items()
+                                  if v["universe"] == "national"}
+CLUB: dict[str, tuple[str, str]] = {en: (v["zh"], v["flag"]) for en, v in TEAMS.items()
+                                    if v["universe"] == "club"}
+
+
 def disp(en: str) -> str:
     """英文队名 -> 显示串「🇦🇷 阿根廷」/「🏴󠁧󠁢󠁥󠁮󠁧󠁿 利物浦」；未收录回退英文原名。"""
-    hit = CN.get(en) or CLUB.get(en)
-    if hit:
-        zh, flag = hit
-        return f"{flag} {zh}"
-    return en
+    v = TEAMS.get(en)
+    return f"{v['flag']} {v['zh']}" if v else en
 
 
-# 反查表：英文 / 小写英文 / 中文 / 显示串 -> 英文（国家队优先注册，俱乐部不覆盖已有键）
+# 反查表：英文 / 小写英文 / 中文 / 显示串 -> 英文（国家队优先注册，俱乐部不覆盖已有键；
+# TEAMS 构建序=national 先于 club，与旧 (CN, CLUB) 注册序等价）
 _R: dict[str, str] = {}
-for _src in (CN, CLUB):
-    for _en, (_zh, _flag) in _src.items():
-        for _k in (_en, _en.lower(), _zh, f"{_flag} {_zh}"):
-            _R.setdefault(_k, _en)
+for _en, _v in TEAMS.items():
+    for _k in (_en, _en.lower(), _v["zh"], f"{_v['flag']} {_v['zh']}"):
+        _R.setdefault(_k, _en)
 
 
 def to_en(s: str) -> str | None:

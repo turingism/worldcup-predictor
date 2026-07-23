@@ -740,6 +740,23 @@ def test_teams_zh_club_mapping_complete():
     assert not missing, f"缺映射：{missing}"
 
 
+def test_teams_unified_table():
+    """B2 实体层统一表：TEAMS 唯一事实源 + universe 字段 + 派生视图一致 + 池隔离 + 双语往返。"""
+    import teams_zh as tz
+    assert len(tz.TEAMS) == len(tz.CN) + len(tz.CLUB)
+    assert set(tz.pool("national")) == set(tz.CN)
+    assert set(tz.pool("club")) == set(tz.CLUB)
+    assert not tz.pool("national") & tz.pool("club")           # 跨宇宙零撞名
+    assert tz.universe_of("Argentina") == "national"
+    assert tz.universe_of("Arsenal") == "club"
+    assert tz.universe_of("Nonexistent FC") is None
+    assert len(tz.CN) >= 70 and len(tz.CLUB) >= 150            # 实测规模（任务书 336/144 系口径出入，见 progress）
+    for en in list(tz.CN)[:15] + list(tz.CLUB)[:15]:           # 双语映射往返：en→显示串→en
+        v = tz.TEAMS[en]
+        assert tz.disp(en) == f"{v['flag']} {v['zh']}"
+        assert tz.to_en(tz.disp(en)) == en
+
+
 def test_teams_zh_promoted_candidates_mapped():
     """A3：26-27 升班马候选（各 feeder 25-26 终表前三，直升+附加赛主候选）须有中文映射。"""
     import teams_zh, clubdata, clubsim

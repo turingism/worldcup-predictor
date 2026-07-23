@@ -28,7 +28,12 @@
 - **「25-26 赛季 8 月开赛/8 月滚入/记得 _CUR_END+1」系口径错误**：2025-26 赛季（2025-08 至 2026-05）**已是踢完的史实赛季**，2026-07-19 已整季回补入库（十联赛实拉成功，数据至 2026-05-24，`_CUR_END=2026`）；**2026 年 8 月开赛的是 26-27 赛季**。下方旧接手条目中「25-26 季 8 月才开」「P2 在 25-26 开赛前」等表述以本条为准（P2 时限=26-27 开赛前）。
 - 连带：① events 注册表五联赛条目 key/显示名「25-26」实为 26-27 窗口——**更名留用户裁决**（账本未写入前成本最低）；② 季前 preseason JSON 已删（误标赛季产物），`club_preseason.py` 加闸待 26-27 升班马名单（直升队已知：E0←Coventry/Ipswich 等，见 progress.md 第五轮；**附加赛胜者需外部信息，未确认前标未验证**）；③ 25-26 真实终局已可从库直读（英超降级 West Ham/Burnley/Wolves 等）。
 
-## 📌 最新接手（2026-07-23 十二 · D3 未来赛程预测完成——**阶段 D 三项全清**，148 测试绿）
+## 📌 最新接手（2026-07-23 十三 · **阶段 B 实体层统一表全清**，149 测试绿）
+- **B1/B2/B3 一轮收口**：teams_zh 重构为 `TEAMS` 统一表（en→{zh,flag,universe}，构建期零撞名断言）+`universe_of()`/`pool()`，CN/CLUB 降为派生兼容视图（**全消费方零改动**，成本 M→S）；保险丝未触发（账本零接触）；任务书 336/144 与实测 78/155 的数字冲突已按红线 5 落档（未映射回退英文系既有设计，不虚构）；B3 按任务书口径双宇宙各一场实测（西班牙决赛入账 WWWWWW / 阿森纳末轮客胜水晶宫）。149 全绿、golden diff 干净。**新增映射改 _NATIONAL_SRC/_CLUB_SRC 数据源段，勿直接改 TEAMS/视图。**
+- **下一步：阶段 E 欧战接入**。E1 选型实测：ESPN API（site.api.espn.com soccer/uefa.champions + uefa.europa，scoreboard 按日期窗）vs openfootball（github 公开 JSON），各拉欧冠+欧联近 3-5 季样本，比较：覆盖年限/两回合标注/队名与 football-data 拼写对齐成本/抓取稳定性；结论落 docs/data-sources.md。网络注意代理回退（live._fetch_json 模式）；两源均不可达时做阶段内离线项（如 E2 统一 match 模型 schema 设计）并如实记录。
+- 长期跟踪：_CUR_END+1（8 月）/ launchd 明晨观测 / events 更名待拍板 / 26-27 preseason 待名单。
+
+## 📌 上一次接手（2026-07-23 十二 · D3 未来赛程预测完成——**阶段 D 三项全清**，148 测试绿）
 - **D3 完成**：overview +`upcoming`（fixtures 未来 14 天+模型赛前概率+B365 盘，池外队 no_model，空态带原因，源异常兜底）；看板「未来 14 天赛程预测」卡片五联赛共用。验收：148 全绿、golden diff 干净、两态截图（d3-epl-upcoming-empty=真实休赛期空态 / d3-epl-upcoming-demo=**合成 fixtures 演示渲染**，红线 3 已明示，真实赛程渲染待 26-27 fixtures 发布自然验证）。
 - **阶段 D 收口**（D1/D2/D3 全清；8 月到期动作在遗留清单）。**下一步：阶段 B 实体层统一表**（欧战前必须）——B1 评估沿用第四/五轮档案（teams 物理单表 M 级、用户已裁决「做」；**保险丝：动世界杯账本结构必须暂停等拍板**——teams 表不碰 predictions_*.json，正常无需触发）；B2 统一表=teams_zh 重构为带 universe 字段的单表结构+全消费方改造（disp/to_en/_R 反查/池化查询语义保持：俱乐部池跨联赛共享、国家队池隔离、双向映射零回归，现有测试全部锁定行为）；B3=共用实现验证（manager.py 函数已裁决，两宇宙各取一场实测+测试在位即闭环，第四轮已有 test_matchfacts_shared_impl_both_universes，核对是否满足任务书口径后宣告）。
 - 长期跟踪：_CUR_END+1（8 月）/ launchd 明日 09:00 观测 / events 更名待拍板 / 26-27 preseason 待名单。
