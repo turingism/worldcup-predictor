@@ -247,12 +247,39 @@ def api_club_overview():
                     "home_disp": teams_zh.disp(r.home_team), "away_disp": teams_zh.disp(r.away_team),
                     "score": f"{int(r.home_score)}-{int(r.away_score)}"}
                    for r in latest.itertuples()]
+    # D3 未来赛程预测：fixtures 未来 14 天 + 模型赛前概率（休赛期空态+原因）
+    upcoming = {"rows": [], "reason": None,
+                "note": "来源 football-data fixtures（约含未来一轮）；模型概率为当前数据下赛前口径"}
+    try:
+        fx = clubdata.load_fixtures(code)
+        today = pd.Timestamp.now().normalize()
+        fut = fx[(fx.date >= today) & (fx.date <= today + pd.Timedelta(days=14))]
+        for r in fut.itertuples():
+            row = {"date": str(r.date.date()), "time": r.date.strftime("%H:%M"),
+                   "home": r.home_team, "away": r.away_team,
+                   "home_disp": teams_zh.disp(r.home_team), "away_disp": teams_zh.disp(r.away_team)}
+            try:
+                pr = m.predict(r.home_team, r.away_team, neutral=False)
+                row.update(p_home=round(pr["p_home"], 4), p_draw=round(pr["p_draw"], 4),
+                           p_away=round(pr["p_away"], 4),
+                           xg_home=round(pr["xg_home"], 2), xg_away=round(pr["xg_away"], 2))
+            except KeyError:
+                row["no_model"] = True               # 新升班马等样本不足 → 前端显示「暂无数据」
+            if not pd.isna(r.B365H):
+                row["b365"] = [float(r.B365H), float(r.B365D), float(r.B365A)]
+            upcoming["rows"].append(row)
+        if not upcoming["rows"]:
+            upcoming["reason"] = ("休赛期或赛程未发布：fixtures 源当前无本联赛未来 14 天场次，"
+                                  "26-27 赛程发布后此处自动显示预测卡片")
+    except Exception as e:  # noqa   赛程源不可用不拖垮看板
+        upcoming["reason"] = f"赛程源暂不可用（{e}）"
     return jsonify({"event": key, "league": clubdata.LEAGUES[code], "code": code,
                     "data_through": str(df.date.max().date()), "matches": int(len(df)),
                     "source": "football-data.co.uk", "hl": 365,
                     "ranking": ranking, "preseason": pre,
                     "standings": {"season": season_label, "complete": complete, "rows": st},
-                    "latest_matchday": {"date": str(cur.date.max().date()), "rows": latest_rows}})
+                    "latest_matchday": {"date": str(cur.date.max().date()), "rows": latest_rows},
+                    "upcoming": upcoming})
 
 
 @app.route("/api/club/seasonsim")

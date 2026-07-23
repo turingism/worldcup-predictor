@@ -2774,6 +2774,26 @@ async function evGet(key, kind){        // kind: 'overview' | 'seasonsim'
 }
 function evBoardCards(o){
   let t='';
+  // D3 未来赛程预测卡片（休赛期显式空态+原因）
+  const up=o.upcoming||{};
+  if(up.rows && up.rows.length){
+    const rows=up.rows.map(r=>{
+      const pred = r.no_model
+        ? `<td colspan="4" class="muted">暂无数据（该队当前模型样本不足）</td>`
+        : `<td><b>${(r.p_home*100).toFixed(0)}</b>/${(r.p_draw*100).toFixed(0)}/<b>${(r.p_away*100).toFixed(0)}</b>%</td>
+           <td class="muted">${r.xg_home}-${r.xg_away}</td>
+           <td style="min-width:90px">${evWdlBar(r.p_home,r.p_draw,r.p_away)}</td>
+           <td class="muted">${r.b365?r.b365.map(x=>x.toFixed(2)).join(' / '):'—'}</td>`;
+      return `<tr><td class="muted" style="white-space:nowrap">${r.date} ${r.time}</td>
+        <td style="text-align:right">${r.home_disp}</td><td style="text-align:center">vs</td><td>${r.away_disp}</td>${pred}</tr>`;
+    }).join('');
+    t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">未来 14 天赛程预测（${up.rows.length} 场）</h3>
+      <div style="overflow-x:auto"><table class="mgt"><tr><th>开球</th><th colspan="3">对阵</th><th>胜/平/负</th><th>期望进球</th><th>概率条</th><th>B365 赛前盘</th></tr>${rows}</table></div>
+      <div class="muted" style="margin-top:6px;font-size:11.5px">${up.note} · 90 分钟口径 · 数据截至 ${o.data_through} · 研究/信息性质，非投注建议</div></div>`;
+  } else {
+    t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">未来 14 天赛程预测</h3>
+      <span class="muted">${up.reason||'暂无未来赛程数据。'}</span></div>`;
+  }
   if(o.latest_matchday && o.latest_matchday.rows && o.latest_matchday.rows.length){
     const lm=o.latest_matchday;
     const rows=lm.rows.map(r=>`<tr><td class="muted">${r.date}</td><td style="text-align:right">${r.home_disp}</td><td style="text-align:center"><b>${r.score}</b></td><td>${r.away_disp}</td></tr>`).join('');

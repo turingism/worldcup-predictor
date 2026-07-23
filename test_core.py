@@ -1788,6 +1788,31 @@ def test_club_matchup_detail_api(client):
     assert d2["facts"]["h2h"]["n"] >= 0                            # 结构存在即可（不写死有无交锋）
 
 
+def test_club_overview_upcoming(client, monkeypatch):
+    """D3 未来赛程预测：空态必有原因；合成 fixtures 下模型概率/池外队暂无数据/B365 透传。"""
+    import clubdata
+    import pandas as pd
+    d = client.get("/api/club/overview?event=epl2526").get_json()
+    up = d["upcoming"]
+    assert "rows" in up and (up["rows"] or up["reason"])            # 无场次必须给原因
+    tmr = pd.Timestamp.now().normalize() + pd.Timedelta(days=2)
+    fx = pd.DataFrame({
+        "div": ["E0", "E0"],
+        "date": [tmr + pd.Timedelta(hours=20), tmr + pd.Timedelta(hours=22)],
+        "home_team": ["Arsenal", "Coventry"],
+        "away_team": ["Chelsea", "Sunderland"],
+        "B365H": [1.5, float("nan")], "B365D": [4.2, float("nan")], "B365A": [6.0, float("nan")],
+    })
+    monkeypatch.setattr(clubdata, "load_fixtures", lambda code=None, refresh=False: fx)
+    rows = client.get("/api/club/overview?event=epl2526").get_json()["upcoming"]["rows"]
+    assert len(rows) == 2
+    r0 = next(r for r in rows if r["home"] == "Arsenal")
+    assert abs(r0["p_home"] + r0["p_draw"] + r0["p_away"] - 1.0) < 1e-3
+    assert r0["b365"] == [1.5, 4.2, 6.0] and r0["home_disp"] and r0["time"] == "20:00"
+    r1 = next(r for r in rows if r["home"] == "Coventry")
+    assert r1.get("no_model") is True and "b365" not in r1          # 池外新队诚实「暂无数据」
+
+
 def test_jc_review_club_entry(client, tmp_path, monkeypatch):
     """C7 竞彩复盘联赛入口：club 分支隔离存储、neutral=False 口径、录入→填分→对账闭环；
     红线沿用：is_knockout 恒 False、记录无任何「率」/ROI 字段。"""
