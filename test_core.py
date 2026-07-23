@@ -740,6 +740,21 @@ def test_teams_zh_club_mapping_complete():
     assert not missing, f"缺映射：{missing}"
 
 
+def test_teams_zh_promoted_candidates_mapped():
+    """A3：26-27 升班马候选（各 feeder 25-26 终表前三，直升+附加赛主候选）须有中文映射。"""
+    import teams_zh, clubdata, clubsim
+    missing = []
+    for top, feeder in clubdata.FEEDER.items():
+        try:
+            df = clubdata.load(feeder, seasons=1)
+        except Exception as e:  # noqa
+            pytest.skip(f"feeder 数据不可得：{e}")
+        for t in clubsim.final_table(df)[:3]:
+            if t not in teams_zh.CLUB:
+                missing.append((feeder, t))
+    assert not missing, f"升班马候选缺映射：{missing}"
+
+
 def test_clubsim_retro_sane():
     """联赛赛季模拟器不变量：场次守恒、冠军概率归一、半程视角榜首与史实一致（利物浦）。"""
     import clubsim
