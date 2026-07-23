@@ -2727,6 +2727,26 @@ async function renderEventView(key){
       evClubPredict(key);
     }
     let t='';
+    if(o.latest_matchday && o.latest_matchday.rows && o.latest_matchday.rows.length){
+      const lm=o.latest_matchday;
+      const rows=lm.rows.map(r=>`<tr><td class="muted">${r.date}</td><td style="text-align:right">${r.home_disp}</td><td style="text-align:center"><b>${r.score}</b></td><td>${r.away_disp}</td></tr>`).join('');
+      t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">最近完赛轮（${lm.date}）</h3>
+        <table class="mgt">${rows}</table>
+        <div class="muted" style="margin-top:6px;font-size:11.5px">90 分钟口径 · 来源 ${o.source} · 数据截至 ${o.data_through}</div></div>`;
+    } else {
+      t += `<div class="card" style="margin-top:10px"><span class="muted">暂无已完赛场次数据。</span></div>`;
+    }
+    if(o.standings && o.standings.rows && o.standings.rows.length){
+      const s=o.standings, nn=s.rows.length;
+      const rows=s.rows.map((r,i)=>{
+        const zone = i===0?'background:rgba(46,160,67,.12)': (i>=nn-3?'background:rgba(248,81,73,.10)':'');
+        return `<tr style="${zone}"><td>${i+1}</td><td>${r.disp}</td><td>${r.played}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.gd>0?'+':''}${r.gd}</td><td><b>${r.pts}</b></td></tr>`;}).join('');
+      t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">${s.season} 赛季积分榜${s.complete?'（该季已完结，终表）':''}</h3>
+        <div style="overflow-x:auto"><table class="mgt"><tr><th>#</th><th>球队</th><th>场</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>积分</th></tr>${rows}</table></div>
+        <div class="muted" style="margin-top:6px;font-size:11.5px">名次口径：积分＞净胜球＞进球（联赛通用近似，未含各联赛特例细则） · 数据截至 ${o.data_through}</div></div>`;
+    } else {
+      t += `<div class="card" style="margin-top:10px"><span class="muted">暂无本季积分榜数据。</span></div>`;
+    }
     if(o.preseason && o.preseason.rows){
       const p=o.preseason;
       const rows=p.rows.slice(0,6).map(r=>`<tr><td>${r.disp}</td><td>${evPct(r.title)}</td><td>${evPct(r.top4)}</td><td>${r.exp_pts.toFixed(0)}</td></tr>`).join('');

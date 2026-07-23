@@ -184,19 +184,31 @@ def simulate_retro(code, season_start, season_end, as_of, hl=365.0, sims=5000, s
     return sim.run(), len(facts), len(remaining)
 
 
-def final_table(season_df):
-    """一季终表（积分>净胜>进球，联赛通用近似）：返回按名次排序的队名列表。"""
-    pts, gd, gf = {}, {}, {}
+def standings(season_df):
+    """一季积分榜（积分>净胜>进球，联赛通用近似）：
+    返回按名次排序的行 [{team,played,w,d,l,gf,ga,gd,pts}]。"""
+    rows: dict[str, dict] = {}
     for _, r in season_df.iterrows():
         for t in (r.home_team, r.away_team):
-            pts.setdefault(t, 0); gd.setdefault(t, 0); gf.setdefault(t, 0)
-        d = int(r.home_score) - int(r.away_score)
-        gd[r.home_team] += d; gd[r.away_team] -= d
-        gf[r.home_team] += int(r.home_score); gf[r.away_team] += int(r.away_score)
-        if d > 0: pts[r.home_team] += 3
-        elif d < 0: pts[r.away_team] += 3
-        else: pts[r.home_team] += 1; pts[r.away_team] += 1
-    return sorted(pts, key=lambda t: (pts[t], gd[t], gf[t]), reverse=True)
+            rows.setdefault(t, dict(team=t, played=0, w=0, d=0, l=0, gf=0, ga=0))
+        h, a = rows[r.home_team], rows[r.away_team]
+        hs, as_ = int(r.home_score), int(r.away_score)
+        h["played"] += 1; a["played"] += 1
+        h["gf"] += hs; h["ga"] += as_
+        a["gf"] += as_; a["ga"] += hs
+        if hs > as_: h["w"] += 1; a["l"] += 1
+        elif hs < as_: h["l"] += 1; a["w"] += 1
+        else: h["d"] += 1; a["d"] += 1
+    out = list(rows.values())
+    for r in out:
+        r["gd"] = r["gf"] - r["ga"]; r["pts"] = 3 * r["w"] + r["d"]
+    out.sort(key=lambda r: (r["pts"], r["gd"], r["gf"]), reverse=True)
+    return out
+
+
+def final_table(season_df):
+    """一季终表（积分>净胜>进球，联赛通用近似）：返回按名次排序的队名列表。"""
+    return [r["team"] for r in standings(season_df)]
 
 
 def simulate_preseason(code, promoted, hl=365.0, sims=5000, seasons=7,

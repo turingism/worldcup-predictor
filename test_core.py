@@ -1677,6 +1677,19 @@ def test_club_overview_api(client):
         rows = d["preseason"]["rows"]
         assert len(rows) == 20
         assert abs(sum(r["title"] for r in rows) - 1.0) < 0.02
+    # C1 看板补齐：本季积分榜 + 最近完赛轮
+    st = d["standings"]
+    assert len(st["rows"]) == 20 and st["complete"] is True     # 25-26 已完结=终表
+    for r in st["rows"]:
+        assert r["pts"] == 3 * r["w"] + r["d"] and r["played"] == 38
+        assert r["gd"] == r["gf"] - r["ga"] and r["disp"]
+    pts = [r["pts"] for r in st["rows"]]
+    assert pts == sorted(pts, reverse=True)
+    # 与已核实的 25-26 真实终局交叉验证（progress.md 第五轮：英超降级三队）
+    assert {r["team"] for r in st["rows"][-3:]} == {"West Ham", "Burnley", "Wolves"}
+    lm = d["latest_matchday"]
+    assert lm["rows"] and all("-" in r["score"] and r["home_disp"] for r in lm["rows"])
+    assert lm["date"] == d["data_through"]                       # 完结季：末轮日=数据截止日
     # nl2026 未解锁 club 端点 → 闸门 not_wired 占位（先于路由）；无参数=默认 wc2026 → 路由内 400
     r = client.get("/api/club/overview?event=nl2026")
     assert r.status_code == 200 and r.get_json()["status"] == "not_wired"

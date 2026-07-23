@@ -229,10 +229,30 @@ def api_club_overview():
             r["disp"] = teams_zh.disp(r["team"])
     except (FileNotFoundError, json.JSONDecodeError):
         pre = None                                   # 前端显示明确空态，不静默
+    # C1 看板补齐：本季积分榜 + 最近完赛轮（赛季窗=7 月 1 日界，欧洲主流联赛通用）
+    import clubsim
+    import pandas as pd
+    mx = df.date.max()
+    season_start = pd.Timestamp(year=mx.year - (0 if mx.month >= 7 else 1), month=7, day=1)
+    cur = df[df.date >= season_start]
+    st = clubsim.standings(cur)
+    for r in st:
+        r["disp"] = teams_zh.disp(r["team"])
+    n = len(st)
+    season_label = f"{season_start.year}-{str(season_start.year + 1)[2:]}"
+    complete = bool(st) and all(r["played"] == 2 * (n - 1) for r in st)
+    latest = cur[cur.date == cur.date.max()]
+    latest_rows = [{"date": str(r.date.date()),
+                    "home": r.home_team, "away": r.away_team,
+                    "home_disp": teams_zh.disp(r.home_team), "away_disp": teams_zh.disp(r.away_team),
+                    "score": f"{int(r.home_score)}-{int(r.away_score)}"}
+                   for r in latest.itertuples()]
     return jsonify({"event": key, "league": clubdata.LEAGUES[code], "code": code,
                     "data_through": str(df.date.max().date()), "matches": int(len(df)),
                     "source": "football-data.co.uk", "hl": 365,
-                    "ranking": ranking, "preseason": pre})
+                    "ranking": ranking, "preseason": pre,
+                    "standings": {"season": season_label, "complete": complete, "rows": st},
+                    "latest_matchday": {"date": str(cur.date.max().date()), "rows": latest_rows}})
 
 
 @app.route("/api/club/predict")
