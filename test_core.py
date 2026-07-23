@@ -10,6 +10,7 @@ import pickle
 import numpy as np
 import pytest
 
+import config
 import data as datamod
 from model import SCHEMA_VERSION, DixonColesModel
 from predict import get_model
@@ -17,7 +18,9 @@ from predict import get_model
 
 @pytest.fixture(scope="module")
 def model():
-    return get_model(use_cache=True, half_life=240.0, verbose=False)
+    # 生产半衰期（config 单一配置源）。旧 fixture 硬编码 240 曾把共享 model.pkl
+    # 覆盖成非生产版本——测试必须与生产同参数。
+    return get_model(use_cache=True, half_life=config.NATIONAL_HALF_LIFE, verbose=False)
 
 
 # ---------- 数据层 ----------
@@ -1722,3 +1725,432 @@ def test_team_pool_cross_league_and_isolation():
     for national in ("西班牙", "Argentina", "France"):
         got, _ = clubpredict.resolve(national, pool)
         assert got is None, f"国家队名 {national} 不应命中俱乐部池"
+
+
+# ---------- P0-1 半衰期单一配置源 + P0-3 缓存新鲜度（2026-07-19 修复） ----------
+def test_production_half_life_single_source():
+    """CLI/网页/模拟器/验证账本必须共用 config.NATIONAL_HALF_LIFE=730；
+    生产入口源码不得再出现旧硬编码（240/547 时间泄漏伪影）。"""
+    import re
+    assert abs(config.NATIONAL_HALF_LIFE - 730.0) < 1e-9
+    import app as appmod
+    assert abs(appmod.HALF_LIFE - config.NATIONAL_HALF_LIFE) < 1e-9
+    # 生产链路文件里不允许 half_life 旧值字面量（bt_* 历史实验脚本已另标 LEGACY 除外）
+    import os as _os
+    root = _os.path.dirname(__file__)
+    pat = re.compile(r"half_life\w*\s*=\s*(240|547)\b")
+    for fname in ("simulate.py", "backtest.py", "predict.py", "app.py", "data.py",
+                  "verify.py", "champ_ci.py", "bayes.py", "model.py"):
+        src = open(_os.path.join(root, fname), encoding="utf-8").read()
+        assert not pat.search(src), f"{fname} 仍有旧半衰期硬编码"
+    # data.py 库函数默认值与生产一致（防再次漂移成 547）
+    import inspect
+    sig = inspect.signature(datamod.build_training_frame)
+    assert abs(sig.parameters["half_life_days"].default - config.NATIONAL_HALF_LIFE) < 1e-9
+
+
+def test_shared_cache_is_production_params(model):
+    """共享 model.pkl 永远只允许生产参数版本（fixture 已按生产参数加载/重建）。"""
+    import os as _os, pickle as _pickle
+    from predict import CACHE_PATH
+    assert _os.path.exists(CACHE_PATH)
+    with open(CACHE_PATH, "rb") as f:
+        m = _pickle.load(f)
+    assert abs(m.half_life_days - config.NATIONAL_HALF_LIFE) < 1e-6
+
+
+def _tmp_cache_env(monkeypatch, tmp_path):
+    """把缓存路径与数据指纹源都指到 tmp，隔离真实运行环境。"""
+    import predict as predictmod
+    data_csv = tmp_path / "results.csv"; data_csv.write_text("d1")
+    live_json = tmp_path / "live_results.json"; live_json.write_text("l1")
+    monkeypatch.setattr(predictmod, "CACHE_PATH", str(tmp_path / "model.pkl"))
+    monkeypatch.setattr(predictmod, "META_PATH", str(tmp_path / "model_meta.json"))
+    monkeypatch.setattr(datamod, "DATA_PATH", str(data_csv))
+    monkeypatch.setattr(datamod, "LIVE_PATH", str(live_json))
+    return predictmod, data_csv, live_json
+
+
+def _fake_df():
+    import pandas as pd
+    return pd.DataFrame({"date": pd.to_datetime(["2026-07-01", "2026-07-10"]),
+                         "home_team": ["A", "B"], "away_team": ["B", "A"],
+                         "home_score": [1.0, 0.0], "away_score": [0.0, 2.0],
+                         "tournament": ["x", "x"], "neutral": [True, True]})
+
+
+def test_cache_meta_fields_and_freshness_invalidation(monkeypatch, tmp_path):
+    """缓存元数据完整（trained_through/场次/指纹/时间）；数据文件更新→指纹失配→自动重训；
+    损坏 pkl→重建不崩；非生产参数→不写共享缓存。"""
+    import json as _json, os as _os
+    predictmod, data_csv, _ = _tmp_cache_env(monkeypatch, tmp_path)
+    df = _fake_df()
+    m0 = DixonColesModel()                       # 未拟合实例即可承载参数字段
+    predictmod.save_model_cache(m0, predictmod.data_fingerprint(), df)
+    meta = _json.load(open(predictmod.META_PATH))
+    assert meta["trained_through"] == "2026-07-10"
+    assert meta["n_train_matches"] == 2 and meta["fingerprint"] and meta["created_at"]
+    assert abs(meta["half_life"] - config.NATIONAL_HALF_LIFE) < 1e-9
+    assert not _os.path.exists(predictmod.CACHE_PATH + ".tmp")   # 原子写不留残
+    calls = {"fit": 0}
+
+    def fake_fit(self, dfx, verbose=True, as_of=None):
+        calls["fit"] += 1
+        self.teams = ["A", "B"]
+        return self
+    monkeypatch.setattr(DixonColesModel, "fit", fake_fit)
+    monkeypatch.setattr(datamod, "load_raw", lambda *a, **k: _fake_df())
+    # 1) 指纹未变：命中缓存，绝不重训
+    got = predictmod.get_model(use_cache=True, verbose=False)
+    assert calls["fit"] == 0 and abs(got.half_life_days - config.NATIONAL_HALF_LIFE) < 1e-9
+    # 2) 数据更新（内容变→size/mtime 变）：必须自动重训
+    data_csv.write_text("d1-updated")
+    got = predictmod.get_model(use_cache=True, verbose=False)
+    assert calls["fit"] == 1
+    # 重训后缓存指纹已更新 → 再次调用回到命中
+    got = predictmod.get_model(use_cache=True, verbose=False)
+    assert calls["fit"] == 1
+    # 3) 参数变化：half_life 不同 → 重训，且不得覆盖共享缓存
+    before = open(predictmod.CACHE_PATH, "rb").read()
+    got = predictmod.get_model(use_cache=True, half_life=123.0, verbose=False)
+    assert calls["fit"] == 2 and abs(got.half_life_days - 123.0) < 1e-9
+    assert open(predictmod.CACHE_PATH, "rb").read() == before   # 共享 pkl 未被非生产参数覆盖
+    # 4) 损坏缓存：重建不崩
+    open(predictmod.CACHE_PATH, "wb").write(b"corrupt")
+    got = predictmod.get_model(use_cache=True, verbose=False)
+    assert calls["fit"] == 3
+
+
+# ---------- P0-2 2026 官方小组同分规则（tiebreak.py 三路共用实现） ----------
+def test_tiebreak_two_team_h2h_over_goal_diff():
+    """2026 新规：相互战绩优先于总净胜球。A、B 同 6 分，B 总净胜球更好，
+    但 A 赢了 A vs B 直接对话 → A 第一（旧规则 pts→GD 会排 B 第一，此为回归锚点）。"""
+    import tiebreak
+    members = ["A", "B", "C", "D"]
+    # A: 胜B 1-0, 胜C 1-0, 负D 0-1 → 6分, gd+1
+    # B: 负A 0-1, 胜C 5-0, 胜D 2-0 → 6分, gd+6（总净胜远好于 A）
+    results = {("A", "B"): (1, 0), ("A", "C"): (1, 0), ("D", "A"): (1, 0),
+               ("B", "C"): (5, 0), ("B", "D"): (2, 0), ("C", "D"): (0, 0)}
+    overall = {"A": (6, 1, 2), "B": (6, 6, 7), "C": (1, -7, 0), "D": (4, 0, 1)}
+    ordered, audit = tiebreak.rank_group(members, overall, results, rng=None)
+    assert ordered[0] == "A" and ordered[1] == "B"      # 相互战绩定胜负
+    assert not audit                                     # 官方标准判定，零降级
+
+
+def test_tiebreak_three_team_circle_falls_to_overall():
+    """三队循环互胜（相互战绩完全对称）→ 落到总净胜球分高下。"""
+    import tiebreak
+    members = ["A", "B", "C", "D"]
+    # A胜B 1-0, B胜C 1-0, C胜A 1-0（循环）；三队都胜 D
+    results = {("A", "B"): (1, 0), ("B", "C"): (1, 0), ("C", "A"): (1, 0),
+               ("A", "D"): (3, 0), ("B", "D"): (2, 0), ("C", "D"): (1, 0)}
+    overall = {"A": (6, 3, 4), "B": (6, 2, 3), "C": (6, 1, 2), "D": (0, -6, 0)}
+    ordered, audit = tiebreak.rank_group(members, overall, results, rng=None)
+    assert ordered == ["A", "B", "C", "D"]              # 相互无区分 → 总净胜 3>2>1
+    assert not audit
+
+
+def test_tiebreak_recursive_reapply():
+    """官方要求：相互战绩分出部分名次后，对仍并列子集**递归重算**相互战绩。
+    A/B/C 同 6 分；三队小循环中 C 垫底可分出；A、B 在三队小表同成绩，
+    但 A 赢了 A vs B → 递归后 A 在前（若不递归会错误落到总净胜让 B 前）。"""
+    import tiebreak
+    members = ["A", "B", "C", "D"]
+    # 三队间：A胜B 2-1, B胜C 2-1, A负C... 构造：A/B 三队小表同分同净胜同进球，C 更差
+    # A vs B: 1-0 ; A vs C: 1-2 ; B vs C: 2-0 → 小表: A 3分gd0gf2, B 3分gd+1gf2? 算：
+    #  A: 胜B(1-0) 负C(1-2) → 3分, gd 0, gf 2
+    #  B: 负A(0-1) 胜C(2-0) → 3分, gd +1, gf 2 → 不同。换构造：
+    # A vs B: 2-2 ; A vs C: 1-0 ; B vs C: 1-0 → 小表 A 4分gd+1gf3 B 4分gd+1gf3 C 0分
+    # → C 分出垫底；A、B 递归重算相互=2-2 仍平 → 落总成绩：给 B 总净胜更好
+    results = {("A", "B"): (2, 2), ("A", "C"): (1, 0), ("B", "C"): (1, 0),
+               ("A", "D"): (1, 1), ("B", "D"): (3, 1), ("C", "D"): (0, 0)}
+    overall = {"A": (5, 1, 4), "B": (7, 3, 6), "C": (1, -2, 0), "D": (2, -2, 2)}
+    # 上面 overall 与 results 不完全自洽也无碍——rank_group 只按传入值执行规则；
+    # 这里刻意让 A/B/C 不同分测试会失真，改为直接构造同分：
+    overall = {"A": (6, 1, 4), "B": (6, 2, 6), "C": (6, -1, 3), "D": (0, -2, 2)}
+    ordered, audit = tiebreak.rank_group(members, overall, results, rng=None)
+    # 三队小表：A 4分, B 4分, C 0分 → C 垫底；A/B 递归相互 2-2 无区分 → 总净胜 B(2)>A(1)
+    assert ordered == ["B", "A", "C", "D"]
+    assert not audit
+
+
+def test_tiebreak_fifa_rank_and_degradation_audit():
+    """总成绩/相互全同 → 纪律分无数据（降级留痕）→ FIFA 排名判定（不随机）。"""
+    import tiebreak
+    members = ["Spain", "Uruguay", "Cape Verde", "Saudi Arabia"]
+    results = {("Spain", "Uruguay"): (1, 1), ("Spain", "Cape Verde"): (2, 0),
+               ("Uruguay", "Cape Verde"): (2, 0), ("Spain", "Saudi Arabia"): (2, 0),
+               ("Uruguay", "Saudi Arabia"): (2, 0), ("Cape Verde", "Saudi Arabia"): (1, 1)}
+    overall = {"Spain": (7, 4, 5), "Uruguay": (7, 4, 5),
+               "Cape Verde": (1, -4, 1), "Saudi Arabia": (1, -4, 1)}
+    ordered, audit = tiebreak.rank_group(members, overall, results, rng=None)
+    assert ordered[0] == "Spain" and ordered[1] == "Uruguay"       # FIFA 2 < 16
+    # Cape Verde 67 / Saudi Arabia 61 → 沙特排名更好 → 第三是沙特
+    assert ordered[2] == "Saudi Arabia" and ordered[3] == "Cape Verde"
+    stages = [ev["stage"] for ev in audit]
+    assert "discipline_unavailable" in stages          # 纪律分降级如实留痕
+    assert "unresolved_random" not in stages           # 官方标准可判定，绝不随机
+
+
+def test_tiebreak_thirds_official_criteria():
+    """最佳第三名：积分→净胜→进球→纪律(降级)→FIFA排名；同 pts/gd/gf 时排名好者前。"""
+    import tiebreak
+    entries = [("A", "Ghana", 4, 0, 3), ("B", "Colombia", 4, 0, 3),
+               ("C", "Haiti", 6, 2, 5), ("D", "Iran", 3, -1, 2)]
+    ordered, audit = tiebreak.rank_thirds(entries, rng=None)
+    assert [e[0] for e in ordered] == ["C", "B", "A", "D"]   # Colombia(13) < Ghana(73)
+    assert any(ev["stage"] == "discipline_unavailable" for ev in audit)
+
+
+def test_tiebreak_cross_process_reproducible():
+    """跨进程可复现：同 seed 两次独立进程 simulate_once 结果完全一致。"""
+    import subprocess, sys, json as _json
+    code = (
+        "import json,predict,data as d,simulate,config;"
+        "m=predict.get_model(use_cache=True,verbose=False);"
+        "s=simulate.TournamentSimulator(m,d.load_raw(),sims=8,seed=7);"
+        "r=s.simulate_once(seed=11);"
+        "print(json.dumps([r['champion'],r['groups'][0]['standings'],"
+        "sorted(r.get('qualified_thirds') or [])]))"
+    )
+    outs = []
+    for _ in range(2):
+        p = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
+                           cwd=__import__("os").path.dirname(__file__))
+        assert p.returncode == 0, p.stderr[-2000:]
+        outs.append(p.stdout.strip().splitlines()[-1])
+    assert outs[0] == outs[1]
+    _json.loads(outs[0])                                   # 合法 JSON（顺带校验结构）
+
+
+def test_third_place_table_495_no_regression():
+    """官方 R32 495 种第三名组合映射：全部 key 可解析、槽位互异且满足候选约束。"""
+    import itertools, wc2026
+    table = wc2026._third_table()
+    assert len(table) == 495
+    for combo in itertools.combinations("ABCDEFGHIJKL", 8):
+        key = "".join(combo)
+        row = table.get(key)
+        assert row is not None, f"缺组合 {key}"
+        assign = {int(mn): L for mn, L in row.items()}
+        assert sorted(assign) == sorted(wc2026.THIRD_SLOTS)
+        assert sorted(assign.values()) == list(combo)              # 8 组恰好各用一次
+        for mn, L in assign.items():
+            assert L in wc2026.THIRD_SLOTS[mn], f"{key}: {L} 不在 {mn} 候选集"
+
+
+def test_simulate_groups_uses_official_tiebreak(model):
+    """向量化 MC 与共用实现一致性抽查：抽若干模拟行，重放该行比分用 rank_group
+    独立复算，前三名（决定出线/对阵的部分）必须一致。"""
+    import simulate as simmod, tiebreak
+    sim = simmod.TournamentSimulator(model, datamod.load_raw(), sims=64, seed=3)
+    N = sim.N
+    known = dict(sim.actual_results)
+    winners, runners, thirds, best3 = sim._simulate_groups(known)
+    # 抽查第 0 组的每一行：真实赛果 known 固定 → 全部行同一比分表 → 与独立复算一致
+    gid = 0
+    members = sim.groups[gid]
+    res_g = {p: known[p] for p in sim.fixtures[gid] if p in known}
+    if len(res_g) == len(sim.fixtures[gid]):               # 小组赛已全部踢完（当前真实状态）
+        pts = {t: 0 for t in members}; gd = {t: 0 for t in members}; gf = {t: 0 for t in members}
+        for (h, a), (x, y) in res_g.items():
+            gf[h] += x; gf[a] += y; gd[h] += x - y; gd[a] += y - x
+            pts[h] += 3 if x > y else (1 if x == y else 0)
+            pts[a] += 3 if y > x else (1 if x == y else 0)
+        overall = {t: (pts[t], gd[t], gf[t]) for t in members}
+        ordered, _ = tiebreak.rank_group(members, overall, res_g, rng=None)
+        assert list(winners[:, gid]) == [ordered[0]] * N
+        assert list(runners[:, gid]) == [ordered[1]] * N
+        assert list(thirds[:, gid]) == [ordered[2]] * N
+
+
+# ---------- P0-4 陈旧伤停门控（默认纯 DC；verified+TTL / 首发确认才生效） ----------
+def test_availability_gate_unverified_and_stale_inert():
+    """未核验 → 跳过；verified 但过期 → 跳过；verified+新鲜 → 生效。全程留痕。"""
+    import adjust, datetime as _dt
+    now = _dt.datetime(2026, 7, 19, 12, 0)
+    avail = {"_meta": {"updated": "2026-06-08"},
+             "Brazil": [{"player": "X", "status": "out", "role": "attack", "tier": "key"}]}
+    mods, audit = adjust.team_modifiers_audited(avail, now=now)
+    assert mods == {} and audit["skipped"][0]["reason"] == "unverified"
+    avail["Brazil"][0]["verified"] = True          # 已核验但 updated 距今 41 天 → 过期
+    mods, audit = adjust.team_modifiers_audited(avail, now=now)
+    assert mods == {} and audit["skipped"][0]["reason"].startswith("stale")
+    avail["Brazil"][0]["updated_at"] = "2026-07-18"   # 核验且新鲜 → 生效
+    mods, audit = adjust.team_modifiers_audited(avail, now=now)
+    assert "Brazil" in mods and mods["Brazil"]["att"] < 1.0 and not audit["skipped"]
+    assert mods["Brazil"]["items"][0]["eligible_via"] == "verified_fresh"
+
+
+def test_availability_production_file_currently_inert():
+    """现存 availability.json 是 2026-06-08 未核验种子数据 → 生产必须零影响（纯 DC）。"""
+    import adjust
+    mods, audit = adjust.team_modifiers_audited()
+    assert mods == {}, f"陈旧种子数据不得进入生产: {list(mods)}"
+    assert audit["skipped"], "种子登记应以 unverified/stale 留痕，而非消失"
+
+
+def test_availability_lineup_confirmation_paths():
+    """已确认首发：started 归零 / bench 0.7 / absent 满档；未公布名单→未核验登记全部降级纯模型。"""
+    import adjust, lineups
+    reg = [{"player": "Star Man", "status": "doubtful", "prob": 0.3, "role": "attack",
+            "tier": "superstar"},
+           {"player": "Bench Guy", "status": "doubtful", "prob": 0.2, "role": "defence",
+            "tier": "key"},
+           {"player": "Gone Guy", "status": "doubtful", "prob": 0.1, "role": "all",
+            "tier": "key"}]
+    lt = {"confirmed": True, "starters": [lineups._norm("Star Man")],
+          "bench": [lineups._norm("Bench Guy")], "names": {}}
+    items, status = lineups.detect_team("TeamZ", reg, lt)
+    st = {s["player"]: s["lineup_status"] for s in status}
+    assert st == {"Star Man": "started", "Bench Guy": "bench", "Gone Guy": "absent"}
+    mods, audit = adjust.team_modifiers_audited({"TeamZ": items})
+    assert not audit["skipped"]                     # 比赛级确认 → 全部合规进入
+    m = mods["TeamZ"]
+    assert m["att"] < 1.0 and m["def_pen"] > 1.0    # absent(all) + bench(defence) 起效
+    who = {i["player"]: i for i in m["items"]}
+    assert "Star Man" not in who                    # 确认首发 → 惩罚归零，不出现在生效项
+    assert who["Gone Guy"]["eligible_via"] == "lineup_confirmed"
+    # 首发未公布（unknown）→ 未核验登记必须整体降级为纯模型，不得静默用旧伤停
+    items2, _ = lineups.detect_team("TeamZ", reg, None)
+    mods2, audit2 = adjust.team_modifiers_audited({"TeamZ": items2})
+    assert mods2 == {} and len(audit2["skipped"]) == 3
+
+
+def test_availability_empty_zero_effect():
+    import adjust
+    mods, audit = adjust.team_modifiers_audited({})
+    assert mods == {} and audit["applied"] == 0 and audit["skipped"] == []
+
+
+def test_freeze_ledger_records_adjustments(model, tmp_path):
+    """冻结账本必须记录本场用了哪些 adjustment（纯 DC = availability 空 dict）+ 数据时间。"""
+    import json as _json
+    import simulate as simmod, verify as vf
+    # 决赛（北京 7-20 03:00）赛果 2026-07-20 起已入库，freeze 对已完赛场次永不再写；
+    # 剔除 2026-07-19 起的赛果行复现「决赛赛前」可冻结场景（机制断言不变）。
+    df = datamod.load_raw()
+    sim = simmod.TournamentSimulator(model, df[df.date < "2026-07-19"], sims=4, seed=5)
+    p = str(tmp_path / "ledger.json")
+    n = vf.freeze(sim, now_bj="2026-07-19 12:00", path=p)
+    assert n >= 1                                   # 决赛未开球，至少 1 场可冻结
+    led = _json.load(open(p))["preds"]
+    assert led
+    for ent in led.values():
+        adj = ent.get("adjustments")
+        assert adj is not None and "availability" in adj and "env" in adj
+        assert adj["availability"] == {}            # 默认纯 DC：无可用性乘子
+
+
+# ---------- P0-5 90分钟/含加时口径（known_et_mask + jc_review 手填隔离） ----------
+def test_known_et_mask_flags_aet_final_not_group_draw():
+    """典型加时决赛（2022 阿根廷-法国 3-3 点球）必须被标记；90 分钟小组赛平局不标。"""
+    df = datamod.load_raw(live=False)
+    m = datamod.known_et_mask(df)
+    fin = df[(df.home_team == "Argentina") & (df.away_team == "France")
+             & (df.date == "2022-12-18")]
+    assert len(fin) == 1 and bool(m[fin.index].all())          # 加时场次命中
+    grp = df[(df.tournament == "FIFA World Cup") & (df.date == "2022-11-26")
+             & (df.home_score == df.away_score) & df.home_score.notna()]
+    if len(grp):                                               # 小组赛 90 分钟平局不误标
+        assert not m[grp.index].any()
+    # 2026 淘汰赛四场点球（含加时）全部命中
+    df2 = datamod.load_raw()
+    m2 = datamod.known_et_mask(df2)
+    ko26 = df2[(df2.tournament == "FIFA World Cup") & (df2.date >= "2026-06-28")
+               & df2.home_score.notna()]
+    d26 = ko26[ko26.home_score == ko26.away_score]
+    assert len(d26) >= 1 and m2[d26.index].all()
+
+
+def test_jc_review_settle_never_reads_results_csv():
+    """竞彩 90 分钟复盘只用手填比分结算——jc_review 源码不得引用 results.csv/load_raw。"""
+    import os as _os
+    src = open(_os.path.join(_os.path.dirname(__file__), "jc_review.py"),
+               encoding="utf-8").read()
+    import re
+    # 仅允许出现在注释/文档字符串里的『不复用 results.csv』说明；不得有实际读取调用
+    assert "load_raw(" not in src and 'read_csv' not in src
+
+
+# ---------- P1-8 Bayes 区间：收敛门槛 / 发布闸 / MCSE 结构 / ρ 混用锁定 ----------
+def test_bayes_convergence_gate_logic():
+    import bayes
+    ok = {"rhat_max": 1.01, "ess_min": 800.0, "divergences": 0}
+    assert bayes.convergence_ok(ok)
+    assert not bayes.convergence_ok({**ok, "rhat_max": 1.2})     # R-hat 爆 → 拒绝
+    assert not bayes.convergence_ok({**ok, "ess_min": 50.0})     # ESS 不足 → 拒绝
+    assert not bayes.convergence_ok({**ok, "divergences": 3})    # divergence → 拒绝
+    assert not bayes.convergence_ok({})                          # 缺诊断 → 拒绝
+
+
+def test_champ_ci_refuses_unconverged_draws():
+    import champ_ci, pytest as _pt
+    with _pt.raises(SystemExit):                 # 旧格式（无 converged 标记）→ 拒绝
+        champ_ci.assert_draws_publishable({"atk": 1})
+    with _pt.raises(SystemExit):                 # 显式未收敛 → 拒绝
+        champ_ci.assert_draws_publishable({"converged": np.array(False)})
+    champ_ci.assert_draws_publishable({"converged": np.array(True)})   # 达标 → 放行
+
+
+def test_champ_ci_model_from_draw_keeps_dc_rho(model):
+    """ρ 混用口径锁定：draw 模型的低分修正 ρ 必须 == 基线 DC 点估（文档声明的行为）。"""
+    import champ_ci
+    teams = list(model.attack)[:4]
+    md = champ_ci._model_from_draw(model, teams, np.zeros(4), np.zeros(4), 0.1, 0.2)
+    assert md.rho == model.rho
+    assert md.intercept == 0.1 and md.home_adv == 0.2
+    assert md.avail_att == {} and md.avail_def == {}             # 纯引擎，无上下文层
+
+
+# ---------- P1-9 淘汰赛晋级路径分解（90'胜/加时胜/点球先验） ----------
+def _mk_sim(model, sims=8, seed=1):
+    import simulate as simmod
+    return simmod.TournamentSimulator(model, datamod.load_raw(), sims=sims, seed=seed)
+
+
+def test_advancement_paths_structure_and_sum(model):
+    sim = _mk_sim(model)
+    p = sim.advancement_paths("Spain", "Argentina")
+    q = sim.advancement_paths("Argentina", "Spain")
+    for d in (p, q):
+        assert set(d) >= {"win90", "et_win", "pen_win", "adv", "approx"}
+        assert 0 <= d["win90"] <= 1 and d["adv"] <= 1
+        assert abs(d["adv"] - (d["win90"] + d["et_win"] + d["pen_win"])) < 1e-12
+    # 两侧晋级概率之和 = 1（同一场：A 晋级 + B 晋级）
+    assert abs(p["adv"] + q["adv"] - 1.0) < 1e-9
+
+
+def test_advancement_symmetric_teams_near_half(model):
+    """同一支队自对阵不合法；用镜像检验：A vs B 与 B vs A 的 adv 互补即对称性成立。
+    另取实力接近的两队，点球路径两侧应几乎相等（先验 50/50）。"""
+    sim = _mk_sim(model)
+    a, b = "Spain", "Argentina"
+    pa = sim.advancement_paths(a, b)
+    pb = sim.advancement_paths(b, a)
+    assert abs(pa["pen_win"] - pb["pen_win"]) < 0.01     # 点球先验平坦 → 两侧接近
+    assert abs(pa["adv"] + pb["adv"] - 1) < 1e-9
+
+
+def test_advancement_strong_vs_weak_pen_not_inflated(model):
+    """强弱悬殊：晋级差距应主要来自 win90；平局后的点球分支不得再送强队
+    （旧 bug：ph/(ph+pa) 冒充点球能力 → 平局后强队仍拿 80%+）。"""
+    sim = _mk_sim(model)
+    p = sim.advancement_paths("Spain", "Cape Verde")
+    assert p["adv"] > 0.75                                # 强队总晋级概率仍高
+    # 平局后条件晋级概率 = _pen：由加时(仍有优势)+点球(50/50)构成，
+    # 必须显著低于旧近似的常规时间胜率归一化值
+    ph, _, pa_ = sim._wdl("Spain", "Cape Verde")
+    old_pen = ph / (ph + pa_)
+    new_pen = sim._pen("Spain", "Cape Verde")
+    assert new_pen < old_pen - 0.05
+    assert 0.5 < new_pen < 0.9                            # 加时优势保留但不再等同90'实力差
+
+
+def test_advancement_host_orientation(model):
+    """东道主朝向：同一对阵给主队 host 时晋级概率应不低于中立场。"""
+    sim = _mk_sim(model)
+    neutral = sim.advancement_paths("United States", "Japan")["adv"]
+    hosted = sim.advancement_paths("United States", "Japan", host="United States",
+                                   city="Los Angeles")["adv"]
+    assert hosted > neutral

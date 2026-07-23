@@ -198,3 +198,35 @@ test_clubsim_preseason_25_26 → test_clubsim_preseason_rolling：原测试写�
 3. 每日抓取脚本 → 4. fixtures 未来赛程预测（26-27）→ 5. 赛内积分榜 →
 6. 市场 tab → 7. jc_review 联赛入口 → 8. 跨联赛校准（欧冠，末位）。
 注：原清单第 1 项 _CUR_END+1 本轮已随回补完成。
+
+## 2026-07-23（收官任务书第一轮）基线修复：freeze 测试前提过时改判
+
+### 本轮内容（红了只修基线规则命中）
+开轮全量 test_core：140 passed / 1 failed——
+`test_freeze_ledger_records_adjustments` 断言 `freeze(now_bj="2026-07-19 12:00") >= 1`
+失败（n=0）。
+
+### 根因（实测非推测）
+决赛赛果已入库（load_raw 实测：2026-07-19 Spain 1-0 Argentina、07-18 季军赛
+France 4-6 England），`verify.freeze` 对已有真实赛果的场次永不再写（KO 分支
+`m.get("set")` 跳过、小组分支 `actual_results` 跳过）——这是冻结账本的正确
+不变量。测试写于决赛赛前，靠回拨 now_bj 依赖「决赛无赛果」这一已失效前提。
+
+### 测试改判记录（红线 4）
+- 改法：构造 sim 时剔除 `df.date >= "2026-07-19"` 的赛果行，复现「决赛赛前」
+  场景；断言全保留（n>=1、每条账本记录 adjustments/availability=={}/env）。
+- 理由：测试目的=验证账本记录 adjustments 机制，n>=1 只是需要至少一场可冻结；
+  前提过时属数据自然演进，非机制回归。freeze 生产行为零改动。
+- 影响面：仅该测试；机制断言不放宽。
+
+### 验证
+`python3 -m pytest test_core.py -q` → **141 passed** 全绿（数量不变）。
+
+### 遗留问题（下轮起点）
+- 阶段 A 核查：A1/A2 已完成（第五轮）；A4 的 CLAUDE.md 赛季口径勘误段已在位
+  （L28「赛季口径勘误」章节），A3（26-27 升班马入 feeder + teams_zh 映射）第五
+  轮称已覆盖但需按 A 阶段口径逐项实测确认后才可宣告 A 收口。
+- 决赛已回补 → wc2026 归档模式（`wcArchived()`）是否已自然激活未实测；
+  「决赛回补后重启生产实例」是否已执行未核实，下轮顺手观测。
+- 上一深夜轮（116→141 一致性大修）无 progress.md 条目（记录在 CLAUDE.md 接手段
+  与 CHANGELOG），此为记录缺口，不回补重写、以 CHANGELOG 为准。
