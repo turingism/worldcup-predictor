@@ -695,3 +695,28 @@ test_core 新增 `test_teams_unified_table`（表源一致/池隔离/universe �
   欧联近 3-5 季，结论落 data-sources.md）——涉及外网实测，注意用代理回退
   策略；若两源均不可达则做阶段内离线项并如实记录。
 - 长期跟踪不变：_CUR_END+1（8 月）/ launchd 观测 / events 更名 / 26-27 名单。
+
+## 2026-07-23（第十四轮）E1 欧战数据源选型实测：ESPN 主源 + openfootball 备源
+
+### 做了什么（全部真实拉取实测，非文档推断）
+- ESPN uefa.champions / uefa.europa scoreboard 六个探针：欧冠 18-19/20-21/
+  21-22/24-25 决赛、24-25 联赛阶段日与 1/4 决赛日、欧联 22-23/24-25 决赛——
+  全部命中且比分与史实一致；**两回合标注原生**（leg 字段 + notes 合计比分
+  与晋级方）；26-27 资格赛窗实测 0 场（新鲜度留观测，标未验证）。
+- openfootball champions-league repo：2024-25 cl.txt/el.txt 实测可读（271/
+  236 行文本），2023-24 遇代理 SSL 断流（可重试类）、目录 API 限流；纯文本
+  需自建解析器、队名带 FC/国别后缀对齐成本高、无结构化 leg 字段。
+- **裁决落 docs/data-sources.md 第八节**：ESPN 为 E2 主源（日期窗迭代回收，
+  复用 live._fetch_json 代理回退），openfootball 备用/交叉验证；队名映射表
+  （ESPN 显示名→football-data 拼写→中文）E2 建。
+
+### 验证
+探针输出见本条上方记录（决赛比分逐一与史实核对：利物浦 2-0 热刺/切尔西 1-0
+曼城/巴黎 5-0 国米/塞维利亚 1-1 罗马等）；test_core **149 passed**（本轮零
+代码改动，仅文档+实测）；docs/data-sources.md 新增第八节。
+
+### 遗留问题 / 下轮起点
+- E2 欧战账本：ESPN 日期窗迭代回收近 3-5 季欧冠+欧联 → 统一 match 模型
+  （7 核心列 + competition 归属 + leg/tie 关系列）→ 队名映射表。回收脚本
+  注意按比赛日窗口分块（欧战每季约 15-17 个比赛周，非逐日扫）。
+- 长期跟踪不变。

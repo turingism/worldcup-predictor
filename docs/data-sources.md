@@ -67,3 +67,36 @@ progress.md），账本尚未写入前更名成本最低。
 - 俱乐部全量球员名册：不建。
 - xG 数据（国家队与俱乐部）：不接（国家队侧此前已裁决为死胡同，俱乐部侧一并封）。
 - 球员层维持现状：availability.json 关键人模式 + 比赛日 ESPN 首发按需拉取。
+
+## 八、欧战数据源选型实测（2026-07-23，E1 裁决）
+
+候选：ESPN site API vs openfootball（github 公开数据）。两源均实测拉取，非文档推断。
+
+### ESPN site API（uefa.champions / uefa.europa scoreboard）——选定主源
+- **覆盖实测**：欧冠 18-19（利物浦 2-0 热刺）/ 20-21（切尔西 1-0 曼城）/
+  21-22 / 24-25（巴黎 5-0 国米）决赛全部命中；欧联 22-23（塞维利亚 1-1 罗马）/
+  24-25 决赛命中；24-25 联赛阶段单日 9 场、1/4 决赛日 2 场，全部真实比分。
+- **两回合标注原生**：competitions[].leg = {value, displayValue:"2nd Leg"}，
+  notes.headline 含合计比分与晋级方（如「2nd Leg - Arsenal advance 5-1 on
+  aggregate」）——E2 账本的两回合关系可直接落列，无需自行推断。
+- **抓取形态**：按日期窗查询（与 live.py 世界杯口径同构，7 天分块防超时），
+  代理回退层（live._fetch_json）已在位；整季回收≈按比赛日窗口迭代。
+- **成本**：队名为 ESPN 显示名（Internazionale/Paris Saint-Germain），对齐
+  football-data 拼写（Inter/Paris SG）需映射表，规模≈每季 36+36 队、五大
+  联赛部分与现有 CLUB 键可复用，映射成本中等、一次性。
+- **新鲜度**：26-27 资格赛窗（2026-07-07~23）实测 0 场——当前无 26-27 赛程
+  数据，9 月联赛阶段临近时再观测（标注：未验证=26-27 赛程上线时间）。
+
+### openfootball（champions-league repo）——备用/交叉验证源
+- **覆盖实测**：2024-25/cl.txt（271 行）与 el.txt（236 行）可读，含比分与
+  半场比分；2023-24 首次拉取遇代理 SSL 断流（可重试类故障）；repo 目录
+  listing 命中 github API 限流。
+- **落选原因**：纯文本自定格式需专写解析器；队名带「FC/国别」后缀
+  （Juventus FC (ITA)），对齐成本高于 ESPN；两回合关系仅靠轮次排版隐含、
+  无结构化 leg/合计字段；社区维护更新节奏无 SLA。作为 ESPN 异常时的
+  交叉验证备源保留。
+
+### 裁决
+E2 欧战账本以 **ESPN site API 为主源**（日期窗迭代回收近 3-5 季欧冠+欧联，
+leg/aggregate 原生落列），openfootball 备用；队名映射表在 E2 建
+（ESPN 显示名 → football-data 拼写 → teams_zh 中文）。
