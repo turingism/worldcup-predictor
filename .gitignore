@@ -35,3 +35,4 @@ data/handicap_snapshots.jsonl
 data/fjelstul_matches.csv
 data/fjelstul_goals.csv
 data/club/
+data/logs/
