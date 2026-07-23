@@ -255,6 +255,27 @@ def api_club_overview():
                     "latest_matchday": {"date": str(cur.date.max().date()), "rows": latest_rows}})
 
 
+@app.route("/api/club/seasonsim")
+def api_club_seasonsim():
+    """C3 赛季推演：预计算回溯推演 JSON 直读（争冠/前四/降级概率演进，clubsim 同源）。"""
+    key, ev, err = _club_event_or_400()
+    if err:
+        return err
+    code = _club_code(ev)
+    path = os.path.join(os.path.dirname(__file__), "data", "club", f"seasonsim_{code}.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return jsonify({"event": key, "empty": True,
+                        "reason": "赛季推演数据未生成（运行 python3 club_seasonsim.py 后显示）"})
+    for blk in d["snapshots"] + [d["final"]]:
+        for r in blk["rows"]:
+            r["disp"] = teams_zh.disp(r["team"])
+    d["event"] = key
+    return jsonify(d)
+
+
 @app.route("/api/club/predict")
 def api_club_predict():
     """联赛单场预测：与 clubpredict CLI 同一模型/同一计算，输出 JSON。"""
@@ -345,7 +366,8 @@ def api_club_predict():
 # 逐 API 解锁：俱乐部五赛事开放 club 端点；nl2026 同宇宙直接复用国家队单场预测
 for _k, _e in eventsmod.EVENTS.items():
     if _e["universe"].startswith("club_"):
-        _EVENT_WIRED.setdefault(_k, set()).update({"/api/club/overview", "/api/club/predict"})
+        _EVENT_WIRED.setdefault(_k, set()).update({"/api/club/overview", "/api/club/predict",
+                                                   "/api/club/seasonsim"})
 _EVENT_WIRED.setdefault("nl2026", set()).update({"/api/predict"})
 
 

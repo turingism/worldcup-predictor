@@ -1735,6 +1735,28 @@ def test_club_matchup_detail_api(client):
     assert d2["facts"]["h2h"]["n"] >= 0                            # 结构存在即可（不写死有无交锋）
 
 
+def test_club_seasonsim_api(client):
+    """C3 赛季推演：快照概率归一、played 单调、终局=真实终表 0/1、disp 在位。"""
+    d = client.get("/api/club/seasonsim?event=epl2526").get_json()
+    if d.get("empty"):
+        pytest.skip("seasonsim JSON 未生成（运行 python3 club_seasonsim.py）")
+    assert d["season"] == "2025-26" and d["mode"] == "retro" and d["sims"] >= 1000
+    played = [s["played"] for s in d["snapshots"]]
+    assert played == sorted(played) and played[0] == 0              # 季前快照 0 场已赛
+    for s in d["snapshots"]:
+        assert abs(sum(r["title"] for r in s["rows"]) - 1.0) < 0.02
+        assert abs(sum(r["top4"] for r in s["rows"]) - 4.0) < 0.05
+        assert abs(sum(r["bottom3"] for r in s["rows"]) - 3.0) < 0.05
+        assert all(r["disp"] for r in s["rows"])
+    fin = d["final"]["rows"]
+    assert fin[0]["team"] == "Arsenal" and fin[0]["title"] == 1.0   # 25-26 真实冠军
+    assert sum(r["title"] for r in fin) == 1.0
+    assert {r["team"] for r in fin if r["bottom3"] == 1.0} == {"West Ham", "Burnley", "Wolves"}
+    # 演进叙事锚点：季前热门曼城，终局冠军阿森纳（回溯推演的核心可视化内容）
+    pre = max(d["snapshots"][0]["rows"], key=lambda r: r["title"])
+    assert pre["team"] in ("Man City", "Arsenal", "Liverpool")
+
+
 def test_nl2026_predict_unlocked(client):
     d = client.get("/api/predict?home=Spain&away=France&neutral=1&event=nl2026").get_json()
     assert "p_home" in d and abs(d["p_home"] + d["p_draw"] + d["p_away"] - 1.0) < 0.02

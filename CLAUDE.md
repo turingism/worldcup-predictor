@@ -28,7 +28,12 @@
 - **「25-26 赛季 8 月开赛/8 月滚入/记得 _CUR_END+1」系口径错误**：2025-26 赛季（2025-08 至 2026-05）**已是踢完的史实赛季**，2026-07-19 已整季回补入库（十联赛实拉成功，数据至 2026-05-24，`_CUR_END=2026`）；**2026 年 8 月开赛的是 26-27 赛季**。下方旧接手条目中「25-26 季 8 月才开」「P2 在 25-26 开赛前」等表述以本条为准（P2 时限=26-27 开赛前）。
 - 连带：① events 注册表五联赛条目 key/显示名「25-26」实为 26-27 窗口——**更名留用户裁决**（账本未写入前成本最低）；② 季前 preseason JSON 已删（误标赛季产物），`club_preseason.py` 加闸待 26-27 升班马名单（直升队已知：E0←Coventry/Ipswich 等，见 progress.md 第五轮；**附加赛胜者需外部信息，未确认前标未验证**）；③ 25-26 真实终局已可从库直读（英超降级 West Ham/Burnley/Wolves 等）。
 
-## 📌 最新接手（2026-07-23 四 · C2 对阵分析完成，143 测试绿）
+## 📌 最新接手（2026-07-23 五 · C3 赛季推演 + 联赛七 Tab 化 + 左侧纵向菜单，144 测试绿）
+- **用户轮中指令已落地**：① 世界杯七 Tab 在各联赛可找到（按赛制优化：晋级树状图→赛季推演）；② 赛事切换=左侧纵向菜单（CSS grid 实现 DOM 零改动，≤760px 回退横滚）。联赛视图重构为 `LEAGUE_TABS` 七 Tab + `evShowTab` 按需加载（EV_DATA 缓存），C1/C2 内容归位 board/matchup Tab，C5/C6/C7 Tab 显式空态+原因，nl2026 仅 matchup 有内容。
+- **C3 完成**：`club_seasonsim.py`（五联赛×6 快照×5000 次 simulate_retro 防泄漏回溯 + 终局真实终表收口）→ `data/club/seasonsim_<code>.json` → `/api/club/seasonsim` → 赛季推演 Tab（争冠/前四/降级概率条 + 争冠 SVG 演进曲线）。验收：144 全绿、golden diff 干净、三截图（c3-epl-seasonsim / c3-sidebar-board / c3-wc2026-sidebar-regression）；E0 曼城季前 41.8% → 阿森纳终局反超叙事完整。
+- **下一步：C4 夺冠概率页**（冠军维度深入：概率演进细化+关键场次影响；可复用 seasonsim 快照数据推关键场次——如按 as_of 区间概率跳变定位）。后续 C5 市场对标（B365 六列已在帧）→ C6 机制解读 → C7 jc 联赛入口。生产部署流程：commit 后 `launchctl kickstart -k gui/501/com.melvin.worldcup-predictor` 并 curl 验证。
+
+## 📌 上一次接手（2026-07-23 四 · C2 对阵分析完成，143 测试绿）
 - **C2 完成**：`/api/club/predict?detail=1` 增量展开（默认响应逐键不变）——facts（近 6 轮/主客场拆分/攻防强度「联赛内相对值」/历史交锋，**全部 manager.py 共用函数**，零第二套）+ 6×6 比分矩阵；前端 `evMatchupDetail()` 参数化组件三区块默认展开，交锋缺失显式「暂无数据」。验收：143 全绿、golden diff 五端点逐字节一致、evidence 两截图（c2-seriea-matchup 国米 vs 科莫 / c2-wc2026-manager-regression 旧深链零回归）。
 - **下一步：C3 赛季推演**（禁树状图；争冠/前四/降级概率+概率条+演进说明，数据同源 clubsim preseason）。**已知阻塞**：26-27 preseason JSON 被运行闸拦（附加赛名单未确认）——C3 建议先用 25-26 已完结季 simulate_retro as_of 做「赛季回溯推演」形态（数据同源、演进曲线可从多 as_of 切片得），26-27 名单确认后同组件换数据即可；下轮实测定。后续 C4 夺冠概率 → C5 市场对标 → C6 机制解读 → C7 jc 联赛入口。
 - 生产实例本轮完成 C2 后需再 kickstart 重启生效（上轮已重启过一次、流程同）。events「25-26」更名待用户拍板。
