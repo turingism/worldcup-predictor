@@ -36,3 +36,6 @@ data/fjelstul_matches.csv
 data/fjelstul_goals.csv
 data/club/
 data/logs/
+
+# golden diff 快照（scripts/golden_diff.sh capture 产物，本地验收用，脚本本身入库）
+data/golden/

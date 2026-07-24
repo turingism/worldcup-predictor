@@ -1706,6 +1706,7 @@ def test_clubdata_rollover_resilience(monkeypatch):
     codes27 = ["2021", "2122", "2223", "2324", "2425", "2526", "2627"]
     monkeypatch.setattr(clubdata, "season_codes", lambda n, end_year=2027: codes27)
     df = clubdata.load("E0")
+    # ⚠️ 26-27 滚动改判清单#1（progress.md 0724 登记；与 _CUR_END+1 同 commit 改判）
     assert len(df) > 2000 and str(df.date.max().date()) == "2026-05-24"
 
     # ④ 新季 CSV 存在但为 0 字节（发布空窗）：同样降级，用后清理
@@ -1713,6 +1714,7 @@ def test_clubdata_rollover_resilience(monkeypatch):
     try:
         open(junk, "w").close()
         df2 = clubdata.load("E0")
+        # ⚠️ 26-27 滚动改判清单#2（同#1）
         assert str(df2.date.max().date()) == "2026-05-24"
     finally:
         _os.remove(junk)
@@ -1878,6 +1880,7 @@ def test_club_overview_api(client):
         assert abs(sum(r["title"] for r in rows) - 1.0) < 0.02
     # C1 看板补齐：本季积分榜 + 最近完赛轮
     st = d["standings"]
+    # ⚠️ 26-27 滚动改判清单#3（本段四断言：complete/played=38/降级三队/末轮日=截止日）
     assert len(st["rows"]) == 20 and st["complete"] is True     # 25-26 已完结=终表
     for r in st["rows"]:
         assert r["pts"] == 3 * r["w"] + r["d"] and r["played"] == 38
@@ -1893,6 +1896,23 @@ def test_club_overview_api(client):
     r = client.get("/api/club/overview?event=nl2026")
     assert r.status_code == 200 and r.get_json()["status"] == "not_wired"
     assert client.get("/api/club/overview").status_code == 400
+
+
+# ---------- QA 基建：五联赛参数化冒烟（防注册表 data 字段手误时测试仍全绿）----------
+@pytest.mark.parametrize("event,code,size", [
+    ("epl2526", "E0", 20),
+    ("laliga2526", "SP1", 20),
+    ("seriea2526", "I1", 20),
+    ("bundes2526", "D1", 18),
+    ("ligue12526", "F1", 18),
+])
+def test_club_overview_all_leagues_smoke(client, event, code, size):
+    """五赛事逐一打 /api/club/overview：注册表 event→league code 接线正确、
+    实力榜非空、积分榜队数=联赛规模（20/20/20/18/18）。最小断言集控制时长。"""
+    d = client.get(f"/api/club/overview?event={event}").get_json()
+    assert d["code"] == code                                  # 注册表 data 字段接线一致
+    assert d["ranking"] and all(r["team"] for r in d["ranking"])
+    assert len(d["standings"]["rows"]) == size                # 联赛规模 20/20/20/18/18
 
 
 def test_club_predict_api(client):
@@ -2054,6 +2074,7 @@ def test_nl2026_predict_unlocked(client):
     assert "p_home" in d and abs(d["p_home"] + d["p_draw"] + d["p_away"] - 1.0) < 0.02
     ev = client.get("/api/events").get_json()
     nl = next(e for e in ev if e["key"] == "nl2026")
+    # ⚠️ 26-27 滚动改判清单#4：26-27 欧国联 9 月开打后 db 增长 → 到期口径化 >=658
     assert nl["db_matches"] == 658 and nl["wired"]
 
 

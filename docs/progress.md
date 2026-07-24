@@ -857,3 +857,35 @@ docs/backtest.md 第七节；test_core **150 passed**（研究脚本旁路，主
   153 全绿；真实账本 load() 前后一致（1552 场/390 tie/10 决赛）；跨联赛拒绝 CLI
   实测新文案；kickstart 重启后 wc2026 五端点 golden diff 逐字节一致。残留不动：
   bt_ucl.py 留给 E4 Agent。
+
+## 2026-07-24 施工 Agent C：QA 基建包（golden diff 脚本化 + 五联赛参数化冒烟 + 滚动断言改判清单，153→158 全绿）
+- 【P1】golden diff 脚本化：新增 scripts/golden_diff.sh（capture/diff 两模式，用法见
+  脚本头注释）。覆盖确定性端点十个——wc2026 五端点 /api/ratings /api/teams /api/verify
+  /api/config /api/champ_ci + club 五端点 /api/club/overview /api/club/predict
+  /api/club/seasonsim /api/club/market /api/jc_review（GET 模型预览），各 event=epl2526；
+  随机/实时端点明确排除并在脚本内注释原因（/api/bracket /api/champions=蒙特卡洛抽样、
+  /api/dashboard /api/live=ESPN 实时、/api/market*=外部盘口+as_of 训练、
+  /api/xuanxue/board=账本滚动、/api/version=元信息）。已知限制已注明：club/overview
+  的 upcoming 按「今天+14 天」窗口计算，before/after 快照须同日抓取。
+  快照目录 data/golden/ 入 .gitignore（本地验收产物），脚本入库。
+  验收：对生产实例（127.0.0.1:8000）实跑 capture 两次十端点全 200 且非空合法 JSON，
+  diff 两份快照逐字节一致（同时验证了端点确定性），exit code 语义正确（干净=0）。
+- 【P2】五联赛参数化冒烟：test_core.py 新增 test_club_overview_all_leagues_smoke
+  （@parametrize 五赛事）——此前 club API 测试仅打 epl2526，注册表 laliga2526/
+  seriea2526/bundes2526/ligue12526 的 data 字段若手误接错联赛码，150 测试仍全绿。
+  现每联赛断言 /api/club/overview 的 code 与注册表一致、ranking 非空、standings
+  队数=联赛规模（E0/SP1/I1=20，D1/F1=18）。最小断言集，五参数化用例合计 <10s。
+- 【P1】26-27 赛季滚动断言改判清单（评审行号漂移约 +85，已逐条 Read 核实实际位置；
+  本轮只登记+行内注释锚点「⚠️ 26-27 滚动改判清单#N」，不改断言；到期改判须与
+  clubdata._CUR_END+1 同 commit、按红线 4 有据改判并在本文件登记理由）：
+  | # | 位置（本轮 commit 后行号） | 断言内容 | 到期改判方向 |
+  |---|---|---|---|
+  | 1 | test_core.py:1710（test_clubdata_rollover_resilience ③） | df.date.max()=="2026-05-24" | 26-27 CSV 落地后缓存在位，monkeypatch 掉的下载失败不再挡住 2627 缓存读取 → 打红。改判方向=把「已完结季末日」抽成与 _CUR_END 配套维护的测试常量，或断言 max>=该常量（口径化） |
+  | 2 | test_core.py:1718（同测试 ④ 0 字节分支） | df2.date.max()=="2026-05-24" | 同 #1，两处同 commit 改 |
+  | 3 | test_core.py:1884-1894（test_club_overview_api 四断言） | standings complete is True / played==38 / 末三名={West Ham,Burnley,Wolves} / latest_matchday.date==data_through | 26-27 开赛后 overview 的 standings 切到当季进行中 → complete=False、played<38、降级三队与末轮日语义全变。改判方向=参数化：终表类断言固定用 25-26 季切片（或 complete 为 True 时才断言终局），进行中季只断言结构（rows=20、pts 降序） |
+  | 4 | test_core.py:2078（test_nl2026_predict_unlocked） | nl2026 db_matches==658 | 26-27 欧国联 9 月开打、ESPN 新完场入库后 658 增长 → 改判方向=口径化 db_matches>=658 |
+  - 另核实无需登记：test_core.py:1695 season_codes(7, 2027) 显式传 end_year 参数、
+    与 _CUR_END 解耦，滚动后仍成立；:1877 data_through>="2025-05-01" 为下界口径天然免疫。
+- 验收：/opt/anaconda3/bin/python3 -m pytest test_core.py -q → **158 passed**
+  （基线 153 + 本轮参数化 5）；golden 脚本实跑产出 data/golden/c-run1 与 c-run2
+  两份快照且 diff 干净。残留不动：bt_ucl.py 未跟踪文件留给 E4 Agent。
