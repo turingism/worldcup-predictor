@@ -21,8 +21,9 @@
   # 强制刷新进行中赛季数据后再预测
   python3 clubpredict.py "Arsenal" "Man City" --refresh
 
-⚠ 跨联赛对阵（欧冠等）当前不支持：两联赛模型的强度刻度未校准（P4 研究项），
-  硬拼会给出貌似精确实则无据的概率——诚实拒绝优于假装能算。
+⚠ 跨联赛对阵（欧冠等）本 CLI 暂不支持：欧战锚点校准回测已完成且显著有效
+  （docs/backtest.md 第七节），欧冠/跨联赛预测待 E4 接线。本 CLI 保持联赛内
+  口径不变，跨联赛对阵仍拒绝。
 """
 from __future__ import annotations
 import argparse
@@ -31,6 +32,7 @@ import glob
 import os
 import pickle
 import sys
+import tempfile
 
 import clubdata
 import teams_zh
@@ -72,9 +74,22 @@ def get_club_model(code: str, refresh: bool = False, verbose: bool = True) -> Di
     if verbose:
         print(f"[fit] 训练 {clubdata.LEAGUES[code]} 模型（近 {SEASONS} 季, hl={HL_CLUB:.0f}）…")
     m = DixonColesModel(half_life_days=HL_CLUB).fit(df, verbose=False)
-    with open(path, "wb") as f:
-        pickle.dump(m, f)
+    _atomic_dump(m, path)
     return m
+
+
+def _atomic_dump(obj, path: str) -> None:
+    """pkl 原子写：同目录 mkstemp + os.replace（对齐国家队 save_model_cache 模式）。
+    直接 open(path,'wb') 在跨进程并发（CLI 与 app 同时重训）下会产生撕裂文件。"""
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(path)),
+                               suffix=".pkl.tmp")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            pickle.dump(obj, f)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
 
 
 def _league_teams(codes=S5) -> dict[str, set[str]]:
@@ -200,7 +215,8 @@ def main():
     if ch != ca:
         print(f"\n  ✗ 跨联赛对阵：{teams_zh.disp(h)}（{clubdata.LEAGUES[ch]}） vs "
               f"{teams_zh.disp(a)}（{clubdata.LEAGUES[ca]}）")
-        print("    两联赛模型强度刻度未校准（欧冠=P4 研究项），硬算的概率无据——诚实拒绝。\n")
+        print("    欧战锚点校准回测已完成（docs/backtest.md 第七节），欧冠/跨联赛预测待 E4 接线；"
+              "本 CLI 保持联赛内口径，跨联赛对阵仍拒绝。\n")
         sys.exit(1)
 
     m = get_club_model(ch, refresh=args.refresh)

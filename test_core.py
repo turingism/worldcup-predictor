@@ -1597,6 +1597,91 @@ def test_eurodata_ledger():
     assert teams_zh.disp("Inter") != "Inter"                     # 映射后中文可用
 
 
+def test_eurodata_harvest_corrected_score_wins_and_missing_score_skipped(monkeypatch, tmp_path):
+    """eurodata 加固对①②（全离线，假 ESPN payload）：
+    ① 合并去重 keep='last'——重跑抓到 ESPN 事后修正的比分必须覆盖账本旧行；
+    ② 完场 score 缺失不得静默当 0-0 入账，跳过该场。"""
+    import pandas as pd
+    import eurodata
+    import live
+    monkeypatch.setattr(eurodata, "EURO_DIR", str(tmp_path))
+    monkeypatch.setattr(eurodata, "RAW_CSV", str(tmp_path / "raw.csv"))
+    # 既有缓存：一场旧（后被 ESPN 修正的）比分 0-0
+    pd.DataFrame([{"date": "2024-10-01", "home_team": "AAA", "away_team": "BBB",
+                   "home_score": 0, "away_score": 0,
+                   "tournament": "UEFA Champions League",
+                   "season": 2024, "leg": 0, "agg_note": ""}]).to_csv(
+        eurodata.RAW_CSV, index=False)
+
+    def ev(h, a, hs, as_, date):
+        return {"date": date, "competitions": [{
+            "status": {"type": {"completed": True, "state": "post"}},
+            "competitors": [
+                {"homeAway": "home", "score": hs, "team": {"displayName": h}},
+                {"homeAway": "away", "score": as_, "team": {"displayName": a}}],
+            "notes": []}]}
+
+    payload = {"events": [ev("AAA", "BBB", "2", "1", "2024-10-01T19:00Z"),   # 修正比分
+                          ev("CCC", "DDD", None, "3", "2024-10-02T19:00Z")]}  # 缺分完场
+    calls = {"n": 0}
+
+    def fake_fetch(url):
+        calls["n"] += 1
+        return payload if calls["n"] == 1 else {"events": []}
+
+    monkeypatch.setattr(live, "_fetch_json", fake_fetch)
+    df = eurodata.harvest(seasons=[2024], comps={"uefa.champions": "UEFA Champions League"},
+                          verbose=False)
+    row = df[(df.home_team == "AAA") & (df.away_team == "BBB")]
+    assert len(row) == 1
+    assert (int(row.iloc[0].home_score), int(row.iloc[0].away_score)) == (2, 1)  # 新行覆盖旧行
+    assert not ((df.home_team == "CCC") & (df.away_team == "DDD")).any()         # 缺分不伪造 0-0
+    # 落盘同口径
+    disk = pd.read_csv(eurodata.RAW_CSV)
+    assert len(disk) == 1 and int(disk.iloc[0].home_score) == 2
+
+
+def test_eurodata_final_gate_only_marks_completed_seasons(monkeypatch, tmp_path):
+    """eurodata 加固③：决赛标记加赛季完结闸——赛季进行中「最近一场完赛」
+    不得被误标 neutral=True；末场在决赛窗口但非孤立收官日（如半决赛次回合）
+    也不得标；完结赛季正常标。"""
+    import pandas as pd
+    import eurodata
+    rows = []
+
+    def add(sy, dates):
+        for d in dates:
+            rows.append({"date": d, "home_team": "AAA", "away_team": "BBB",
+                         "home_score": 1, "away_score": 0,
+                         "tournament": "UEFA Champions League",
+                         "season": sy, "leg": 0, "agg_note": ""})
+
+    add(2021, ["2021-09-15", "2022-05-04", "2022-05-28"])   # 完结季：末场=孤立决赛日 → 标
+    add(2022, ["2022-09-14", "2023-02-21"])                 # 进行中：末场在 2 月 → 不标
+    add(2023, ["2024-05-08", "2024-05-16"])                 # 只收到半决赛次回合（窗口内但间隔 ≤10 天）→ 不标
+    pd.DataFrame(rows).to_csv(tmp_path / "raw.csv", index=False)
+    monkeypatch.setattr(eurodata, "RAW_CSV", str(tmp_path / "raw.csv"))
+    df = eurodata.load()
+    fins = df[df.neutral]
+    assert len(fins) == 1
+    f = fins.iloc[0]
+    assert int(f.season) == 2021 and str(f.date.date()) == "2022-05-28"
+
+
+def test_clubpredict_atomic_model_dump(tmp_path):
+    """clubpredict 加固④：club 模型 pkl 原子写——mkstemp 同目录 + os.replace，
+    无 .tmp 残留、落盘可完整读回（对齐国家队 save_model_cache 模式）。"""
+    import os as _os
+    import pickle as _pickle
+    import clubpredict
+    path = str(tmp_path / "model_XX.pkl")
+    obj = {"teams": ["Arsenal", "Man City"], "hl": 365.0}
+    clubpredict._atomic_dump(obj, path)
+    with open(path, "rb") as f:
+        assert _pickle.load(f) == obj
+    assert _os.listdir(tmp_path) == ["model_XX.pkl"]        # 零 .tmp 残留
+
+
 def test_clubdata_rollover_resilience(monkeypatch):
     """D1 跨赛季装载回归：26-27 翻季视角下四类场景不炸/正确报错。
     注意 season_codes 的 end_year 默认值在 def 时绑定——真实 +1 流程=改源码常量后

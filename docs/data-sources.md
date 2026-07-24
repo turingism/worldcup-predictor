@@ -100,3 +100,16 @@ progress.md），账本尚未写入前更名成本最低。
 E2 欧战账本以 **ESPN site API 为主源**（日期窗迭代回收近 3-5 季欧冠+欧联，
 leg/aggregate 原生落列），openfootball 备用；队名映射表在 E2 建
 （ESPN 显示名 → football-data 拼写 → teams_zh 中文）。
+
+## 九、欧战赔率源缺位（2026-07-24 落档）
+
+欧战账本（ESPN，eurodata.py）**无盘口数据**：ESPN scoreboard/summary 对
+欧冠/欧联历史场次不提供可回收的开/闭盘赔率列，football-data.co.uk 的
+B365 开闭盘仅覆盖联赛场次、不含欧战。因此：
+
+- **欧冠市场对标层按 MULTI_EVENT_PLAN §二裁决整 Tab 隐藏**（无盘口源 →
+  市场 tab 整体不渲染，与联赛/世界杯的市场层同一注册表口径 tabs_off）。
+- **禁止为此寻找未验证野源**：OddsPortal（Cloudflare+ToS 禁抓）、付费
+  API（the-odds-api $99/mo）等此前已在第四节逐一落选，欧战侧结论相同；
+  模型 vs 市场的诚实层在联赛与世界杯两侧已有实证，欧冠缺市场对标不
+  影响 E4 预测接线（预测层不依赖盘口）。

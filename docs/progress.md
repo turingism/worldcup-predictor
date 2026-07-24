@@ -841,3 +841,19 @@ docs/backtest.md 第七节；test_core **150 passed**（研究脚本旁路，主
   （按钮深色/中立场同排）、a2-epl-champ-390（曲线默认最右端）、
   a2-wc2026-desktop-regression（title/h1/副标题与静态默认逐字一致）；node --check
   内联 JS 通过。残留不动：bt_ucl.py 留给 E4 Agent。
+
+## 2026-07-24 施工 Agent B：eurodata 加固 + clubpredict 小修包（150→153 全绿）
+- 评审六项逐一实证后落地：① eurodata.harvest 去重改 keep='last'（ESPN 事后修正
+  比分可覆盖账本旧行）；② 完场 score 缺失改跳过+告警（不再静默 0-0 入账）；
+  ③ 决赛标记加赛季完结闸（末场 ≥ 次年 5-15 决赛窗口 ∧ 距前一比赛日 >10 天的
+  孤立收官场才标 neutral=True——口径依据五季账本实测：决赛 5-18~6-10 且距半决赛
+  次回合 ≥13 天，赛中相邻比赛日 ≤8 天，赛季进行中不再误标）；④ club 模型 pkl
+  改 mkstemp 同目录 + os.replace 原子写（clubpredict._atomic_dump，对齐国家队
+  save_model_cache 模式）；⑤ clubpredict 两处「强度刻度未校准（P4）」旧文案改
+  E3 完成后口径（锚点校准见 backtest.md 第七节、E4 待接线、本 CLI 仍拒跨联赛，
+  行为零变化）；⑥ data-sources.md 第九节落档「欧战赔率源缺位」（欧冠市场 Tab
+  按 MULTI_EVENT_PLAN §二整体隐藏，禁找未验证野源）。
+- 验收：新增 3 测试（修正比分覆盖+缺分跳过 / 决赛闸三场景 / 原子写零残留）,
+  153 全绿；真实账本 load() 前后一致（1552 场/390 tie/10 决赛）；跨联赛拒绝 CLI
+  实测新文案；kickstart 重启后 wc2026 五端点 golden diff 逐字节一致。残留不动：
+  bt_ucl.py 留给 E4 Agent。

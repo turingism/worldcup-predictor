@@ -93,14 +93,20 @@ def harvest(seasons=SEASONS, comps=COMPS, verbose=True) -> pd.DataFrame:
                     h, a = side.get("home"), side.get("away")
                     if not h or not a:
                         continue
+                    hs, as_ = h.get("score"), a.get("score")
+                    if hs in (None, "") or as_ in (None, ""):
+                        # 完场但 score 缺失：跳过并告警——绝不当真实 0-0 入账
+                        print(f"[euro][warn] 完场缺比分，跳过：{str(ev.get('date', '?'))[:10]} "
+                              f"{h['team']['displayName']} vs {a['team']['displayName']}")
+                        continue
                     leg = (comp.get("leg") or {}).get("value") or 0
                     notes = "; ".join(n.get("headline", "") for n in comp.get("notes", []))
                     rows.append({
                         "date": str(pd.Timestamp(ev["date"]).date()),
                         "home_team": h["team"]["displayName"],
                         "away_team": a["team"]["displayName"],
-                        "home_score": int(h.get("score") or 0),
-                        "away_score": int(a.get("score") or 0),
+                        "home_score": int(hs),
+                        "away_score": int(as_),
                         "tournament": tourn, "season": sy,
                         "leg": int(leg), "agg_note": notes,
                     })
@@ -112,7 +118,8 @@ def harvest(seasons=SEASONS, comps=COMPS, verbose=True) -> pd.DataFrame:
     if os.path.exists(RAW_CSV):
         old = pd.read_csv(RAW_CSV)
         df = pd.concat([old, df], ignore_index=True)
-    df = (df.drop_duplicates(subset=["date", "home_team", "away_team"])
+    # keep='last'：新抓在 concat 尾部——ESPN 事后修正的比分（改判/勘误）要能覆盖旧行
+    df = (df.drop_duplicates(subset=["date", "home_team", "away_team"], keep="last")
             .sort_values("date"))
     os.makedirs(EURO_DIR, exist_ok=True)
     tmp = RAW_CSV + ".tmp"
@@ -130,9 +137,21 @@ def load() -> pd.DataFrame:
     for c in ("home_team", "away_team"):
         df[c] = df[c].map(lambda x: ESPN_FIX.get(x, x))
     df["neutral"] = False
-    # 决赛=每（赛季, 赛事）最后一场 → 中立场
-    fin_idx = df.groupby(["season", "tournament"])["date"].idxmax()
-    df.loc[fin_idx, "neutral"] = True
+    # 决赛=每（赛季, 赛事）最后一场完赛 → 中立场。加赛季完结闸防赛中误标：
+    # 赛季进行中重跑 load() 时「最近一场完赛」不是决赛，不得进锚点训练帧。
+    # 口径（五季账本实测）：决赛落次年 5-18~6-10 且距半决赛次回合 ≥13 天；
+    # 赛中相邻比赛日间隔 ≤8 天（半决赛两回合最远 05-09→05-17）。故仅当
+    # ① 末场日期 ≥ 次年 5 月 15 日（决赛窗口）且 ② 末场距该组前一比赛日
+    # >10 天（孤立收官场）时才标 neutral=True，两条都过不了=赛季未完结。
+    for (sy, tn), g in df.groupby(["season", "tournament"]):
+        days = sorted(g["date"].unique())
+        if len(days) < 2:
+            continue
+        last, prev = pd.Timestamp(days[-1]), pd.Timestamp(days[-2])
+        in_final_window = last >= pd.Timestamp(year=int(sy) + 1, month=5, day=15)
+        lone_closing_day = (last - prev).days > 10
+        if in_final_window and lone_closing_day:
+            df.loc[g["date"].idxmax(), "neutral"] = True
     # 两回合配对：同赛季同赛事、无序队对、leg 1/2 → tie_id
     df["pair"] = [frozenset((h, a)) for h, a in zip(df.home_team, df.away_team)]
     df["tie_id"] = None
