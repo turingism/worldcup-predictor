@@ -28,7 +28,19 @@
 - **「25-26 赛季 8 月开赛/8 月滚入/记得 _CUR_END+1」系口径错误**：2025-26 赛季（2025-08 至 2026-05）**已是踢完的史实赛季**，2026-07-19 已整季回补入库（十联赛实拉成功，数据至 2026-05-24，`_CUR_END=2026`）；**2026 年 8 月开赛的是 26-27 赛季**。下方旧接手条目中「25-26 季 8 月才开」「P2 在 25-26 开赛前」等表述以本条为准（P2 时限=26-27 开赛前）。
 - 连带：① events 注册表五联赛条目 key/显示名「25-26」实为 26-27 窗口——**更名留用户裁决**（账本未写入前成本最低）；② 季前 preseason JSON 已删（误标赛季产物），`club_preseason.py` 加闸待 26-27 升班马名单（直升队已知：E0←Coventry/Ipswich 等，见 progress.md 第五轮；**附加赛胜者需外部信息，未确认前标未验证**）；③ 25-26 真实终局已可从库直读（英超降级 West Ham/Burnley/Wolves 等）。
 
-## 📌 最新接手（2026-07-23 十六 · E3 跨联赛校准显著有效，150 测试绿）
+## 📌 最新接手（2026-07-24 十七 · 7-Agent 评审轮：四修复包 + bt_ucl E4a 闸门，158 测试绿）
+- **本轮形态**：7 角色并行评审 + 3 透镜交叉裁决 → 顺序施工四包（每包独立 commit + pytest + golden + 截图验收，档案见 progress.md 07-24 各条）：
+  ① **A1 前端正确性**（8a2a0d8）：evShowTab 渲染世代护栏（_evEpoch/evSetContent 唯一异步写出口，jc 单例覆写前归位）、fixtures SWR 去阻塞（clubdata 后台单飞刷新，冷态 30s+ 挂起清除）、evGet in-flight 去重、loadEvents 失败可重试、not_wired 不进缓存、DataScheduler 补 CUR_EVENT 条件、matchup 预填护栏、jc 日期取 data_through、默认落地跟随状态排序。
+  ② **A2 视觉/身份/移动端**（40a76e3）：evApplyIdentity 赛事身份化页头（wc 默认值逐字节不变保 golden）、≤430px 积分榜隐胜平负三列保积分可见、.hscroll 渐隐提示、evWdlBar 改 token、按钮 .go、evLineChart 默认滚最右、index.html 跨联赛旧文案改 E3 完成口径。
+  ③ **B eurodata 加固**（0601298）：harvest 去重 keep='last'（修正比分可覆盖）、完场缺分跳过+告警（不再伪 0-0）、决赛标记加赛季完结闸（赛中回收不误标）、clubpredict pkl 原子写、CLI 文案改 E3 口径、data-sources.md 落「欧战赔率源缺位」。
+  ④ **C QA 基建**（776071c）：scripts/golden_diff.sh（十确定性端点 capture/diff）、五联赛参数化冒烟（封死注册表 data 手误逃逸）、26-27 滚动断言改判清单四条登记（progress.md，到期与 _CUR_END+1 同 commit 有据改判）。
+- **bt_ucl E4a 前置回测**（a8c46fc，backtest.md 第八节，E4a 以此为闸）：**单场欧战胜平负两层显著**（双方均五大 Δ−0.0360 / 涉非五大 Δ−0.0265 vs 频率基线，CI 不含 0）可上 UI，非五大跳过率 55% 须 no_model 空态；**tie 晋级概率无背书**（vs 50/50 与朴素净胜 CI 全含 0、极端箱过自信，n=138）——只能实验性标注或带宽提示，不得作正式校准概率；ET 污染剔 KO 无益（+0.0074 CI 含 0）维持全帧。
+- **⚠️ 待用户拍板（P0，8-08 前零成本窗口）**：events 五联赛更名 25-26→26-27。实测 data/ 尚无联赛账本，此刻改 key（建议 epl2627 等 + 旧 key alias）零迁移；开赛账本写入后成本陡增。未拍板前勿擅改。
+- **下一步队列**：E4a 欧冠引擎+API（ucl2526 注册 universe=euro 严禁 club_* 前缀、锚点模型缓存指纹=五联赛 CSV+euro RAW 六文件并集、两回合 tie ET 主场=次回合主队、tie 数字按第八节降级）→ E4b 前置 Tab 装配 kind+tabs_off 配置驱动重构（替换 isClub 二分与 nl2026 硬编码）→ E4b 欧冠 Tab（makeBracket 新工厂参数化、wc 树零触碰、回顾模式零轮询）→ README 三语多赛事章节（等更名拍板防返工）→ nl2026 开赛前最小集补全（9-03 硬期限，matchup 复用 manager.py 共用函数）。
+- 裁决延后：跨赛季归档浏览 / upcoming 文案预检 / _odds_scheduler 归档感知 / nl2026 赛制测试（到期条件见 progress.md 07-24 收口条）。
+- 长期跟踪：_CUR_END+1 + euro SEASONS 追加 2026 + harvest 挂 daily_update（8 月同窗）/ launchd 定时观测 / 26-27 名单 / club 赛前冻结账本接线（26-27 首轮前，依赖更名先行）。
+
+## 📌 上一次接手（2026-07-23 十六 · E3 跨联赛校准显著有效，150 测试绿）
 - **E3 完成（backtest.md 第七节）**：bt_crossleague.py——欧战锚点合训 vs 裸并基线，四留出季 194 场跨联赛交锋 **RPS 0.2629→0.1972（Δ−0.0657，bootstrap CI 不含 0，四季逐季改善）**、命中 47.4%→61.3%；联赛刻度 E0 基准 SP1 −0.387/F1 −0.534/D1 −0.554/I1 −0.666。裁决：**E4 欧冠用锚点合训模型；联赛 Tab 维持独立模型零变化**。
 - **下一步：E4 欧冠预测接线（阶段 E 收官）**：① events 注册表加 ucl2526 条目（universe 新口径如 euro，status 按赛季）；② 引擎：锚点合训模型（dom+euro 帧，hl=365）+ 两回合 tie 晋级概率（两回合比分卷积→合计，平局→加时 xG×⅓ 泊松+点球 50% 先验，复用 advancement_paths 口径）；③ 界面欧冠 Tab：**晋级树状图形态在此复用**（KO_TREE/绝对定位/SVG 连线机制可参数化借用；25-26 欧冠已完赛→回顾模式树 + 单场预测）；④ 数据不足显式空态（26-27 待赛程）；验收=截图+wc golden diff+组件复用。工程量大，可拆两轮：E4a 引擎+API（锚点模型缓存、ucl 事件、单场/tie 预测端点+测试），E4b 前端 Tab+树+截图。
 - 长期跟踪：_CUR_END+1（8 月）/ launchd 明晨观测 / events 更名 / 26-27 名单。

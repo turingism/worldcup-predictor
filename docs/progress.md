@@ -889,3 +889,19 @@ docs/backtest.md 第七节；test_core **150 passed**（研究脚本旁路，主
 - 验收：/opt/anaconda3/bin/python3 -m pytest test_core.py -q → **158 passed**
   （基线 153 + 本轮参数化 5）；golden 脚本实跑产出 data/golden/c-run1 与 c-run2
   两份快照且 diff 干净。残留不动：bt_ucl.py 未跟踪文件留给 E4 Agent。
+
+## 2026-07-24 主控收口（7-Agent 评审轮完结）
+- 本轮全貌：7 角色评审 + 3 透镜交叉裁决 → 四个修复包顺序施工（A1 前端正确性
+  8a2a0d8 / A2 视觉身份移动端 40a76e3 / B eurodata 加固 0601298 / C QA 基建
+  776071c）+ bt_ucl E4a 前置回测（a8c46fc，backtest.md 第八节）。
+- 最终验收：pytest 158 passed（主控独立复跑确认）；golden 快照 diff 干净（Agent C）。
+- E4a 闸门结论（第八节）：单场欧战胜平负两层显著可上 UI；tie 晋级概率无背书、
+  只能实验性标注或带宽提示；锚点训练帧维持全量。
+- 裁决延后 4 项：跨赛季归档浏览 / 26-27 upcoming 文案预检 / _odds_scheduler
+  归档感知 / nl2026 赛制测试占位（各自到期条件见评审档）。
+- ⚠️ 待用户拍板：events 五联赛条目更名（25-26→26-27）。三透镜一致 P0、
+  8-08 英超开赛前为零迁移成本窗口；建议改 key（如 epl2627）+ 旧 key alias。
+  未拍板前任何 Agent 不得擅改。
+- 队列（下轮接手顺序）：E4a 引擎+API（tie 概率按第八节降级）→ E4b 前置
+  Tab 装配 kind+tabs_off 配置驱动重构 → E4b 欧冠 Tab（makeBracket 工厂化、
+  wc 树零触碰）→ README 三语文案包（等更名拍板）→ nl2026 开赛前补全（9-03）。
