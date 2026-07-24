@@ -814,3 +814,30 @@ docs/backtest.md 第七节；test_core **150 passed**（研究脚本旁路，主
   a1-wc2026-verify-regression.png（wc 看板 104 场账本回顾模式零回归）；
   另实测无 hash 落地=英超看板（状态排序第一位）。
 - 残留不动：bt_ucl.py（344 行未跟踪，属 E4 欧冠任务）未提交，留给对应 Agent。
+
+## 2026-07-24 A2 视觉/身份/移动端修复包（templates/index.html 单文件）
+- P1 赛事身份化页头：新增 evApplyIdentity()——切赛事时同步 document.title 与
+  header h1/副标题；wc2026 恢复开局从 DOM 捕获的静态默认值（逐字节不变），联赛显示
+  事实行（如「英超 25-26 · football-data.co.uk · 每联赛独立模型 hl=365」），nl2026
+  为国家队口径（martj42 · hl=730）。挂点：selectEvent(isWC 分支) + renderEventView
+  （meta 就绪后）。
+- P1 375px 积分榜：≤430px 隐藏 胜/平/负 三列（.ev-standings nth-child(4-6)，参考
+  .vrow 列裁剪模式），「积分」列默认可见（实测 pts_visible=true，全表无需横滚）；
+  新增 .hscroll 共用类（右缘渐隐提示，local 盖布+scroll 光晕），联赛侧全部 8 处
+  overflow-x:auto 表格/图容器统一换用。
+- P2 视觉一致性：evWdlBar 三色改 var(--wdl-h/d/a) token；evPredForm 出预测按钮加
+  class="go"；中立场 label 套既有 .chk 类+nowrap——顺带修出一个实缺陷：原 label 未用
+  .chk，checkbox 吃全局 input{width:100%;padding:11px} 被撑到 59px、「中立场」文字被
+  挤出 label 盒盖在按钮下不可见（CDP Range rect 实证），套 .chk 后 input 13×13、文字
+  与按钮同排正常显示。renderEvbar 渲染后对 .ev.on 执行 scrollIntoView(nearest)。
+- P3 evLineChart：容器加 .evchart 类，evSetContent 写入后统一 scrollLeft=scrollWidth，
+  手机默认看到赛季末端（390px 实测 atEnd=true，05/18 末端可见）。
+- P2 跨联赛旧文案：机制解读差异表「待欧战锚点校准/未完成前诚实拒绝」改为事实表述
+  （E3 校准回测已完成 RPS 0.2629→0.1972 见 backtest.md 第七节；欧冠待 E4 接线开放；
+  联赛 Tab 数字仍联赛内相对值、接线前跨联赛对阵仍拒绝——拒绝行为不变仅更新状态）。
+- 验收：150 测试全绿×2；golden 五端点 ?event=wc2026 重启前后逐字节一致（两次重启均
+  diff 干净）；kickstart 重启后 CDP 截图五张入库并 Read 实读确认——a2-epl-board-desktop
+  （身份化页头+十列积分榜）、a2-epl-board-375（积分列可见）、a2-epl-matchup-375
+  （按钮深色/中立场同排）、a2-epl-champ-390（曲线默认最右端）、
+  a2-wc2026-desktop-regression（title/h1/副标题与静态默认逐字一致）；node --check
+  内联 JS 通过。残留不动：bt_ucl.py 留给 E4 Agent。

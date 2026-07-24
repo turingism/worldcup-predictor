@@ -513,6 +513,17 @@
   .ev{flex-direction:row;align-items:center;gap:7px;white-space:nowrap;border-radius:18px;padding:6px 13px}
   .ev.on{box-shadow:inset 0 -2px 0 #3fb950}
 }
+/* 横滚表格右缘渐隐提示（全部 overflow-x:auto 表格容器共用）：
+   两个 local 渐变=「盖布」随内容滚动、滚到边缘时盖掉提示；scroll 光晕固定容器右缘=「右边还有内容」。 */
+.hscroll{overflow-x:auto;background:
+  linear-gradient(90deg,var(--panel) 40%,rgba(22,27,34,0)) left/18px 100% no-repeat local,
+  linear-gradient(270deg,var(--panel) 40%,rgba(22,27,34,0)) right/18px 100% no-repeat local,
+  radial-gradient(farthest-side at 100% 50%,rgba(139,148,158,.30),rgba(139,148,158,0)) right/12px 100% no-repeat scroll}
+@media(max-width:430px){
+  /* 手机端联赛积分榜：隐藏 胜/平/负 三列（第 4-6 列），保「积分」默认可见（同 .vrow 列裁剪模式） */
+  .ev-standings th:nth-child(n+4):nth-child(-n+6),
+  .ev-standings td:nth-child(n+4):nth-child(-n+6){display:none}
+}
 </style>
 </head>
 <body>
@@ -2636,10 +2647,34 @@ function evBadge(e){
   const lab = {live:'进行中', soon:(e.days_to_start||'?')+' 天后开赛', upcoming:'未开赛', archived:'已归档'};
   return `<small class="b-${e.status}">${lab[e.status]||e.status}</small>`;
 }
+// 赛事身份化页头：切换赛事时同步 document.title 与 header 主/副标题。
+// wc2026 恢复静态默认值（开局从 DOM 捕获，逐字节不变——保 golden 口径与旧截图对照）；
+// 联赛/国家队显示各自事实行（数据源/模型口径），避免联赛视图下顶着世界杯口径的页面级错误信息。
+const _HDR_DEF = {title: document.title,
+  h1: document.querySelector('header h1').innerHTML,
+  sub: document.querySelector('header p').innerHTML};
+function evApplyIdentity(meta){
+  const h1=document.querySelector('header h1'), sub=document.querySelector('header p');
+  if(!meta || meta.key==='wc2026'){
+    document.title=_HDR_DEF.title;
+    if(h1) h1.innerHTML=_HDR_DEF.h1;
+    if(sub) sub.innerHTML=_HDR_DEF.sub;
+    return;
+  }
+  const isClub=(meta.universe||'').startsWith('club');
+  const line = isClub
+    ? `${meta.name} · football-data.co.uk · 每联赛独立模型 hl=365`
+    : `${meta.name} · martj42 国际赛数据库 · 国家队统一模型 hl=730`;
+  document.title = `⚽ ${meta.name} 比分预测`;
+  if(h1) h1.textContent = `⚽ ${meta.name}`;
+  if(sub) sub.textContent = line;
+}
 function renderEvbar(){
   const bar = $('#evbar'); if(!bar || !EVENTS_META) return;
   bar.innerHTML = EVENTS_META.map(e =>
     `<span class="ev${e.key===CUR_EVENT?' on':''}" data-ev="${e.key}" onclick="selectEvent('${e.key}')">${e.name} ${evBadge(e)}</span>`).join('');
+  const on = bar.querySelector('.ev.on');   // 窄屏横滚菜单：当前赛事滚出视野时自动滚到可见（桌面纵向同理，nearest 不打扰）
+  if(on && on.scrollIntoView) on.scrollIntoView({inline:'nearest', block:'nearest'});
 }
 function selectEvent(key, tab, qs){
   if(!EVENT_KEYS.includes(key)) key = 'wc2026';
@@ -2650,6 +2685,7 @@ function selectEvent(key, tab, qs){
   if(tabs) tabs.style.display = isWC ? '' : 'none';
   $('#eventview').style.display = isWC ? 'none' : 'block';
   if(isWC){
+    evApplyIdentity(null);                           // 恢复世界杯静态页头默认值（逐字节不变）
     jcRestoreHome();                                 // 回世界杯前归位 jc 组件（防随 eventview 清空被销毁）
     $('#eventview').innerHTML = '';
     const t = document.querySelector(`.tab[data-t="${tab||'verify'}"]`) || document.querySelector('.tab[data-t="verify"]');
@@ -2665,9 +2701,9 @@ function selectEvent(key, tab, qs){
 function evPct(p){ return (p*100).toFixed(1)+'%'; }
 function evWdlBar(ph,pd,pa){
   return `<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin:6px 0">
-    <div style="width:${ph*100}%;background:#3fb950"></div>
-    <div style="width:${pd*100}%;background:#8b949e"></div>
-    <div style="width:${pa*100}%;background:#58a6ff"></div></div>`;
+    <div style="width:${ph*100}%;background:var(--wdl-h)"></div>
+    <div style="width:${pd*100}%;background:var(--wdl-d)"></div>
+    <div style="width:${pa*100}%;background:var(--wdl-a)"></div></div>`;
 }
 function evPredCard(d, title){
   const venue = d.neutral ? '中立场' : `${d.home_disp} 主场`;
@@ -2718,7 +2754,7 @@ function evMatchupDetail(d){
     `</table><div class="muted" style="font-size:11.5px;margin-top:4px">单元格=该比分概率%（行=主队进球，列=客队进球）；其余比分合计 ${(mx.p_other*100).toFixed(1)}%</div>`;
   const h2=F.h2h, h2rows=h2.n?h2.rows.map(x=>`<tr><td class="muted">${x.date}</td><td style="text-align:right">${x.home_disp}</td><td style="text-align:center"><b>${x.hs}-${x.as}</b></td><td>${x.away_disp}</td></tr>`).join(''):'';
   return `<div class="card" style="margin-top:10px">
-    <details open><summary style="cursor:pointer"><b>比分概率分布</b></summary><div style="overflow-x:auto;margin-top:6px">${grid}</div></details>
+    <details open><summary style="cursor:pointer"><b>比分概率分布</b></summary><div class="hscroll" style="margin-top:6px">${grid}</div></details>
     <details open style="margin-top:8px"><summary style="cursor:pointer"><b>球队数据展开</b>（近 6 轮 / 主客场拆分 / 攻防强度）</summary>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px">${teamBlock(F.home)}${teamBlock(F.away)}</div>
       <div class="muted" style="font-size:11.5px;margin-top:6px">${F.strength_note}</div></details>
@@ -2747,8 +2783,8 @@ function evPredForm(key, isClub, defH, defA){
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <input id="ev_home" placeholder="主队 / 第一支" value="${defH||''}" style="flex:1;min-width:130px">
       <input id="ev_away" placeholder="客队 / 第二支" value="${defA||''}" style="flex:1;min-width:130px">
-      <label class="muted" style="font-size:12px"><input type="checkbox" id="ev_neutral"> 中立场</label>
-      <button onclick="${isClub?'evClubPredict':'evNlPredict'}('${key}')">出预测</button>
+      <label class="chk" style="font-size:12px;white-space:nowrap;margin-top:0"><input type="checkbox" id="ev_neutral"> 中立场</label>
+      <button class="go" onclick="${isClub?'evClubPredict':'evNlPredict'}('${key}')">出预测</button>
     </div>
     <div id="ev_predout"></div>
   </div>`;
@@ -2804,7 +2840,7 @@ function evBoardCards(o){
         <td style="text-align:right">${r.home_disp}</td><td style="text-align:center">vs</td><td>${r.away_disp}</td>${pred}</tr>`;
     }).join('');
     t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">未来 14 天赛程预测（${up.rows.length} 场）</h3>
-      <div style="overflow-x:auto"><table class="mgt"><tr><th>开球</th><th colspan="3">对阵</th><th>胜/平/负</th><th>期望进球</th><th>概率条</th><th>B365 赛前盘</th></tr>${rows}</table></div>
+      <div class="hscroll"><table class="mgt"><tr><th>开球</th><th colspan="3">对阵</th><th>胜/平/负</th><th>期望进球</th><th>概率条</th><th>B365 赛前盘</th></tr>${rows}</table></div>
       <div class="muted" style="margin-top:6px;font-size:11.5px">${up.note} · 90 分钟口径 · 数据截至 ${o.data_through} · 研究/信息性质，非投注建议</div></div>`;
   } else {
     t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">未来 14 天赛程预测</h3>
@@ -2823,7 +2859,7 @@ function evBoardCards(o){
       const zone = i===0?'background:rgba(46,160,67,.12)': (i>=nn-3?'background:rgba(248,81,73,.10)':'');
       return `<tr style="${zone}"><td>${i+1}</td><td>${r.disp}</td><td>${r.played}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.gd>0?'+':''}${r.gd}</td><td><b>${r.pts}</b></td></tr>`;}).join('');
     t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">${s.season} 赛季积分榜${s.complete?'（该季已完结，终表）':''}</h3>
-      <div style="overflow-x:auto"><table class="mgt"><tr><th>#</th><th>球队</th><th>场</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>积分</th></tr>${rows}</table></div>
+      <div class="hscroll"><table class="mgt ev-standings"><tr><th>#</th><th>球队</th><th>场</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>积分</th></tr>${rows}</table></div>
       <div class="muted" style="margin-top:6px;font-size:11.5px">名次口径：积分＞净胜球＞进球（联赛通用近似，未含各联赛特例细则） · 数据截至 ${o.data_through}</div></div>`;
   } else t += evEmptyCard('暂无本季积分榜数据。');
   return t;
@@ -2845,7 +2881,7 @@ function evLineChart(labels, seriesArr, opts){
     if(dots) s.values.forEach((v,i)=>{ if(v!=null) svg+=`<circle cx="${X(i)}" cy="${Y(v)}" r="2.6" fill="${s.color}"/>`; });
   });
   const legend=seriesArr.map(s=>`<span style="margin-right:12px;font-size:12px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${s.color};margin-right:4px"></span>${s.name}</span>`).join('');
-  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;min-width:480px">${svg}</svg></div><div style="margin-top:2px">${legend}</div>`;
+  return `<div class="hscroll evchart"><svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;min-width:480px">${svg}</svg></div><div style="margin-top:2px">${legend}</div>`;
 }
 const EV_COLORS=['#3fb950','#58a6ff','#d29922','#f85149','#bc8cff','#8b949e'];
 function evChampCards(o, ss){
@@ -2868,7 +2904,7 @@ function evChampCards(o, ss){
         return `<tr><td>${s.disp}</td><td class="muted">${s.from.slice(5)}→${s.to.slice(5)}</td><td style="color:${c};font-weight:bold">${s.delta>0?'+':''}${(s.delta*100).toFixed(1)}pp</td><td style="font-size:12px">${ms}</td></tr>`;
       }).join('');
       t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">关键场次影响（夺冠概率单周最大跳变）</h3>
-        <div style="overflow-x:auto"><table class="mgt"><tr><th>球队</th><th>时间窗</th><th>Δ夺冠概率</th><th>同窗赛果</th></tr>${rows}</table></div>
+        <div class="hscroll"><table class="mgt"><tr><th>球队</th><th>时间窗</th><th>Δ夺冠概率</th><th>同窗赛果</th></tr>${rows}</table></div>
         <div class="muted" style="margin-top:6px;font-size:11.5px">口径：相邻周回溯快照的夺冠概率变化，列出该队同窗实际赛果；概率变动亦受竞争对手赛果影响，不作单场因果归因。</div></div>`;
     }
   } else {
@@ -2909,10 +2945,10 @@ function evExplainCards(o){
       不构成投注建议（详见「市场对标」Tab）。</p>
     </div></div>
   <div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">联赛版与世界杯版的差异</h3>
-    <div style="overflow-x:auto"><table class="mgt">
+    <div class="hscroll"><table class="mgt">
       <tr><th style="min-width:110px">维度</th><th>联赛（${o?o.league:'俱乐部宇宙'}）</th><th>世界杯（国家队宇宙）</th></tr>
       <tr><td>模型池</td><td><b>每联赛独立拟合</b>：${league}单独训练一套攻防参数，联赛间互不混训</td><td>全球国家队一套模型（257 队，1872 年起国际赛）</td></tr>
-      <tr><td>强度可比性</td><td>攻防/净实力为<b>联赛内相对值</b>，跨联赛不可比（跨联赛刻度待欧战交锋锚点校准，未完成前诚实拒绝跨联赛对阵）</td><td>同池内全队可比</td></tr>
+      <tr><td>强度可比性</td><td>攻防/净实力为<b>联赛内相对值</b>，本 Tab 数字不直接跨联赛比较（欧战锚点校准回测已完成：四留出季跨联赛交锋 RPS 0.2629→0.1972，见 docs/backtest.md 第七节；欧冠跨联赛预测待 E4 接线开放，接线前跨联赛对阵仍拒绝）</td><td>同池内全队可比</td></tr>
       <tr><td>主场口径</td><td><b>neutral=False</b>：联赛主客场固定，主场优势直接由主客场进球差拟合</td><td>多数中立场；东道主在本国城市才给主场修正</td></tr>
       <tr><td>时间衰减</td><td><b>半衰期 365 天</b>（俱乐部转会窗频繁、阵容换血快，回测裁决）</td><td>半衰期 730 天（国家队阵容更迭慢，回测裁决）</td></tr>
       <tr><td>数据源</td><td>football-data.co.uk（含 B365 开/闭盘赔率）</td><td>martj42 国际赛数据库 + ESPN 实时兜底</td></tr>
@@ -2935,7 +2971,7 @@ function evMarketCards(mk){
       <td>${(s[k].hit*100).toFixed(1)}%</td></tr>`;}).join('');
   const gap=(s.model.rps-s.close.rps);
   let t=`<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">${mk.season} 赛季 模型 vs 市场（${mk.n} 场同场对比）</h3>
-    <div style="overflow-x:auto"><table class="mgt"><tr><th>口径</th><th>RPS（越小越好）</th><th>胜平负命中率</th></tr>${rows}</table></div>
+    <div class="hscroll"><table class="mgt"><tr><th>口径</th><th>RPS（越小越好）</th><th>胜平负命中率</th></tr>${rows}</table></div>
     <div class="muted" style="margin-top:8px;font-size:12px">诚实层结论：闭盘 RPS 优于模型 ${(gap*100).toFixed(2)}pp——闭盘价格聚合了阵容、伤停与临场信息流，
       公开历史比分模型结构上不可能稳定胜出（国家队侧同款结论）。本对标用于认清模型与市场的差距，禁止衍生任何投注建议。</div>
     <div class="muted" style="margin-top:4px;font-size:11.5px">口径：B365 开/闭盘 Shin 去水；模型分段 as-of 训练防泄漏（hl=365）；
@@ -2951,7 +2987,7 @@ function evMarketCards(mk){
       return three;
     }).join('');
     t+=`<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">赛季末周逐场对照（截至 ${mk.sample.date}）</h3>
-      <div style="overflow-x:auto"><table class="mgt"><tr><th>对阵与比分</th><th>口径</th><th>主胜%</th><th>平%</th><th>客胜%</th></tr>${srows}</table></div>
+      <div class="hscroll"><table class="mgt"><tr><th>对阵与比分</th><th>口径</th><th>主胜%</th><th>平%</th><th>客胜%</th></tr>${srows}</table></div>
       <div class="muted" style="margin-top:6px;font-size:11.5px">绿色加粗=实际赛果对应列；* =该口径的最大概率判（argmax）。</div></div>`;
   }
   t+=`<div class="muted" style="margin-top:8px;font-size:11.5px">计算于 ${mk.computed_at} · 来源 ${mk.source} · 数据截至 ${mk.data_through}</div>`;
@@ -2997,6 +3033,8 @@ function evSetContent(ep, html){        // 异步写 #ev_content 的唯一出口
   const c=$('#ev_content'); if(!c) return false;
   jcRestoreHome();
   c.innerHTML=html;
+  // 夺冠/推演折线图（min-width:480px 横滚）：渲染后滚到最右端，手机默认看到赛季末端而非季初
+  c.querySelectorAll('.evchart').forEach(el=>{ el.scrollLeft = el.scrollWidth; });
   return true;
 }
 function evShowTab(key, tk){
@@ -3077,6 +3115,7 @@ async function renderEventView(key, tab){
   await loadEvents();
   const meta = (EVENTS_META||[]).find(e=>e.key===key) || {key, name:key, status:'', kind:'', universe:''};
   const isClub = (meta.universe||'').startsWith('club');
+  evApplyIdentity(meta);                             // meta 已就绪（await loadEvents 后），页头按赛事身份化
   if(!meta.wired && !isClub && key!=='nl2026'){
     v.innerHTML = `<div class="card"><h3 style="margin:0 0 8px">${meta.name} ${evBadge(meta)}</h3>
       <div class="muted">本赛事的网页接线尚未完成（后端 not_wired 占位）。数据层与模型已就绪，接线按路线图推进。</div></div>`;
