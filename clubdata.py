@@ -12,6 +12,7 @@
 """
 from __future__ import annotations
 import os
+import threading
 import urllib.request
 
 import pandas as pd
@@ -128,6 +129,22 @@ def load(code: str = "E0", seasons: int = 7, refresh: bool = False) -> pd.DataFr
 
 FIXTURES_URL = "https://www.football-data.co.uk/fixtures.csv"
 _FIXTURES_TTL_H = 6.0   # 赛程/盘口每天都会动，缓存超龄自动重拉
+_FX_REFRESH_LOCK = threading.Lock()   # 后台刷新单飞（app._live_status SWR 同款）
+
+
+def _refresh_fixtures(path: str) -> None:
+    """同步下载 fixtures.csv（原子写）；失败但有旧缓存则沿用（与 fetch 同口径），无缓存才抛。"""
+    tmp = path + ".tmp"
+    try:
+        _download(FIXTURES_URL, tmp)
+        os.replace(tmp, path)
+    except Exception:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        if os.path.exists(path):
+            print("[clubdata] fixtures 刷新失败，沿用本地缓存")
+        else:
+            raise
 
 
 def load_fixtures(code: str | None = None, refresh: bool = False) -> pd.DataFrame:
@@ -135,24 +152,27 @@ def load_fixtures(code: str | None = None, refresh: bool = False) -> pd.DataFram
 
     ⚠ 数据事实：fixtures.csv 只含**未来一轮左右**（数天），不是整季剩余赛程——
     赛季模拟的整季剩余用 clubsim.remaining_pairs 从已赛对阵推导，此表只喂
-    看板「即将开赛」与市场层。休赛期可能为空/残留旧行，消费方自行按日期过滤。"""
+    看板「即将开赛」与市场层。休赛期可能为空/残留旧行，消费方自行按日期过滤。
+
+    超龄刷新走 stale-while-revalidate：有旧缓存先直接读旧数据返回，后台线程单飞
+    重拉（app._live_status 既有先例）——请求线程不再同步吃冷态 30s+ 下载挂起。
+    显式 refresh=True（daily_update 等运维路径）与冷启动（无缓存）保持同步下载。"""
     import time as _time
     os.makedirs(CLUB_DIR, exist_ok=True)
     path = os.path.join(CLUB_DIR, "fixtures.csv")
     stale = (not os.path.exists(path)
              or _time.time() - os.path.getmtime(path) > _FIXTURES_TTL_H * 3600)
-    if refresh or stale:
-        tmp = path + ".tmp"
-        try:
-            _download(FIXTURES_URL, tmp)
-            os.replace(tmp, path)
-        except Exception:
-            if os.path.exists(tmp):
-                os.remove(tmp)
-            if os.path.exists(path):     # 刷新失败但有缓存：沿用（与 fetch 同口径）
-                print("[clubdata] fixtures 刷新失败，沿用本地缓存")
-            else:
-                raise
+    if refresh or not os.path.exists(path):
+        _refresh_fixtures(path)                        # 显式刷新/冷启动：同步（失败语义不变）
+    elif stale and _FX_REFRESH_LOCK.acquire(blocking=False):
+        def _worker():
+            try:
+                _refresh_fixtures(path)
+            except Exception as e:  # noqa  后台失败沿用旧缓存，下次超龄再试
+                print(f"[clubdata] fixtures 后台刷新失败（沿用旧缓存）：{e}")
+            finally:
+                _FX_REFRESH_LOCK.release()
+        threading.Thread(target=_worker, daemon=True).start()
     raw = pd.read_csv(path, encoding="utf-8-sig", encoding_errors="replace")
     raw = raw.dropna(subset=["Div", "HomeTeam", "AwayTeam"])
     raw = raw[raw["Div"] == code] if code else raw[raw["Div"].isin(LEAGUES)]

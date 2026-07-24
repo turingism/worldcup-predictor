@@ -780,3 +780,37 @@ docs/backtest.md 第七节；test_core **150 passed**（研究脚本旁路，主
   的 加时 xG×⅓ 泊松 + 点球 50% 先验口径）+ 晋级树状图形态复用；界面欧冠 Tab
   （events 注册表加 ucl 条目）；验收同 C 通用标准。25-26 欧冠已完赛：可做
   回溯模式（同联赛 Tab 口径），26-27 待赛程。
+
+## 2026-07-24 · A1 前端正确性修复包（渲染世代护栏 + fixtures SWR + 七项评审缺陷）
+
+### 做了什么（templates/index.html + clubdata.py，含沿用上一会话中断前的半成品并补齐验证）
+- **P0 渲染世代护栏**：`_evEpoch` 计数器 + `evSetContent(ep,html)` 作为异步写
+  `#ev_content` 的唯一出口——迟到响应按世代丢弃，覆写前先 `jcRestoreHome()`
+  归位竞彩复盘单例（防 appendChild 搬移的 #jcreview 被 innerHTML 销毁导致两侧
+  jc 永久失效）；jc 分支 `jc_home/jc_away` 加空值护栏。
+- **P0 overview 请求去阻塞**：clubdata.load_fixtures 超龄改 stale-while-revalidate
+  （旧缓存立即返回，后台线程单飞 `_FX_REFRESH_LOCK` 重拉；显式 refresh/冷启动仍
+  同步）；前端 evGet 改缓存 in-flight Promise（并发共享同一请求，失败/not_wired
+  不留缓存），另存 `_<kind>` 同步副本供 jc 默认日期等轻量消费。
+- **P1**：loadEvents 失败清 `_evLoadP` 可重试（selectEvent/renderEventView 入口
+  重拉）；evGet 识别后端 not_wired 占位（抛 notWired 错，渲染「接线尚未完成」
+  卡，不当正常数据缓存）。
+- **P2**：DataScheduler wc 侧任务加 `CUR_EVENT==='wc2026'` 闸（防联赛 Tab
+  data-t='market' 与调度任务名撞名误触发）；matchup 自动预填加 defaultValue
+  未动护栏（慢响应不覆盖用户手输）；联赛 jc 默认日期改取 overview.data_through
+  （去硬编码 '2026-05-24'）；无 hash 默认落地 /api/events 状态排序第一位赛事
+  （wc2026 已归档不再恒为默认）。
+
+### 验收证据
+- pytest 150 passed（基线不减）；node --check 内联 JS 语法通过。
+- golden：/api/ratings /teams /verify /config /champ_ci ?event=wc2026 重启前后
+  五端点逐字节一致（cmp 实测 IDENTICAL×5）。
+- kickstart 重启后 curl 冒烟：/api/events 0.03s、/api/club/overview?event=epl2526
+  0.12s；SWR 实测——touch 把 fixtures.csv 拨老 4 天后请求仍 0.109s 即返，
+  后台线程 20s 内完成刷新（mtime 更新为当前时刻）。
+- 截图（Read 实看确认）：docs/evidence/a1-epl-board.png（看板：空态赛程卡+
+  最近完赛轮+终表）、a1-epl-matchup.png（对阵分析自动预填阿森纳 vs 曼城
+  42.9/27.7/29.4 + 矩阵 + 过程数据）、a1-epl-board-375.png（375px 无崩坏）、
+  a1-wc2026-verify-regression.png（wc 看板 104 场账本回顾模式零回归）；
+  另实测无 hash 落地=英超看板（状态排序第一位）。
+- 残留不动：bt_ucl.py（344 行未跟踪，属 E4 欧冠任务）未提交，留给对应 Agent。
