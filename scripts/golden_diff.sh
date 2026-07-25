@@ -20,7 +20,7 @@
 # 覆盖端点（仅确定性端点，同一数据状态下逐字节可比）:
 #   wc2026 五端点:  /api/ratings /api/teams /api/verify /api/config /api/champ_ci
 #   club  五端点:  /api/club/overview /api/club/predict /api/club/seasonsim
-#                  /api/club/market /api/jc_review(GET 模型预览)  各 event=epl2526
+#                  /api/club/market /api/jc_review(GET 模型预览)  各 event=epl2627
 #
 # 明确排除的端点及原因（勿加回来，逐字节不可比）:
 #   /api/bracket / /api/champions   — 蒙特卡洛随机抽样（随机一届/夺冠 MC），非确定输出
@@ -45,11 +45,11 @@ ENDPOINTS=(
   "wc_verify|/api/verify|event=wc2026"
   "wc_config|/api/config|event=wc2026"
   "wc_champ_ci|/api/champ_ci|event=wc2026"
-  "club_overview|/api/club/overview|event=epl2526"
-  "club_predict|/api/club/predict|event=epl2526&home=阿森纳&away=曼城"
-  "club_seasonsim|/api/club/seasonsim|event=epl2526"
-  "club_market|/api/club/market|event=epl2526"
-  "club_jc_review|/api/jc_review|event=epl2526&home=阿森纳&away=曼城"
+  "club_overview|/api/club/overview|event=epl2627"
+  "club_predict|/api/club/predict|event=epl2627&home=阿森纳&away=曼城"
+  "club_seasonsim|/api/club/seasonsim|event=epl2627"
+  "club_market|/api/club/market|event=epl2627"
+  "club_jc_review|/api/jc_review|event=epl2627&home=阿森纳&away=曼城"
 )
 
 capture() {

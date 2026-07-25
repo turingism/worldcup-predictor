@@ -35,7 +35,7 @@
 
 任务书要求 league/season/match/team 四表。本项目的等价实现：
 
-- `events.py` 注册表 = league/season 维（wc2026/nl2026/epl2526/laliga2526/seriea2526/bundes2526/ligue12526，含赛程窗口、ESPN code、账本文件、tab 配置；账本按赛事隔离是 registry 层不变量）。
+- `events.py` 注册表 = league/season 维（wc2026/nl2026/epl2627/laliga2627/seriea2627/bundes2627/ligue12627，含赛程窗口、ESPN code、账本文件、tab 配置；账本按赛事隔离是 registry 层不变量）。
 - `clubdata.load(code)` 归一帧 = match 维（统一引擎 schema，与国家队数据同构，neutral=False）。
 - `teams_zh` 双命名空间 = team 维（国家队 CN 与俱乐部 CLUB 分离，测试断言零交集、俱乐部全覆盖）。
 - 世界杯数据不迁移进俱乐部表结构：国家队与俱乐部是两个模型宇宙（half_life 730 vs 365，均经正式裁决），共用引擎但数据分池——这是经回测裁决的架构，非「两套并行结构」的技术债。

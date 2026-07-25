@@ -30,40 +30,40 @@ EVENTS: dict[str, dict] = {
         window=("2026-09-03", "2027-06-06"),
         ledger="predictions_nl2026.json",
     ),
-    "epl2526": dict(
-        name="英超 25-26", kind="league", universe="club_E0",
+    "epl2627": dict(
+        name="英超 26-27", kind="league", universe="club_E0",
         espn="eng.1", data="E0",
         window=("2026-08-08", "2027-05-23"),
-        ledger="predictions_epl2526.json",
+        ledger="predictions_epl2627.json",
         tabs_off=("xuanxue",),
     ),
     # —— 其余四大联赛（P3；espn code 2026-07-08 已实测有响应，窗口=官方赛历近似）——
-    "laliga2526": dict(
-        name="西甲 25-26", kind="league", universe="club_SP1",
+    "laliga2627": dict(
+        name="西甲 26-27", kind="league", universe="club_SP1",
         espn="esp.1", data="SP1",
         window=("2026-08-15", "2027-05-23"),
-        ledger="predictions_laliga2526.json",
+        ledger="predictions_laliga2627.json",
         tabs_off=("xuanxue",),
     ),
-    "seriea2526": dict(
-        name="意甲 25-26", kind="league", universe="club_I1",
+    "seriea2627": dict(
+        name="意甲 26-27", kind="league", universe="club_I1",
         espn="ita.1", data="I1",
         window=("2026-08-22", "2027-05-30"),
-        ledger="predictions_seriea2526.json",
+        ledger="predictions_seriea2627.json",
         tabs_off=("xuanxue",),
     ),
-    "bundes2526": dict(
-        name="德甲 25-26", kind="league", universe="club_D1",
+    "bundes2627": dict(
+        name="德甲 26-27", kind="league", universe="club_D1",
         espn="ger.1", data="D1",
         window=("2026-08-21", "2027-05-15"),
-        ledger="predictions_bundes2526.json",
+        ledger="predictions_bundes2627.json",
         tabs_off=("xuanxue",),
     ),
-    "ligue12526": dict(
-        name="法甲 25-26", kind="league", universe="club_F1",
+    "ligue12627": dict(
+        name="法甲 26-27", kind="league", universe="club_F1",
         espn="fra.1", data="F1",
         window=("2026-08-14", "2027-05-22"),
-        ledger="predictions_ligue12526.json",
+        ledger="predictions_ligue12627.json",
         tabs_off=("xuanxue",),
     ),
     # P3 同构追加：euro2028 / copa2028 / afcon2027 / asian2027 / ucl(P4)
@@ -71,10 +71,28 @@ EVENTS: dict[str, dict] = {
 
 DEFAULT = "wc2026"
 
+# 旧 key → 现 key 别名（2026-07-25 更名裁决：五联赛 key/显示名 25-26 → 26-27，
+# 因这些条目的 window 本就是 26-27 赛季窗，旧字面是口径债）。别名只做入口解析，
+# **不进 EVENTS**——/api/events 只列现 key，账本文件名只认现 key（隔离不变量不变）。
+# 更名前 data/ 无任何联赛账本（实测），故零迁移；别名纯为旧深链/书签永续。
+ALIASES: dict[str, str] = {
+    "epl2526": "epl2627",
+    "laliga2526": "laliga2627",
+    "seriea2526": "seriea2627",
+    "bundes2526": "bundes2627",
+    "ligue12526": "ligue12627",
+}
+
+
+def resolve(key: str | None) -> str | None:
+    """旧 key 别名 → 现 key；未知 key 原样返回（合法性由调用方判定）。None 透传。"""
+    return key if key is None else ALIASES.get(key, key)
+
 
 def status(key: str, today: dt.date | None = None) -> str:
     """live(窗内) / soon(30 天内开赛) / upcoming(未来) / archived(已结束)。L0 排序依据。"""
     today = today or dt.date.today()
+    key = resolve(key)
     a, b = (dt.date.fromisoformat(x) for x in EVENTS[key]["window"])
     if a <= today <= b:
         return "live"
@@ -92,4 +110,5 @@ def sorted_events(today: dt.date | None = None) -> list[str]:
 
 
 def get(key: str | None = None) -> dict:
-    return {**EVENTS[key or DEFAULT], "key": key or DEFAULT}
+    k = resolve(key) or DEFAULT
+    return {**EVENTS[k], "key": k}

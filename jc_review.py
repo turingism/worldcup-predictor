@@ -30,9 +30,10 @@ STORE = os.path.join(os.path.dirname(__file__), "data", "jc_review.json")
 def store_path(event_key: str = "wc2026") -> str:
     """P1-③：按赛事取复盘存储路径（与 verify.ledger_path 同构隔离，绝不跨赛事混池）。
     wc2026 保持既有文件名不变；其余赛事 jc_review_<key>.json。"""
+    import events as eventsmod
+    event_key = eventsmod.resolve(event_key)     # 旧 key 别名归一：同一赛事绝不落两个账本文件
     if event_key == "wc2026":
         return STORE
-    import events as eventsmod
     assert event_key in eventsmod.EVENTS, event_key
     return os.path.join(os.path.dirname(__file__), "data", f"jc_review_{event_key}.json")
 

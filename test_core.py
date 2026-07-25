@@ -705,6 +705,32 @@ def test_events_registry_invariants():
     assert events.get()["key"] == events.DEFAULT
 
 
+def test_event_alias_resolution():
+    """2026-07-25 五联赛更名：旧 key 别名解析到现 key，且别名本身绝不进注册表
+    （否则 /api/events 会列出重复赛事、账本文件名唯一性也会被绕过）。"""
+    import datetime as dt
+    import events, verify, jc_review
+    assert events.ALIASES and set(events.ALIASES) & set(events.EVENTS) == set()
+    for old, new in events.ALIASES.items():
+        assert new in events.EVENTS
+        assert events.resolve(old) == new
+        assert events.get(old)["key"] == new                 # get 归一
+        assert events.status(old, dt.date(2026, 9, 1)) == events.status(new, dt.date(2026, 9, 1))
+        # 别名与现 key 必须落同一个账本文件——同赛事双账本是隔离不变量的反面
+        assert verify.ledger_path(old) == verify.ledger_path(new)
+        assert jc_review.store_path(old) == jc_review.store_path(new)
+    assert events.resolve(None) is None and events.resolve("bogus") == "bogus"
+    assert "2526" not in "".join(events.EVENTS)              # 现 key 里不留旧赛季字面
+
+
+def test_event_alias_api_and_gate(client):
+    """旧 key 走 API：闸门放行、响应与现 key 一致（别名只在入口归一，下游只见现 key）。"""
+    a = client.get("/api/club/overview?event=epl2526")
+    b = client.get("/api/club/overview?event=epl2627")
+    assert a.status_code == 200 and a.get_json() == b.get_json()
+    assert client.get("/api/club/overview?event=epl2528").status_code == 400
+
+
 def test_clubdata_load_engine_schema():
     """俱乐部装载帧须满足引擎训练 schema + 赔率透传；无缓存且无网则跳过。"""
     import clubdata
@@ -1871,7 +1897,7 @@ def test_ledger_runtime_isolation(tmp_path):
 
 # ---------- P1-⑤ 俱乐部接线 + nl2026 壳 ----------
 def test_club_overview_api(client):
-    d = client.get("/api/club/overview?event=epl2526").get_json()
+    d = client.get("/api/club/overview?event=epl2627").get_json()
     assert d["code"] == "E0" and d["source"] == "football-data.co.uk"
     assert len(d["ranking"]) == 20 and d["data_through"] >= "2025-05-01"
     if d["preseason"]:                                # 预计算 JSON 存在时校验结构与归一
@@ -1900,11 +1926,11 @@ def test_club_overview_api(client):
 
 # ---------- QA 基建：五联赛参数化冒烟（防注册表 data 字段手误时测试仍全绿）----------
 @pytest.mark.parametrize("event,code,size", [
-    ("epl2526", "E0", 20),
-    ("laliga2526", "SP1", 20),
-    ("seriea2526", "I1", 20),
-    ("bundes2526", "D1", 18),
-    ("ligue12526", "F1", 18),
+    ("epl2627", "E0", 20),
+    ("laliga2627", "SP1", 20),
+    ("seriea2627", "I1", 20),
+    ("bundes2627", "D1", 18),
+    ("ligue12627", "F1", 18),
 ])
 def test_club_overview_all_leagues_smoke(client, event, code, size):
     """五赛事逐一打 /api/club/overview：注册表 event→league code 接线正确、
@@ -1916,21 +1942,21 @@ def test_club_overview_all_leagues_smoke(client, event, code, size):
 
 
 def test_club_predict_api(client):
-    d = client.get("/api/club/predict?event=epl2526&home=阿森纳&away=曼城").get_json()
+    d = client.get("/api/club/predict?event=epl2627&home=阿森纳&away=曼城").get_json()
     assert abs(d["p_home"] + d["p_draw"] + d["p_away"] - 1.0) < 5e-4   # 输出 round(4) 后的容差
     assert d["home"] == "Arsenal" and len(d["top_scores"]) >= 5
     assert "90 分钟" in d["note"]
-    r = client.get("/api/club/predict?event=epl2526&home=Arsnal&away=曼城")
+    r = client.get("/api/club/predict?event=epl2627&home=Arsnal&away=曼城")
     assert r.status_code == 404 and r.get_json()["suggest"]
     # 跨联赛球队在本联赛池内解析不到 → 404（诚实拒绝口径）
-    assert client.get("/api/club/predict?event=epl2526&home=皇马&away=曼城").status_code == 404
+    assert client.get("/api/club/predict?event=epl2627&home=皇马&away=曼城").status_code == 404
     # 默认（无 detail）不含展开字段——C2 为增量扩展，原响应结构不变
     assert "facts" not in d and "matrix" not in d
 
 
 def test_club_matchup_detail_api(client):
     """C2 对阵分析展开区：近 6 轮/交锋/主客场拆分/攻防强度 + 比分矩阵（共用实现口径）。"""
-    d = client.get("/api/club/predict?event=epl2526&home=阿森纳&away=曼城&detail=1").get_json()
+    d = client.get("/api/club/predict?event=epl2627&home=阿森纳&away=曼城&detail=1").get_json()
     f = d["facts"]
     for side in ("home", "away"):
         rc = f[side]["recent"]
@@ -1950,7 +1976,7 @@ def test_club_matchup_detail_api(client):
     tot = sum(sum(row) for row in mx["p"]) + mx["p_other"]
     assert abs(tot - 1.0) < 0.01
     # 交锋覆盖不到的组合（升班马 vs 豪门）诚实空态：n=0 结构仍完整
-    d2 = client.get("/api/club/predict?event=epl2526&home=桑德兰&away=阿森纳&detail=1").get_json()
+    d2 = client.get("/api/club/predict?event=epl2627&home=桑德兰&away=阿森纳&detail=1").get_json()
     assert d2["facts"]["h2h"]["n"] >= 0                            # 结构存在即可（不写死有无交锋）
 
 
@@ -1958,7 +1984,7 @@ def test_club_overview_upcoming(client, monkeypatch):
     """D3 未来赛程预测：空态必有原因；合成 fixtures 下模型概率/池外队暂无数据/B365 透传。"""
     import clubdata
     import pandas as pd
-    d = client.get("/api/club/overview?event=epl2526").get_json()
+    d = client.get("/api/club/overview?event=epl2627").get_json()
     up = d["upcoming"]
     assert "rows" in up and (up["rows"] or up["reason"])            # 无场次必须给原因
     tmr = pd.Timestamp.now().normalize() + pd.Timedelta(days=2)
@@ -1970,7 +1996,7 @@ def test_club_overview_upcoming(client, monkeypatch):
         "B365H": [1.5, float("nan")], "B365D": [4.2, float("nan")], "B365A": [6.0, float("nan")],
     })
     monkeypatch.setattr(clubdata, "load_fixtures", lambda code=None, refresh=False: fx)
-    rows = client.get("/api/club/overview?event=epl2526").get_json()["upcoming"]["rows"]
+    rows = client.get("/api/club/overview?event=epl2627").get_json()["upcoming"]["rows"]
     assert len(rows) == 2
     r0 = next(r for r in rows if r["home"] == "Arsenal")
     assert abs(r0["p_home"] + r0["p_draw"] + r0["p_away"] - 1.0) < 1e-3
@@ -1985,17 +2011,17 @@ def test_jc_review_club_entry(client, tmp_path, monkeypatch):
     import jc_review as jc
     store = str(tmp_path / "jc_epl.json")
     monkeypatch.setattr(jc, "store_path", lambda k="wc2026": store)
-    d = client.get("/api/jc_review?event=epl2526&home=阿森纳&away=曼城").get_json()
+    d = client.get("/api/jc_review?event=epl2627&home=阿森纳&away=曼城").get_json()
     mp = d["model_preview"]
     assert mp["home_en"] == "Arsenal" and mp["is_knockout"] is False
     assert abs(mp["p_home"] + mp["p_draw"] + mp["p_away"] - 1.0) < 1e-6
-    cp = client.get("/api/club/predict?event=epl2526&home=阿森纳&away=曼城").get_json()
+    cp = client.get("/api/club/predict?event=epl2627&home=阿森纳&away=曼城").get_json()
     assert abs(mp["p_home"] - cp["p_home"]) < 1e-3          # 与单场预测同模型同 neutral=False 口径
-    r = client.post("/api/jc_review?event=epl2526", json={
+    r = client.post("/api/jc_review?event=epl2627", json={
         "action": "prematch", "date": "2026-05-24", "home": "阿森纳", "away": "曼城",
         "fav_is_home": True, "line": 1, "o_fav": 2.1, "o_dog": 1.75, "my_pick": "skip"}).get_json()
     assert r["ok"] and r["record"]["is_knockout"] is False and r["reading"]
-    r2 = client.post("/api/jc_review?event=epl2526", json={
+    r2 = client.post("/api/jc_review?event=epl2627", json={
         "action": "result", "date": "2026-05-24", "home": "阿森纳", "away": "曼城",
         "h90": 2, "a90": 1}).get_json()
     assert r2["ok"] and r2["reconcile"]
@@ -2004,12 +2030,12 @@ def test_jc_review_club_entry(client, tmp_path, monkeypatch):
     assert key in saved                                      # 写入隔离存储（monkeypatch tmp）
     assert not any("rate" in k or "roi" in k.lower() for k in saved[key])   # schema 断壁
     # 未知球队诚实拒绝（本联赛池解析）
-    assert client.get("/api/jc_review?event=epl2526&home=皇马&away=曼城").status_code == 400
+    assert client.get("/api/jc_review?event=epl2627&home=皇马&away=曼城").status_code == 400
 
 
 def test_club_market_api(client):
     """C5 市场对标：三方 summary 结构、样本概率归一、诚实口径字段在位。"""
-    d = client.get("/api/club/market?event=epl2526").get_json()
+    d = client.get("/api/club/market?event=epl2627").get_json()
     if d.get("empty"):
         pytest.skip("market JSON 未生成（运行 python3 club_market.py）")
     assert d["season"] == "2025-26" and d["devig"] == "shin" and d["hl"] == 365
@@ -2029,7 +2055,7 @@ def test_club_market_api(client):
 
 def test_club_seasonsim_api(client):
     """C3 赛季推演：快照概率归一、played 单调、终局=真实终表 0/1、disp 在位。"""
-    d = client.get("/api/club/seasonsim?event=epl2526").get_json()
+    d = client.get("/api/club/seasonsim?event=epl2627").get_json()
     if d.get("empty"):
         pytest.skip("seasonsim JSON 未生成（运行 python3 club_seasonsim.py）")
     assert d["season"] == "2025-26" and d["mode"] == "retro" and d["sims"] >= 1000
@@ -2087,7 +2113,7 @@ def test_club_net_ranking_not_empty(client):
     rows = clubpredict.net_ranking(m, 20)
     assert len(rows) == 20 and all(isinstance(s, float) for _, s in rows)
     assert rows == sorted(rows, key=lambda x: -x[1])          # 降序
-    api = client.get("/api/club/overview?event=epl2526").get_json()["ranking"]
+    api = client.get("/api/club/overview?event=epl2627").get_json()["ranking"]
     assert [r["team"] for r in api] == [t for t, _ in rows]   # API 与 CLI 同源
 
 

@@ -65,14 +65,15 @@ _EVENT_WIRED: dict[str, set] = {eventsmod.DEFAULT: {"*"}}
 
 
 def _event():
-    """当前请求的 (event_key, registry_entry)。key 非法时 entry 为 None（闸门已挡，路由内可信）。"""
-    key = request.args.get("event") or eventsmod.DEFAULT
+    """当前请求的 (event_key, registry_entry)。key 非法时 entry 为 None（闸门已挡，路由内可信）。
+    旧 key 别名在此归一为现 key——下游（账本路径/模型池）只见现 key。"""
+    key = eventsmod.resolve(request.args.get("event")) or eventsmod.DEFAULT
     return key, eventsmod.EVENTS.get(key)
 
 
 @app.before_request
 def _event_gate():
-    key = request.args.get("event")
+    key = eventsmod.resolve(request.args.get("event"))
     if key is None or key == eventsmod.DEFAULT:
         return None
     ev = eventsmod.EVENTS.get(key)
@@ -165,7 +166,8 @@ def index():
     # 单页 HTML 内联了全部 JS/CSS。禁缓存：否则浏览器留旧版，改了前端（如括号布局）也不生效——
     # 用户反复看到"点实时比分后布局崩坏"正是旧缓存页在跑旧 layoutBracket。
     resp = make_response(render_template("index.html", readonly=READONLY,
-                                         event_keys=list(eventsmod.EVENTS)))
+                                         event_keys=list(eventsmod.EVENTS),
+                                         event_alias=eventsmod.ALIASES))
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"
@@ -202,7 +204,7 @@ def _club_code(ev: dict) -> str:
 def _club_event_or_400():
     key, ev = _event()
     if not ev or not ev["universe"].startswith("club_"):
-        return None, None, make_response(jsonify({"error": "club event required (?event=epl2526 等)"}), 400)
+        return None, None, make_response(jsonify({"error": "club event required (?event=epl2627 等)"}), 400)
     return key, ev, None
 
 

@@ -2636,6 +2636,9 @@ function renderLineupCard(d,H,A){
 // 状态：CUR_EVENT 当前赛事；EVENTS_META 来自 /api/events（状态驱动排序）。
 // 徽标纯文字（内容红线：新增界面不使用 emoji）。
 const EVENT_KEYS = {{ event_keys | tojson }};
+// 旧 key 别名（后端 events.ALIASES 同源）：旧深链 #epl2526/... 归一到现 key，不落回世界杯。
+const EVENT_ALIAS = {{ event_alias | tojson }};
+const evResolve = k => (EVENT_ALIAS[k] || k);
 const WC_SECTIONS = ['manager','bracket','champ','verify','market','explainer','jcreview','xuanxue'];
 let CUR_EVENT = 'wc2026', EVENTS_META = null, _evLoadP = null;
 function loadEvents(){
@@ -2677,6 +2680,7 @@ function renderEvbar(){
   if(on && on.scrollIntoView) on.scrollIntoView({inline:'nearest', block:'nearest'});
 }
 function selectEvent(key, tab, qs){
+  key = evResolve(key);
   if(!EVENT_KEYS.includes(key)) key = 'wc2026';
   if(!EVENTS_META) loadEvents();                     // 首拉失败后的重试入口（loadEvents 失败已清 _evLoadP）
   CUR_EVENT = key;
@@ -3156,8 +3160,8 @@ loadEvents();
     return;
   }
   let ev='wc2026';
-  if(h && h.includes('/')){ const i=h.indexOf('/'); ev=h.slice(0,i); h=h.slice(i+1); }
-  else if(EVENT_KEYS.includes(h)){ ev=h; h=''; }
+  if(h && h.includes('/')){ const i=h.indexOf('/'); ev=evResolve(h.slice(0,i)); h=h.slice(i+1); }
+  else if(EVENT_KEYS.includes(evResolve(h))){ ev=evResolve(h); h=''; }
   if(!EVENT_KEYS.includes(ev)) ev='wc2026';
   if(ev!=='wc2026'){ loadEvents().then(()=>selectEvent(ev, h||'')); return; }
   if(h==='market-demo'){ marketLoaded=true; document.querySelector('.tab[data-t="market"]').click(); setTimeout(loadMarketDemo,60); return; }

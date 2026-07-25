@@ -34,7 +34,8 @@ def ledger_path(event_key: str = "wc2026") -> str:
     """P1-③：按赛事取账本文件路径。文件名来自 events 注册表（互异性已被测试锁死），
     调用方显式传 path 贯穿——不 monkeypatch 模块常量（默认参数 def 时绑定，patch 无效）。"""
     import events as eventsmod
-    return os.path.join(os.path.dirname(__file__), "data", eventsmod.EVENTS[event_key]["ledger"])
+    return os.path.join(os.path.dirname(__file__), "data",
+                        eventsmod.EVENTS[eventsmod.resolve(event_key)]["ledger"])
 GROUP_END = "2026-06-28"          # 小组赛阶段截止（与 simulate.py 同口径）
 _RETRO_CACHE: dict[str, object] = {}   # as_of 日期 -> 回溯模型（进程内缓存）
 # 账本「读→改→写」进程内锁：/api/dashboard 与 /api/verify 等并发触发 freeze/backfill 时，
