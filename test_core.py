@@ -2984,3 +2984,229 @@ def test_clubverify_scheduled_freeze_blocked_until_tz_verified(monkeypatch, tmp_
     out2 = clubverify.run_all()
     assert out2["events"]["epl2627"]["freeze"]["status"] != "blocked"
     assert out2["events"]["laliga2627"]["freeze"]["status"] == "blocked"
+
+
+# ==================== P0-H 首页总览（/api/home + 前端护栏） ====================
+# 需求：docs/UPGRADE_REQUIREMENTS_2026-07-25.md 第 11 节（Codex 契约 + 双方收口）
+# 注意分工：布局事实（是否溢出/Tab 是否单行）由 scripts/ui_check.py 真浏览器实测，
+# 这里的前端测试只做**静态护栏**（规则没被删），名字也如实反映这一点。
+
+def _home(client, **kw):
+    return client.get("/api/home" + ("?" + "&".join(f"{k}={v}" for k, v in kw.items()) if kw else "")).get_json()
+
+
+def test_home_api_schema(client):
+    """首页契约字段齐全，且性能预算内（JSON ≤200KB）。"""
+    import json as _json
+    d = _home(client)
+    for k in ("schema_version", "generated_at", "cache", "hero", "freshness",
+              "match_stream", "event_groups", "verification", "coverage", "warnings"):
+        assert k in d, k
+    assert d["hero"]["title"] and d["hero"]["subtitle"]
+    assert {g["id"] for g in d["event_groups"]} == {"national", "club"}
+    assert len(_json.dumps(d, ensure_ascii=False).encode()) < 200 * 1024
+
+
+def test_home_api_has_no_cross_event_accuracy(client):
+    """跨赛事混池是 registry 层不变量的反面：verification 只能是逐赛事数组。"""
+    d = _home(client)
+    v = d["verification"]
+    assert set(v) == {"events"} and isinstance(v["events"], list)
+    for banned in ("total", "summary", "all_site", "overall_accuracy",
+                   "total_accuracy", "combined_rps"):
+        assert banned not in v and banned not in d
+    # 每条都必须自带赛事身份，避免"看起来像总表"的行
+    assert all("event" in e and "name" in e for e in v["events"])
+
+
+def test_home_api_verification_is_per_event_only(client):
+    """世界杯数字必须与 /api/verify 同源同值——首页不得另算一套口径。"""
+    d = _home(client)
+    wc = [e for e in d["verification"]["events"] if e["event"] == "wc2026"][0]
+    s = client.get("/api/verify?event=wc2026").get_json()["summary"]
+    assert (wc["evaluated"], wc["outcome_hits"], wc["avg_rps"]) == \
+           (s["evaluated"], s["outcome_hits"], s["avg_rps"])
+
+
+def test_home_api_excludes_jc_review(client):
+    """竞彩复盘红线最严：整体不进首页（连字段名都不许出现）。"""
+    import json as _json
+    raw = _json.dumps(_home(client), ensure_ascii=False)
+    assert "jc_review" not in raw and "竞彩" not in raw
+
+
+def test_home_api_contains_no_betting_copy(client):
+    """首页不出投注建议/价值/EV/推荐/赔率。"""
+    import json as _json
+    raw = _json.dumps(_home(client), ensure_ascii=False)
+    for banned in ("推荐", "投注建议", "价值", "kelly", "Kelly", "EV", "赔率", "必中", "稳赚"):
+        assert banned not in raw, banned
+
+
+def test_home_api_never_trains_model_or_runs_simulation(monkeypatch, client):
+    """只读铁测：把训练/模拟/冻结/联网全部换成抛错，/api/home 仍须成功。"""
+    import clubpredict, clubsim, verify as _v, live, urllib.request, home_dashboard
+    def boom(*a, **k):
+        raise AssertionError("首页触发了被禁调用")
+    monkeypatch.setattr(clubpredict, "get_club_model", boom)
+    monkeypatch.setattr(clubsim, "simulate_retro", boom, raising=False)
+    monkeypatch.setattr(clubsim, "simulate_preseason", boom, raising=False)
+    monkeypatch.setattr(_v, "freeze", boom)
+    monkeypatch.setattr(_v, "backfill", boom)
+    monkeypatch.setattr(live, "_fetch_json", boom)
+    monkeypatch.setattr(urllib.request, "urlopen", boom)
+    monkeypatch.setattr(clubdata_mod(), "load_fixtures", boom)     # 会起后台下载线程，禁用
+    home_dashboard._CACHE.clear()
+    d = _home(client, fresh=1)
+    assert d["schema_version"] and d["hero"]["title"]
+
+
+def clubdata_mod():
+    import clubdata
+    return clubdata
+
+
+def test_home_api_does_not_write_to_disk(client):
+    """首页不写盘：请求前后所有输入产物的 mtime 逐个不变。"""
+    import glob as _g, home_dashboard
+    paths = ([_os.path.join(_os.path.dirname(__file__), "data", "predictions.json")]
+             + _g.glob(_os.path.join(_os.path.dirname(__file__), "data", "club", "*.json"))
+             + _g.glob(_os.path.join(_os.path.dirname(__file__), "data", "predictions_*.json")))
+    before = {p: _os.stat(p).st_mtime_ns for p in paths if _os.path.exists(p)}
+    home_dashboard._CACHE.clear()
+    _home(client, fresh=1)
+    assert {p: _os.stat(p).st_mtime_ns for p in before} == before
+
+
+def test_home_api_cache_hit_and_invalidation(client, tmp_path):
+    """TTL 内命中缓存；输入指纹变化即失效。"""
+    import home_dashboard as hd
+    hd._CACHE.clear()
+    a = _home(client)
+    b = _home(client)
+    assert a["cache"]["hit"] is False and b["cache"]["hit"] is True
+    assert b["cache"]["fingerprint"] == a["cache"]["fingerprint"]
+    fp1 = hd._fingerprint()
+    p = _os.path.join(_os.path.dirname(__file__), "data", "club", "seasonsim_E0.json")
+    if _os.path.exists(p):
+        st = _os.stat(p)
+        _os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns + 10**9))
+        try:
+            assert hd._fingerprint() != fp1
+        finally:
+            _os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns))
+
+
+def test_home_api_returns_stale_snapshot_on_rebuild_failure(monkeypatch, client):
+    """重建失败但有旧快照 → 返回旧快照并标 stale + warning，绝不 500。"""
+    import home_dashboard as hd
+    hd._CACHE.clear()
+    _home(client)
+    monkeypatch.setattr(hd, "build", lambda ctx=None: (_ for _ in ()).throw(RuntimeError("boom")))
+    d = hd.get({}, fresh=True)
+    assert d["cache"]["stale"] is True and any("rebuild failed" in w for w in d["warnings"])
+
+
+def test_home_no_fixtures_has_season_runway(client):
+    """休赛期不是空卡：必须给出赛季启动时间轴（且 no_fixtures ≠ no_model）。"""
+    d = _home(client)
+    ms = d["match_stream"]
+    if ms["status"] == "no_fixtures":
+        fb = ms["fallback"]
+        assert fb["kind"] == "season_runway" and len(fb["events"]) == len(_events_mod().EVENTS)
+        assert all("days_to_start" in e and "state" in e for e in fb["events"])
+        assert "no_model" not in str(ms)
+
+
+def _events_mod():
+    import events
+    return events
+
+
+def test_home_retro_seasonsim_never_becomes_current_highlight(client):
+    """赛季/mode 不匹配的 seasonsim 绝不当新季夺冠概率（上季终局冠军是 100%）。"""
+    import json as _json, home_dashboard as hd
+    d = _home(client)
+    for g in d["event_groups"]:
+        for e in g["events"]:
+            h = e.get("highlight") or {}
+            if h.get("kind") == "title_favorite":
+                ev = _events_mod().EVENTS[e["event"]]
+                assert h["season"] == hd._season_label(ev) and h["mode"] in ("preseason", "live")
+    # 现有缓存确为 retro/上季 → 现在不该有任何 title_favorite
+    p = _os.path.join(_os.path.dirname(__file__), "data", "club", "seasonsim_E0.json")
+    if _os.path.exists(p):
+        ss = _json.load(open(p, encoding="utf-8"))
+        if ss.get("mode") == "retro":
+            assert not any(h.get("kind") == "title_favorite"
+                           for g in d["event_groups"] for e in g["events"]
+                           for h in [e.get("highlight") or {}])
+
+
+def test_home_unfrozen_fixture_contains_no_probability(client):
+    """未冻结的比赛不得带概率（首页绝不借用现算值填空）。"""
+    d = _home(client)
+    for r in d["match_stream"].get("rows", []):
+        p = r["prediction"]
+        if p["status"] != "ok":
+            assert not any(k in p for k in ("p_home", "p_draw", "p_away"))
+            assert p.get("reason_code")
+
+
+def test_home_match_stream_sorted_by_kickoff(client):
+    rows = _home(client)["match_stream"].get("rows", [])
+    assert rows == sorted(rows, key=lambda x: x["kickoff_utc"])
+
+
+def test_home_event_cards_expose_readiness(client):
+    """readiness 三态必须在 API 里齐全（UI 据此上卡面，运维闸不能是隐形的）。"""
+    d = _home(client)
+    for g in d["event_groups"]:
+        for e in g["events"]:
+            r = e["readiness"]
+            assert set(("fixtures", "kickoff_timezone", "ledger")) <= set(r)
+
+
+def test_home_frontend_defaults_to_home_and_keeps_deep_links():
+    """静态护栏：无 hash 落地首页；旧深链规范化逻辑仍在。"""
+    src = open(_os.path.join(_os.path.dirname(__file__), "templates", "index.html"),
+               encoding="utf-8").read()
+    assert "if(!raw || h==='home')" in src and "goHome()" in src
+    assert "history.replaceState(null,'','#wc2026/'+h" in src      # 旧单段深链回填未被删
+    assert "EVENT_ALIAS" in src and "evResolve" in src             # 别名归一未被删
+
+
+def test_home_css_declares_single_row_tabs_and_wrap_rules():
+    """静态护栏（只保证规则没被删；真实布局由 scripts/ui_check.py 实测）。"""
+    src = open(_os.path.join(_os.path.dirname(__file__), "templates", "index.html"),
+               encoding="utf-8").read()
+    assert "flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x proximity" in src
+    assert "min-height:44px" in src                                 # 触控高度
+    assert "overflow-wrap:anywhere" in src and "word-break:break-word" in src
+    # 不许用隐藏溢出掩盖问题。先剥掉 CSS 注释再查——注释里正写着这条禁令本身，裸 grep 会自伤。
+    import re as _re
+    assert "body{overflow-x:hidden}" not in _re.sub(r"/\*.*?\*/", "", src, flags=_re.S).replace(" ", "")
+
+
+def test_home_identity_uses_is_default_not_event_key():
+    """新装配层零赛事 key 特判：页头身份走后端 is_default。"""
+    src = open(_os.path.join(_os.path.dirname(__file__), "templates", "index.html"),
+               encoding="utf-8").read()
+    i = src.index("function evApplyIdentity")
+    body = src[i:i + 900]
+    assert "meta.is_default" in body and "meta.key==='wc2026'" not in body
+
+
+def test_api_events_exposes_is_default(client):
+    rows = client.get("/api/events").get_json()
+    assert sum(1 for r in rows if r.get("is_default")) == 1
+    assert [r for r in rows if r["is_default"]][0]["key"] == _events_mod().DEFAULT
+
+
+def test_club_board_declares_frozen_over_preview_priority():
+    """同一场比赛不能两个页面两个数字：看板必须冻结值优先且标注口径。"""
+    src = open(_os.path.join(_os.path.dirname(__file__), "templates", "index.html"),
+               encoding="utf-8").read()
+    assert "evFrozenIndex" in src
+    assert "赛前冻结 ·" in src and "当前模型估算（未冻结）" in src
+    assert "loadHomeData()" in src

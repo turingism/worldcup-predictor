@@ -1,0 +1,79 @@
+{
+  "ok": true,
+  "url": "http://127.0.0.1:8000/#wc2026/verify",
+  "checked_at": "2026-07-25 11:34:46",
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844,
+      "checks": {
+        "page_no_overflow": true,
+        "tabs_single_row": true,
+        "intro_not_clipped": true,
+        "text_nodes_checked": 0,
+        "prose_nodes_checked": 0,
+        "no_element_past_viewport": true,
+        "past_viewport_sample": [],
+        "hscroll_contained": true,
+        "hscroll_checked": 0,
+        "all_events_discoverable": true,
+        "active_tab_visible": true,
+        "home_ready": true
+      }
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "checks": {
+        "page_no_overflow": true,
+        "tabs_single_row": true,
+        "intro_not_clipped": true,
+        "text_nodes_checked": 0,
+        "prose_nodes_checked": 0,
+        "no_element_past_viewport": true,
+        "past_viewport_sample": [],
+        "hscroll_contained": true,
+        "hscroll_checked": 0,
+        "all_events_discoverable": true,
+        "active_tab_visible": true,
+        "home_ready": true
+      }
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "checks": {
+        "page_no_overflow": true,
+        "tabs_single_row": true,
+        "intro_not_clipped": true,
+        "text_nodes_checked": 0,
+        "prose_nodes_checked": 0,
+        "no_element_past_viewport": true,
+        "past_viewport_sample": [],
+        "hscroll_contained": true,
+        "hscroll_checked": 0,
+        "all_events_discoverable": true,
+        "active_tab_visible": true,
+        "home_ready": true
+      }
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "checks": {
+        "page_no_overflow": true,
+        "tabs_single_row": true,
+        "intro_not_clipped": true,
+        "text_nodes_checked": 0,
+        "prose_nodes_checked": 0,
+        "no_element_past_viewport": true,
+        "past_viewport_sample": [],
+        "hscroll_contained": true,
+        "hscroll_checked": 0,
+        "all_events_discoverable": true,
+        "active_tab_visible": true,
+        "home_ready": true
+      }
+    }
+  ]
+}

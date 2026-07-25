@@ -186,6 +186,8 @@ def api_events():
                "status": eventsmod.status(k, today),
                "days_to_start": max(0, (a - today).days),
                "tabs_off": e.get("tabs_off", []),
+               # 前端身份判断走这个正向字段，不再比较赛事 key 字面（P0-H：新装配层零 key 特判）
+               "is_default": k == eventsmod.DEFAULT,
                "wired": bool(_EVENT_WIRED.get(k)) or k == eventsmod.DEFAULT}
         if e["universe"] == "intl":
             row["db_matches"] = datamod.count_tournament(DF, e["data"])   # 正赛精确匹配口径
@@ -1464,6 +1466,27 @@ def api_verify():
     for x in r["rows"]:
         x["home"], x["away"] = teams_zh.disp(x["home"]), teams_zh.disp(x["away"])
     return jsonify(r)
+
+
+@app.route("/api/home")
+def api_home():
+    """首页总览（L0，P0-H）：跨赛事只读汇总。event 无关端点。
+
+    只读铁律：不训练、不模拟、不冻结/回补、不联网、不写盘（装配逻辑全在 home_dashboard，
+    这里只注入已加载的只读上下文）。世界杯验证数字复用 verify.evaluate（AST 核过：内部只有
+    append/get/mean，不写盘），与 /api/verify **同一套公式**——首页绝不另算一份口径。
+    验证账本严格逐赛事并列，响应根节点不存在任何跨赛事汇总（registry 层不变量的 API 延伸）。"""
+    import home_dashboard
+    ctx = {"national_teams": len(getattr(MODEL, "teams", []) or [])}
+    try:
+        ctx["wc_summary"] = verifymod.evaluate(_sim(), DF)["summary"]
+    except Exception as e:  # noqa  账本评估失败不拖垮首页：该卡降级为空态
+        print(f"[home] 世界杯账本评估失败（首页降级）：{e}")
+    d = home_dashboard.get(ctx, fresh=request.args.get("fresh") == "1")
+    resp = jsonify(d)
+    resp.headers["ETag"] = f'W/"home-{d["cache"]["fingerprint"]}"'
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
 
 
 @app.route("/api/handicap_ledger")

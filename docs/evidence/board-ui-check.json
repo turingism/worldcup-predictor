@@ -1,0 +1,84 @@
+{
+  "ok": false,
+  "url": "http://127.0.0.1:8000/#epl2627/board",
+  "checked_at": "2026-07-25 11:29:57",
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844,
+      "checks": {
+        "page_no_overflow": true,
+        "tabs_single_row": true,
+        "intro_not_clipped": true,
+        "text_nodes_checked": 14,
+        "prose_nodes_checked": 4,
+        "no_element_past_viewport": false,
+        "hscroll_contained": true,
+        "hscroll_checked": 1,
+        "all_events_discoverable": true,
+        "active_tab_visible": true,
+        "home_ready": true
+      },
+      "failed": [
+        "no_element_past_viewport"
+      ]
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "checks": {
+        "page_no_overflow": true,
+        "tabs_single_row": true,
+        "intro_not_clipped": true,
+        "text_nodes_checked": 14,
+        "prose_nodes_checked": 4,
+        "no_element_past_viewport": false,
+        "hscroll_contained": true,
+        "hscroll_checked": 1,
+        "all_events_discoverable": true,
+        "active_tab_visible": true,
+        "home_ready": true
+      },
+      "failed": [
+        "no_element_past_viewport"
+      ]
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "checks": {
+        "page_no_overflow": true,
+        "tabs_single_row": false,
+        "intro_not_clipped": true,
+        "text_nodes_checked": 14,
+        "prose_nodes_checked": 4,
+        "no_element_past_viewport": true,
+        "hscroll_contained": true,
+        "hscroll_checked": 1,
+        "all_events_discoverable": true,
+        "active_tab_visible": true,
+        "home_ready": true
+      },
+      "failed": [
+        "tabs_single_row"
+      ]
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "checks": {
+        "page_no_overflow": true,
+        "tabs_single_row": true,
+        "intro_not_clipped": true,
+        "text_nodes_checked": 14,
+        "prose_nodes_checked": 4,
+        "no_element_past_viewport": true,
+        "hscroll_contained": true,
+        "hscroll_checked": 1,
+        "all_events_discoverable": true,
+        "active_tab_visible": true,
+        "home_ready": true
+      }
+    }
+  ]
+}

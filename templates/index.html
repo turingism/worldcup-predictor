@@ -524,6 +524,102 @@
   .ev-standings th:nth-child(n+4):nth-child(-n+6),
   .ev-standings td:nth-child(n+4):nth-child(-n+6){display:none}
 }
+/* ===== P0-H 首页总览（L0）===== */
+/* 字号/字重档位与间距 token 集中在此，首页所有层级只准引用这里，避免又长出一套散落数值。 */
+:root{
+  --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp6:24px; --sp8:32px; --sp12:48px;
+  --num-font:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+#homeview{display:none}
+body.home-mode .evbar{display:none}          /* 首页不出赛事纵栏：与赛事卡片网格重复 */
+body.home-mode .wrap{grid-template-columns:minmax(0,1fr)}
+body.home-mode .wrap>*{grid-column:1}
+.hm-hero{padding:var(--sp6) 0 var(--sp4)}
+.hm-hero h1{font-size:30px;line-height:38px;font-weight:750;margin:0 0 6px}
+.hm-hero p{font-size:14px;line-height:22px;color:var(--mut);margin:0}
+.hm-next{margin-top:var(--sp3);font-size:14px;color:var(--mut2)}
+.hm-next b{font-family:var(--num-font);font-variant-numeric:tabular-nums;color:var(--txt);font-size:16px}
+.hm-sec{margin-top:var(--sp8)}
+.hm-sec>h2{font-size:18px;line-height:26px;font-weight:700;margin:0 0 var(--sp3)}
+.hm-sec>h2 small{font-size:12px;font-weight:400;color:var(--mut);margin-left:var(--sp2)}
+/* 状态条：紧凑分项，不做成占满首屏的大卡，也不合成单一绿灯 */
+.hm-fresh{display:flex;flex-wrap:wrap;gap:var(--sp2) var(--sp4);padding:var(--sp3) var(--sp4);
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:12px;line-height:18px}
+.hm-fresh div{color:var(--mut)}
+.hm-fresh b{color:var(--mut2);font-weight:600;font-family:var(--num-font);font-variant-numeric:tabular-nums}
+.hm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--sp4)}
+.hm-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;
+  cursor:pointer;transition:.15s;min-width:0}
+.hm-card:hover{border-color:var(--line2);transform:translateY(-1px)}
+.hm-card.national{border-top:3px solid var(--acc)}
+.hm-card.club{border-top:3px solid var(--gold)}
+.hm-card h3{font-size:15px;line-height:22px;font-weight:650;margin:0 0 var(--sp2);
+  display:flex;justify-content:space-between;gap:var(--sp2);align-items:baseline}
+.hm-big{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:28px;line-height:32px;
+  font-weight:750;color:var(--txt)}
+.hm-unit{font-size:12px;color:var(--mut);font-weight:400;margin-left:3px}
+.hm-meta{font-size:12px;line-height:18px;color:var(--mut);margin-top:var(--sp2)}
+/* readiness 三态必须可读：不靠颜色单独表意，blocked 用中性警示色而非失败红 */
+.hm-ready{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--sp3)}
+.hm-ready span{font-size:11px;line-height:16px;font-weight:600;padding:2px 8px;border-radius:4px;
+  background:var(--chip);color:var(--mut)}
+.hm-ready span.wait{background:#3a331e;color:#d29922}
+.hm-ready span.done{background:#1e3a2a;color:#6ee7a8}
+/* 主卡：比赛流 / 赛季启动时间轴（首页最高价值区，唯一 24px padding 的卡） */
+.hm-main{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:24px}
+.hm-run{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:var(--sp3) var(--sp4);align-items:center}
+.hm-run>div{font-size:14px;line-height:22px;min-width:0}
+.hm-run .r-days{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-weight:750;
+  font-size:18px;text-align:right;white-space:nowrap}
+.hm-run .r-state{font-size:12px;color:var(--mut);white-space:nowrap}
+.hm-run a{color:var(--acc);text-decoration:none;cursor:pointer}
+.hm-mrow{display:grid;grid-template-columns:96px minmax(0,1fr) 150px;gap:var(--sp3);align-items:center;
+  padding:10px 0;border-bottom:1px solid var(--line)}
+.hm-mrow:last-child{border-bottom:none}
+.hm-mrow .m-ko{font-family:var(--num-font);font-size:12px;color:var(--mut);white-space:nowrap}
+.hm-mrow .m-p{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:13px;text-align:right}
+.hm-vrow{display:flex;justify-content:space-between;gap:var(--sp3);align-items:baseline;
+  padding:10px 0;border-bottom:1px solid var(--line)}
+.hm-vrow:last-child{border-bottom:none}
+.hm-vnum{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:15px;font-weight:650}
+.hm-cov{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:var(--sp3)}
+.hm-cov div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:var(--sp3) var(--sp4);min-width:0}
+.hm-cov .c-v{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:22px;font-weight:750}
+.hm-cov .c-l{font-size:12px;color:var(--mut);margin-top:2px}
+.hm-cov .c-s{font-size:11px;color:var(--dim);margin-top:4px}
+/* 长文本一律换行，不靠 body{overflow-x:hidden} 掩盖溢出 */
+.hm-card,.hm-fresh,.hm-main,.hm-cov div,#homeview p,#homeview .muted{
+  min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+.hm-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--acc);
+  cursor:pointer;margin-bottom:var(--sp3);min-height:32px}
+@media(max-width:760px){
+  .hm-hero h1{font-size:26px;line-height:34px}
+  .hm-sec{margin-top:var(--sp6)}
+  .hm-main{padding:var(--sp4)}
+  .hm-card{padding:var(--sp4)}
+  .hm-grid,.hm-cov{gap:var(--sp3)}
+  .hm-big{font-size:24px;line-height:30px}
+  .hm-mrow{grid-template-columns:minmax(0,1fr);gap:var(--sp1);padding:12px 0}
+  .hm-mrow .m-p{text-align:left}
+  .hm-run{grid-template-columns:minmax(0,1fr) auto;gap:var(--sp2) var(--sp3)}
+  .hm-run .r-state{grid-column:1/-1;margin-top:-6px}
+}
+/* 世界杯验证账本在平板/窄桌面撑破页面：7 列固定网格（50+54+160+116+104+1fr+76 ≈ 600px+）
+   原列裁剪只在 ≤430px 生效，431–1000px 区间页面根节点横向溢出（ui_check 实测：500px 宽下
+   scrollWidth 737、768px 宽下 925）。上沿取 1000px 是因为 >760px 时左侧赛事栏占 172px+16px 间距，
+   内容列 = 视口-228；1000px 时内容列 772px 才够放下 7 列（约 678px）。同一套已验证的裁剪规则延伸，不新造布局。 */
+@media(min-width:431px) and (max-width:1000px){
+  .vrow{grid-template-columns:42px 1fr auto auto;font-size:12px;gap:6px}
+  .vrow>div:nth-child(2),.vrow>div:nth-child(5),.vrow>div:nth-child(7){display:none}
+}
+/* 赛事 Tab 单行横滚（原 flex-wrap:wrap 在 390px 折成三行、吃掉三分之一首屏） */
+@media(max-width:760px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x proximity;
+        -webkit-overflow-scrolling:touch;padding-bottom:var(--sp1)}
+  .tabs .tab{flex:0 0 auto;min-height:44px;display:flex;align-items:center;scroll-snap-align:start}
+  .tab.grp-aux{margin-left:var(--sp3)}
+  .evbar .ev{min-height:44px}
+}
 </style>
 </head>
 <body>
@@ -548,6 +644,7 @@
 
 <div class="wrap">
   <div class="evbar" id="evbar"></div>
+  <section id="homeview"></section>
   <section id="eventview" style="display:none"></section>
   <div class="tabs">
     <div class="tab on" data-t="verify">📋 赛事看板</div>
@@ -2656,9 +2753,17 @@ function evBadge(e){
 const _HDR_DEF = {title: document.title,
   h1: document.querySelector('header h1').innerHTML,
   sub: document.querySelector('header p').innerHTML};
-function evApplyIdentity(meta){
+function evApplyIdentity(meta, home){
   const h1=document.querySelector('header h1'), sub=document.querySelector('header p');
-  if(!meta || meta.key==='wc2026'){
+  if(home){                                     // 首页顶部是系统身份，不是某一赛事身份
+    document.title = '足球赛事预测器';
+    if(h1) h1.textContent = '足球赛事预测器';
+    if(sub) sub.textContent = '国家队与五大联赛 · 历史比分模型研究与赛事数据看板';
+    return;
+  }
+  // 默认赛事身份走后端 is_default，不比较赛事 key 字面（新装配层零 key 特判）；
+  // meta 缺失（世界杯路径未拉到 events）时回落静态默认值，保页头逐字节不变。
+  if(!meta || meta.is_default){
     document.title=_HDR_DEF.title;
     if(h1) h1.innerHTML=_HDR_DEF.h1;
     if(sub) sub.innerHTML=_HDR_DEF.sub;
@@ -2674,15 +2779,21 @@ function evApplyIdentity(meta){
 }
 function renderEvbar(){
   const bar = $('#evbar'); if(!bar || !EVENTS_META) return;
-  bar.innerHTML = EVENTS_META.map(e =>
+  // 第一项固定为「赛事总览」：赛事详情页始终有一条回首页的路（首页本身不显示纵栏）
+  bar.innerHTML = `<span class="ev${CUR_EVENT==='__home__'?' on':''}" data-ev="__home__" onclick="goHome()">赛事总览
+      <small class="b-upcoming">全部 ${EVENTS_META.length}</small></span>`
+    + EVENTS_META.map(e =>
     `<span class="ev${e.key===CUR_EVENT?' on':''}" data-ev="${e.key}" onclick="selectEvent('${e.key}')">${e.name} ${evBadge(e)}</span>`).join('');
   const on = bar.querySelector('.ev.on');   // 窄屏横滚菜单：当前赛事滚出视野时自动滚到可见（桌面纵向同理，nearest 不打扰）
   if(on && on.scrollIntoView) on.scrollIntoView({inline:'nearest', block:'nearest'});
 }
 function selectEvent(key, tab, qs){
   key = evResolve(key);
+  if(key==='__home__' || key==='home') return goHome();
   if(!EVENT_KEYS.includes(key)) key = 'wc2026';
   if(!EVENTS_META) loadEvents();                     // 首拉失败后的重试入口（loadEvents 失败已清 _evLoadP）
+  document.body.classList.remove('home-mode');       // 离开首页：恢复赛事纵栏与详情布局
+  $('#homeview').style.display = 'none';
   CUR_EVENT = key;
   const isWC = key === 'wc2026';
   const tabs = document.querySelector('.tabs');
@@ -2700,6 +2811,152 @@ function selectEvent(key, tab, qs){
     history.replaceState(null,'','#'+key+(tab?'/'+tab:''));
     renderEventView(key, tab);
   }
+  renderEvbar();
+}
+// ===== P0-H 首页总览（L0）=====
+// 数据只来自 /api/home（后端已保证只读：不训练/不模拟/不联网/不写盘）。
+// 前端缓存 60 秒并共享 in-flight Promise——首页与联赛页都要读它（联赛页用它的冻结值覆盖现算预览）。
+let _homeP = null, _homeAt = 0, _homeData = null;
+function loadHomeData(){
+  const fresh = Date.now() - _homeAt > 60000;
+  if(_homeP && !fresh) return _homeP;
+  _homeP = fetch('/api/home').then(r=>{ if(!r.ok) throw new Error('home '+r.status); return r.json(); })
+    .then(d=>{ _homeData = d; _homeAt = Date.now(); return d; })
+    .catch(e=>{ _homeP = null; throw e; });          // 失败清引用：下次入口可重试
+  return _homeP;
+}
+const HM_READY = {                                    // readiness → 卡面固定文案（不靠颜色单独表意）
+  fixtures:{unpublished:['赛程待发布','wait'], published:['赛程已发布','done'], 'n/a':null},
+  kickoff_timezone:{blocked:['开球时间待核验','wait'], verified:['开球时间已核验','done'], 'n/a':null},
+};
+function hmEsc(s){ return String(s==null?'':s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function hmReady(r){
+  const out = [];
+  for(const k of ['fixtures','kickoff_timezone']){
+    const m = (HM_READY[k]||{})[r[k]];
+    if(m) out.push(`<span class="${m[1]}">${m[0]}</span>`);
+  }
+  const led = String(r.ledger||'');
+  out.push(led==='empty' ? '<span class="wait">冻结未启用</span>'
+    : `<span class="done">赛前冻结 ${led.replace('frozen_','')} 条</span>`);
+  return `<div class="hm-ready">${out.join('')}</div>`;
+}
+function hmHighlight(h){
+  if(!h) return '';
+  if(h.kind==='title_favorite')      // 只有赛季与 mode 都匹配时后端才会给这种 highlight
+    return `<div><span class="hm-big">${(h.probability*100).toFixed(1)}<span class="hm-unit">%</span></span>
+      <div class="hm-meta">${hmEsc(h.team_disp)} 夺冠概率 · ${hmEsc(h.season)} ${hmEsc(h.mode)}</div></div>`;
+  if(h.value==null) return `<div class="hm-meta">${hmEsc(h.label||'')}</div>`;
+  return `<div><span class="hm-big">${h.value}<span class="hm-unit">${hmEsc(h.unit||'')}</span></span>
+    <div class="hm-meta">${hmEsc(h.label||'')}</div></div>`;
+}
+function hmMatchStream(ms){
+  if(ms.status==='ok'){
+    const rows = ms.rows.slice(0,8).map(r=>{
+      const p = r.prediction;
+      const right = p.status==='ok'
+        ? `${(p.p_home*100).toFixed(0)} / ${(p.p_draw*100).toFixed(0)} / ${(p.p_away*100).toFixed(0)}%
+           <div class="hm-meta">赛前冻结 · ${hmEsc(p.frozen_at||'')}</div>`
+        : `<span class="muted">预测待冻结</span>`;   // 绝不借用现算值填空
+      return `<div class="hm-mrow" onclick="location.hash='${r.href.slice(1)}'">
+        <div class="m-ko">${hmEsc(r.kickoff_bj)}</div>
+        <div>${hmEsc(r.home_disp)} <span class="muted">vs</span> ${hmEsc(r.away_disp)}
+          <div class="hm-meta">${hmEsc(r.event_name)}</div></div>
+        <div class="m-p">${right}</div></div>`;
+    }).join('');
+    return `<div class="hm-main"><h2 style="margin:0 0 12px;font-size:18px">接下来 ${ms.horizon_days} 天</h2>
+      ${rows}${ms.rows.length>8?`<div class="hm-meta" style="margin-top:10px">共 ${ms.rows.length} 场，
+      <a class="xlink" onclick="location.hash='${ms.rows[0].event}/board'">查看全部</a></div>`:''}
+      <div class="hm-meta" style="margin-top:10px">北京时间 · 概率取自赛前冻结账本 · 研究/信息性质，非投注建议</div></div>`;
+  }
+  // 无赛程不是空卡，而是同等正式的第二形态
+  const rows = (ms.fallback&&ms.fallback.events||[]).map(e=>{
+    const st = e.state==='archived' ? '已归档' : (e.state==='live' ? '进行中' : '赛程待发布');
+    const days = e.state==='archived' ? '—' : (e.days_to_start<=0 ? '进行中' : e.days_to_start);
+    return `<div>${hmEsc(e.name)}</div>
+      <div class="r-days">${days}${e.state==='archived'||e.days_to_start<=0?'':'<span class="hm-unit">天后</span>'}</div>
+      <div class="r-state"><a onclick="location.hash='${e.event}/board'">${st}</a></div>`;
+  }).join('');
+  return `<div class="hm-main"><h2 style="margin:0 0 4px;font-size:18px">赛季启动时间轴</h2>
+    <div class="hm-meta" style="margin-bottom:14px">当前无未来 ${ms.horizon_days} 天赛程：各赛事按开赛日排列</div>
+    <div class="hm-run">${rows}</div></div>`;
+}
+function hmVerification(v){
+  const wc = v.events.filter(e=>e.event==='wc2026');
+  const clubs = v.events.filter(e=>e.event!=='wc2026');
+  const empty = clubs.filter(e=>e.ledger_status==='empty');
+  const nonEmpty = clubs.filter(e=>e.ledger_status!=='empty');
+  let t = wc.map(e=>`<div class="hm-card" onclick="location.hash='${e.href.slice(1)}'">
+    <h3>${hmEsc(e.name)}<span class="hm-meta">已归档</span></h3>
+    <div class="hm-vrow"><span>已评场次</span><span class="hm-vnum">${e.evaluated}</span></div>
+    <div class="hm-vrow"><span>胜平负命中</span><span class="hm-vnum">${e.outcome_hits} / ${e.evaluated}</span></div>
+    <div class="hm-vrow"><span>比分命中</span><span class="hm-vnum">${e.score_hits} / ${e.evaluated}</span></div>
+    <div class="hm-vrow"><span>平均 RPS</span><span class="hm-vnum">${e.avg_rps}</span></div>
+    <div class="hm-meta">该赛事独立账本 · 跨赛事绝不合并统计</div></div>`).join('');
+  t += nonEmpty.map(e=>`<div class="hm-card" onclick="location.hash='${e.href.slice(1)}'">
+    <h3>${hmEsc(e.name)}</h3>
+    <div class="hm-vrow"><span>已冻结</span><span class="hm-vnum">${e.frozen}</span></div>
+    <div class="hm-vrow"><span>已结算</span><span class="hm-vnum">${e.evaluated}</span></div>
+    <div class="hm-vrow"><span>胜平负命中</span><span class="hm-vnum">${e.outcome_hits} / ${e.evaluated}</span></div>
+    </div>`).join('');
+  // 全空的联赛折叠成一条状态说明：折叠的是相同空状态，不是合并统计（不出现 0%、0/0、合计场数）
+  if(empty.length) t += `<div class="hm-card" style="cursor:default">
+    <h3>${hmEsc(empty.map(e=>e.name).join(' · '))}</h3>
+    <div class="hm-meta">尚无赛前冻结记录：${hmEsc(empty[0].reason||'赛事未开始')}。冻结启用后各赛事账本独立成卡。</div></div>`;
+  return `<div class="hm-grid">${t}</div>`;
+}
+function renderHome(){
+  const box = $('#homeview');
+  box.innerHTML = '<div class="card"><span class="muted">加载中…</span></div>';
+  box.style.display = 'block';
+  loadHomeData().then(d=>{
+    const f = d.freshness, n = d.hero.next_event;
+    const fresh = f.sources.map(s=>`<div>${hmEsc(s.label)} <b>${hmEsc(s.data_through||'—')}</b></div>`).join('')
+      + `<div>赛程源 <b>${f.schedule.state==='published'?'已发布':'待发布'}</b></div>`
+      + `<div>开球时间核验 <b>${f.schedule.timezone_verification.verified_events.length} / ${
+           f.schedule.timezone_verification.verified_events.length + f.schedule.timezone_verification.blocked_events.length}</b></div>`;
+    const groups = d.event_groups.map(g=>{
+      if(!g.events.length) return '';
+      return `<div class="hm-sec"><h2>${hmEsc(g.label)}<small>${g.events.length} 项</small></h2>
+        <div class="hm-grid">${g.events.map(e=>`
+          <div class="hm-card ${g.id}" onclick="location.hash='${e.href.slice(1)}'">
+            <h3>${hmEsc(e.name)}<span class="hm-meta">${
+              e.status==='live'?'进行中':(e.status==='archived'?'已归档':(e.status==='soon'?'即将开赛':'未开赛'))}</span></h3>
+            ${hmHighlight(e.highlight)}
+            <div class="hm-meta">${hmEsc(e.start_date)} → ${hmEsc(e.end_date)}${
+              e.data_through?` · 数据截至 ${hmEsc(e.data_through)}`:''}</div>
+            ${hmReady(e.readiness)}</div>`).join('')}</div></div>`;
+    }).join('');
+    const cov = d.coverage.map(c=>`<div><div class="c-v">${c.value==null?'—':c.value}</div>
+      <div class="c-l">${hmEsc(c.label)}${c.unit?` <span class="hm-unit">${hmEsc(c.unit)}</span>`:''}</div>
+      <div class="c-s">${hmEsc(c.source)}${c.as_of?` · 截至 ${hmEsc(c.as_of)}`:''}</div></div>`).join('');
+    box.innerHTML = `
+      <div class="hm-hero">
+        ${n?`<div class="hm-next">下一赛事：${hmEsc(n.name)} · <b>${n.live?'进行中':n.days_to_start+' 天后开赛'}</b></div>`:''}
+      </div>
+      <div class="hm-sec"><h2>数据状态<small>分源呈现，不合成单一状态灯</small></h2><div class="hm-fresh">${fresh}</div></div>
+      <div class="hm-sec">${hmMatchStream(d.match_stream)}</div>
+      ${groups}
+      <div class="hm-sec"><h2>验证账本<small>按赛事独立，绝不跨赛事合并</small></h2>${hmVerification(d.verification)}</div>
+      <div class="hm-sec"><h2>数据覆盖<small>动态读取，不含任何解读</small></h2><div class="hm-cov">${cov}</div></div>
+      ${(d.warnings||[]).length?`<div class="hm-sec"><div class="hm-fresh">${d.warnings.map(hmEsc).join(' · ')}</div></div>`:''}`;
+    box.dataset.homeReady = '1';                       // ui_check.py 的完成标记
+  }).catch(e=>{
+    box.innerHTML = `<div class="card"><span class="muted">首页数据加载失败：${hmEsc(e.message)}。</span>
+      <div style="margin-top:8px"><span class="tab" onclick="renderHome()">重试</span></div></div>`;
+  });
+}
+function goHome(push){
+  CUR_EVENT = '__home__';
+  document.body.classList.add('home-mode');
+  const tabs = document.querySelector('.tabs'); if(tabs) tabs.style.display = 'none';
+  WC_SECTIONS.forEach(s=>{ const el=$('#'+s); if(el) el.style.display='none'; });
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));   // 停全部轮询
+  jcRestoreHome();
+  $('#eventview').style.display = 'none'; $('#eventview').innerHTML = '';
+  evApplyIdentity(null, true);
+  if(push!==false && location.hash !== '#home') history.replaceState(null,'','#home');
+  renderHome();
   renderEvbar();
 }
 function evPct(p){ return (p*100).toFixed(1)+'%'; }
@@ -2828,24 +3085,38 @@ function evErrCard(e, what){
     ? '该赛事接线尚未完成（后端 not_wired 占位）：数据层与模型就绪后按路线图开放。'
     : what+'（'+((e&&e.message)||e)+'）。');
 }
+// 同一场比赛的概率取数优先级：冻结账本 > 当前模型估算 > 无。
+// 索引键与 clubverify 的比赛身份一致（event+主+客，不含日期），改期不会失配。
+function evFrozenIndex(){
+  const ix = {};
+  const rows = (_homeData && _homeData.match_stream && _homeData.match_stream.rows) || [];
+  rows.forEach(r=>{ if(r.prediction && r.prediction.status==='ok')
+    ix[`${r.event}|${r.home}|${r.away}`] = r.prediction; });
+  return ix;
+}
 function evBoardCards(o){
   let t='';
   // D3 未来赛程预测卡片（休赛期显式空态+原因）
   const up=o.upcoming||{};
+  const FZ = evFrozenIndex();
   if(up.rows && up.rows.length){
     const rows=up.rows.map(r=>{
-      const pred = r.no_model
+      const f = FZ[`${o.event}|${r.home}|${r.away}`];      // 有冻结值就用冻结值，口径以账本为准
+      const ph = f ? f.p_home : r.p_home, pd = f ? f.p_draw : r.p_draw, pa = f ? f.p_away : r.p_away;
+      const basis = f ? `<div class="muted" style="font-size:11px">赛前冻结 · ${f.frozen_at||''}</div>`
+                      : `<div class="muted" style="font-size:11px">当前模型估算（未冻结）</div>`;
+      const pred = (r.no_model && !f)
         ? `<td colspan="4" class="muted">暂无数据（该队当前模型样本不足）</td>`
-        : `<td><b>${(r.p_home*100).toFixed(0)}</b>/${(r.p_draw*100).toFixed(0)}/<b>${(r.p_away*100).toFixed(0)}</b>%</td>
-           <td class="muted">${r.xg_home}-${r.xg_away}</td>
-           <td style="min-width:90px">${evWdlBar(r.p_home,r.p_draw,r.p_away)}</td>
+        : `<td><b>${(ph*100).toFixed(0)}</b>/${(pd*100).toFixed(0)}/<b>${(pa*100).toFixed(0)}</b>%${basis}</td>
+           <td class="muted">${r.xg_home!=null?`${r.xg_home}-${r.xg_away}`:'—'}</td>
+           <td style="min-width:90px">${evWdlBar(ph,pd,pa)}</td>
            <td class="muted">${r.b365?r.b365.map(x=>x.toFixed(2)).join(' / '):'—'}</td>`;
       return `<tr><td class="muted" style="white-space:nowrap">${r.date} ${r.time}</td>
         <td style="text-align:right">${r.home_disp}</td><td style="text-align:center">vs</td><td>${r.away_disp}</td>${pred}</tr>`;
     }).join('');
     t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">未来 14 天赛程预测（${up.rows.length} 场）</h3>
       <div class="hscroll"><table class="mgt"><tr><th>开球</th><th colspan="3">对阵</th><th>胜/平/负</th><th>期望进球</th><th>概率条</th><th>B365 赛前盘</th></tr>${rows}</table></div>
-      <div class="muted" style="margin-top:6px;font-size:11.5px">${up.note} · 90 分钟口径 · 数据截至 ${o.data_through} · 研究/信息性质，非投注建议</div></div>`;
+      <div class="muted" id="ev_up_basis" style="margin-top:6px;font-size:11.5px">当前模型估算（未冻结） · 数据截至 ${o.data_through} · 90 分钟口径 · 研究/信息性质，非投注建议</div></div>`;
   } else {
     t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">未来 14 天赛程预测</h3>
       <span class="muted">${up.reason||'暂无未来赛程数据。'}</span></div>`;
@@ -3059,7 +3330,10 @@ function evShowTab(key, tk){
   }
   if(tk==='board'){
     c.innerHTML='<div class="card spin">加载中…</div>';
-    evGet(key,'overview').then(o=>{ evSetContent(ep, evBoardCards(o)); })
+    // 同时拉首页数据取冻结概率：同一场比赛不能在两个页面显示两个数字。
+    // /api/home 失败不拖垮看板——降级为「当前模型估算（未冻结）」，标签已写明口径。
+    Promise.all([evGet(key,'overview'), loadHomeData().catch(()=>null)])
+      .then(([o])=>{ evSetContent(ep, evBoardCards(o)); })
       .catch(e=>evSetContent(ep, evErrCard(e,'看板数据加载失败')));
   } else if(tk==='matchup'){
     c.innerHTML = evPredForm(key, true) + `<div id="ev_tables"></div>`;
@@ -3152,11 +3426,8 @@ async function renderEventView(key, tab){
 // 永续回填到 #wc2026/<tab>（301 语义，history.replaceState 不产生跳转）；无 hash 默认进赛事看板。
 loadEvents();
 (function(){let raw=location.hash.slice(1), [h,qs]=raw.split('?');
-  if(!raw){                             // 无 hash：默认落地 /api/events 状态排序第一位赛事
-    loadEvents().then(()=>{             // （wc2026 已归档不再恒为默认；events 拉不到回退 wc2026）
-      const first=(EVENTS_META && EVENTS_META[0] && EVENTS_META[0].key) || 'wc2026';
-      selectEvent(first);
-    });
+  if(!raw || h==='home'){               // 无 hash / #home：落地首页总览（P0-H；有 hash 的旧深链行为一律不变）
+    loadEvents().then(()=>goHome()).catch(()=>goHome());
     return;
   }
   let ev='wc2026';
