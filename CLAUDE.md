@@ -828,5 +828,7 @@ python3 backtest.py                                 # 回测（改模型后必�
 - **博彩盘口对标**：`bt_odds.py` 读 `data/odds.csv`（date,home,away,odds_1/x/2，队名对齐 martj42），赔率去 margin→隐含概率，与模型在同批比赛比 RPS（盘口=金标准）。现仅 5 场 2022WC 真实闭盘赔率种子样本（演示用，n 太小）。**无免费国家队历史赔率源**：football-data/Kaggle 全是俱乐部、martj42 无赔率、the-odds-api 历史付费($99/mo)、OddsPortal 免费但受 Cloudflare+ToS 禁抓。扩样本需自备来源，填 odds.csv 同格式即可（OddsPortal 队名→martj42 需映射表）。
 - 联网抓数据 → 用 web-access skill（CDP 真实浏览器），别用裸 curl 抓反爬站点。
 - **端口必须避开 5000**：macOS 的 AirPlay 接收器(ControlCenter/AirTunes)占用 `*:5000`（IPv4+IPv6）。浏览器开 `localhost:5000` 会优先解析到 IPv6 `::1` 命中 AirPlay 返回 **403「未获授权」(Server: AirTunes)**，而 `curl 127.0.0.1:5000` 走 IPv4 命中 Flask 是 200——极具迷惑性，曾误判为代理问题。**本项目已固定用 8000**。换端口时别用 5000/7000(AirPlay 也可能用)。
-- **验证 UI 截图**：可用独立 `Google Chrome --headless=new --no-proxy-server --screenshot --virtual-time-budget=6000 "http://127.0.0.1:8000/#bracket"` 直接渲染截图（含连线，setTimeout 会在 virtual-time 内触发）。
+- **验证 UI 截图**：一律走 `scripts/shot.sh <out.png> <宽,高> <缩放> <url>`（含连线，setTimeout 会在 virtual-time 内触发）。
+  ⚠ **不要手敲 Chrome 命令**：不带 `--user-data-dir` 的 headless 会占用**用户真实 Chrome 配置**并持有 singleton 锁，
+  用户点 Chrome 图标只会转交给这个无窗口实例——表现就是「Chrome 打不开」（2026-07-25 真实发生，本文档旧模板正是元凶）。
 - 验证 UI → 用 CDP 截图（proxy 在 localhost:3456）后用 Read 看图。
