@@ -3210,3 +3210,27 @@ def test_club_board_declares_frozen_over_preview_priority():
     assert "evFrozenIndex" in src
     assert "赛前冻结 ·" in src and "当前模型估算（未冻结）" in src
     assert "loadHomeData()" in src
+
+
+def test_frontend_has_hashchange_router():
+    """首页卡片/时间轴的点击全靠 hashchange 路由生效。
+
+    回归的是一个真实缺陷：此前路由只在加载时跑一次（IIFE），首页里 location.hash=… 只改地址栏、
+    页面纹丝不动（用户报「主页不支持跳转」）。同时它保证浏览器前进/后退可用。"""
+    src = open(_os.path.join(_os.path.dirname(__file__), "templates", "index.html"),
+               encoding="utf-8").read()
+    assert "addEventListener('hashchange'" in src
+    i = src.index("addEventListener('hashchange'")
+    body = src[i:i + 800]
+    assert "goHome(false)" in body and "selectEvent(" in body and "evResolve(" in body
+
+
+def test_frontend_menu_visible_on_home_and_grouped():
+    """菜单在首页也在（用户要能随时切走），且按模型宇宙分组。"""
+    src = open(_os.path.join(_os.path.dirname(__file__), "templates", "index.html"),
+               encoding="utf-8").read()
+    assert "body.home-mode .evbar{display:none}" not in src.replace(" ", "")
+    i = src.index("function renderEvbar")
+    body = src[i:i + 1400]
+    assert "国家队" in body and "俱乐部" in body and "ev-home" in body
+    assert "location.hash='home'" in body          # 回首页走 push，后退能回到刚才的赛事

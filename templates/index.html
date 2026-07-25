@@ -510,8 +510,15 @@
   .wrap{display:block}
   .evbar{position:static;flex-direction:row;flex-wrap:nowrap;overflow-x:auto;
          -webkit-overflow-scrolling:touch;padding-bottom:4px;margin:0 0 12px}
-  .ev{flex-direction:row;align-items:center;gap:7px;white-space:nowrap;border-radius:18px;padding:6px 13px}
-  .ev.on{box-shadow:inset 0 -2px 0 #3fb950}
+  /* 窄屏：纵向菜单退化为单行横滚胶囊（分组小标题在横滚条里没意义，隐藏） */
+  .ev{display:inline-flex;flex:0 0 auto;align-items:center;gap:7px;white-space:nowrap;
+      border-radius:18px;padding:8px 13px;border:1px solid var(--line);background:var(--panel)}
+  .ev.on{box-shadow:inset 0 -2px 0 var(--grn2)}
+  .ev .ev-nm{overflow:visible;text-overflow:clip}
+  .ev-gl{display:none}
+  /* 「赛事总览」吸附最左：横滚条会把当前赛事滚进视野，回首页的入口否则会被滚出屏幕外 */
+  .ev-home{margin-bottom:0;border-radius:18px;padding-bottom:8px;
+    position:sticky;left:0;z-index:2;background:var(--panel2);border-color:var(--line2)}
 }
 /* 横滚表格右缘渐隐提示（全部 overflow-x:auto 表格容器共用）：
    两个 local 渐变=「盖布」随内容滚动、滚到边缘时盖掉提示；scroll 光晕固定容器右缘=「右边还有内容」。 */
@@ -531,9 +538,31 @@
   --num-font:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 #homeview{display:none}
-body.home-mode .evbar{display:none}          /* 首页不出赛事纵栏：与赛事卡片网格重复 */
-body.home-mode .wrap{grid-template-columns:minmax(0,1fr)}
-body.home-mode .wrap>*{grid-column:1}
+/* ===== 赛事菜单重做（左侧纵栏）=====
+   原样式是七张等权厚卡片 + 大色块徽标，既看不出层级也占地方。改为：
+   分组小标题（国家队 / 俱乐部）→ 单行条目 → 状态用小圆点+等宽数字，选中态左侧强调条。 */
+@media(min-width:761px){
+.evbar{gap:2px}
+  .ev-gl{font-size:10.5px;letter-spacing:.08em;color:var(--dim);font-weight:600;
+    padding:10px 10px 4px;text-transform:uppercase}
+  .ev{display:grid;grid-template-columns:6px minmax(0,1fr) auto;align-items:center;gap:8px;
+    padding:8px 10px;border-radius:8px;background:transparent;border:1px solid transparent;
+    cursor:pointer;font-size:13px;line-height:18px;color:var(--mut2);user-select:none;
+    transition:background .12s,color .12s;min-height:36px}
+  .ev:hover{background:var(--panel);color:var(--txt)}
+  .ev.on{background:var(--panel2);color:var(--txt);border-color:var(--line);font-weight:600;
+    box-shadow:inset 3px 0 0 var(--grn2)}
+  .ev .ev-dot{width:6px;height:6px;border-radius:50%;background:var(--dim)}
+  .ev .ev-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ev .ev-x{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:11px;
+    color:var(--mut);white-space:nowrap}
+  .ev.d-live .ev-dot{background:var(--grn2);box-shadow:0 0 0 3px #2ea04326}
+  .ev.d-soon .ev-dot{background:var(--warn)}
+  .ev.d-upcoming .ev-dot{background:var(--acc)}
+  .ev.d-archived .ev-dot{background:var(--dim)}
+  .ev-home{margin-bottom:6px;border-bottom:1px solid var(--line);border-radius:8px 8px 0 0;
+    padding-bottom:10px}
+}
 .hm-hero{padding:var(--sp6) 0 var(--sp4)}
 .hm-hero h1{font-size:30px;line-height:38px;font-weight:750;margin:0 0 6px}
 .hm-hero p{font-size:14px;line-height:22px;color:var(--mut);margin:0}
@@ -2777,13 +2806,26 @@ function evApplyIdentity(meta, home){
   if(h1) h1.textContent = `⚽ ${meta.name}`;
   if(sub) sub.textContent = line;
 }
+function evShortState(e){
+  if(e.status==='live') return '进行中';
+  if(e.status==='archived') return '已归档';
+  return (e.days_to_start!=null? e.days_to_start+' 天':'未开赛');
+}
 function renderEvbar(){
   const bar = $('#evbar'); if(!bar || !EVENTS_META) return;
-  // 第一项固定为「赛事总览」：赛事详情页始终有一条回首页的路（首页本身不显示纵栏）
-  bar.innerHTML = `<span class="ev${CUR_EVENT==='__home__'?' on':''}" data-ev="__home__" onclick="goHome()">赛事总览
-      <small class="b-upcoming">全部 ${EVENTS_META.length}</small></span>`
-    + EVENTS_META.map(e =>
-    `<span class="ev${e.key===CUR_EVENT?' on':''}" data-ev="${e.key}" onclick="selectEvent('${e.key}')">${e.name} ${evBadge(e)}</span>`).join('');
+  // 首项固定「赛事总览」（首页也保留菜单：用户要能随时切走，而不是只能靠卡片）；
+  // 其余按模型宇宙分组——国家队与俱乐部是两套模型、两套数据源，菜单里就该分开。
+  const item = e => `<span class="ev d-${e.status}${e.key===CUR_EVENT?' on':''}" data-ev="${e.key}"
+      onclick="selectEvent('${e.key}')" title="${e.name}">
+      <i class="ev-dot"></i><span class="ev-nm">${e.name}</span><span class="ev-x">${evShortState(e)}</span></span>`;
+  const grp = (label, arr) => arr.length
+    ? `<div class="ev-gl">${label}</div>` + arr.map(item).join('') : '';
+  const club = EVENTS_META.filter(e=>(e.universe||'').startsWith('club'));
+  const natl = EVENTS_META.filter(e=>!(e.universe||'').startsWith('club'));
+  bar.innerHTML =
+    `<span class="ev ev-home${CUR_EVENT==='__home__'?' on':''}" data-ev="__home__" onclick="location.hash='home'">
+       <i class="ev-dot"></i><span class="ev-nm">赛事总览</span><span class="ev-x">${EVENTS_META.length} 项</span></span>`
+    + grp('国家队', natl) + grp('俱乐部', club);
   const on = bar.querySelector('.ev.on');   // 窄屏横滚菜单：当前赛事滚出视野时自动滚到可见（桌面纵向同理，nearest 不打扰）
   if(on && on.scrollIntoView) on.scrollIntoView({inline:'nearest', block:'nearest'});
 }
@@ -2792,7 +2834,6 @@ function selectEvent(key, tab, qs){
   if(key==='__home__' || key==='home') return goHome();
   if(!EVENT_KEYS.includes(key)) key = 'wc2026';
   if(!EVENTS_META) loadEvents();                     // 首拉失败后的重试入口（loadEvents 失败已清 _evLoadP）
-  document.body.classList.remove('home-mode');       // 离开首页：恢复赛事纵栏与详情布局
   $('#homeview').style.display = 'none';
   CUR_EVENT = key;
   const isWC = key === 'wc2026';
@@ -2948,7 +2989,6 @@ function renderHome(){
 }
 function goHome(push){
   CUR_EVENT = '__home__';
-  document.body.classList.add('home-mode');
   const tabs = document.querySelector('.tabs'); if(tabs) tabs.style.display = 'none';
   WC_SECTIONS.forEach(s=>{ const el=$('#'+s); if(el) el.style.display='none'; });
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));   // 停全部轮询
@@ -3450,6 +3490,21 @@ loadEvents();
       if(aa&&$('#mg_away'))$('#mg_away').value=decodeURIComponent(aa);
       if($('#mg_neutral'))$('#mg_neutral').checked=(p.get('neutral')==='1'); loadManager(0); }, 220);
   }})();
+
+// hashchange 路由：**首页卡片/比赛流/时间轴的点击全靠它生效**。
+// 此前路由只在加载时跑一次（IIFE），首页里 location.hash=… 只改了地址栏、页面纹丝不动
+// ——「点了不跳转」的根因。同时它让浏览器前进/后退在首页与赛事之间正常工作。
+window.addEventListener('hashchange', function(){
+  const raw = location.hash.slice(1), [h] = raw.split('?');
+  if(!raw || h==='home'){ if(CUR_EVENT!=='__home__') goHome(false); return; }
+  let ev='wc2026', tab='';
+  if(h.includes('/')){ const i=h.indexOf('/'); ev=evResolve(h.slice(0,i)); tab=h.slice(i+1); }
+  else if(EVENT_KEYS.includes(evResolve(h))){ ev=evResolve(h); }
+  else { tab=h; }                                    // 旧单段深链（#bracket 等）→ 世界杯对应 tab
+  if(!EVENT_KEYS.includes(ev)) ev='wc2026';
+  if(ev===CUR_EVENT && ev!=='wc2026' && !tab) return;   // 同赛事同视图：不重复渲染
+  selectEvent(ev, tab||undefined);
+});
 // —— 统一数据调度器 —— 取代之前分散的 4 个 setInterval。原先各自判 visibility + 当前 tab，
 // 易漏（曾导致后台轮询误渲晋级树）、且多 tab 来回切会叠多个 live 请求。现集中管理：
 //   · 单一心跳(15s) 扫描所有注册任务；只在「该任务的 tab 当前可见」时触发，切走自动停。
