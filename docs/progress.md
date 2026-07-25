@@ -2,6 +2,38 @@
 
 体例：每轮记录做了什么、如何验证、证据路径、遗留问题。「未验证」按纪律如实标注。
 
+## 2026-07-25（十八轮）events 更名 + P0-A 俱乐部冻结/结算链路（跨模型对谈定稿需求）
+
+### 做了什么
+1. **跨模型对谈**（用户授权 computer-use 驱动本机 Codex 桌面端）：我提供实测状态 + 硬约束 +
+   方案 → Codex 读仓库核验后出评审（核对了 verify.py:127 世界杯绑定、bt_ucl.py:59 IID bootstrap、
+   index.html:3051/3121 的 isClub 二分，均属实）→ 我提三处反驳 → Codex 全部采纳出定稿修正案。
+   合并落 `docs/UPGRADE_REQUIREMENTS_2026-07-25.md`（六阶段，逐项完成判据/回滚条件/裁决避让；
+   第 10 节为修正案，冲突以其为准）。
+   - 我的三处反驳：① 「前端零 key 特判」按字面不可完成（世界杯遗留 WC_SECTIONS/wcArchived/
+     evApplyIdentity 的 key 判断正是为保 golden 而存在，清除即触发同文件的「不得重写世界杯全部
+     DOM」回滚条件）→ 收口为只约束新装配层 + legacy allowlist；② P0-A 只写英超，但五大联赛
+     8-14~8-22 全部开赛 → 调度须参数化覆盖五个规范 key；③ 只冻结不结算 = 不可验证的半截账本
+     → settle_event 必须同阶段交付。
+2. **events 五联赛更名 25-26 → 26-27 + 旧 key alias**（9043359，用户拍板；实测零联赛账本→零迁移）。
+3. **P0-A `clubverify.py` + `scripts/club_freeze.py`**（7171e4c）：赛前冻结 + 赛后结算 + 批量调度 +
+   开球时区安全闸；daily_update 第④步接入同一实现。
+
+### 如何验证
+- 186 passed（160→186）。golden diff 十端点逐字节一致（生产实例 kickstart 后捕获）。
+- 更名：旧 key epl2526 与现 key 响应逐字节一致、bundes2526→bundes2627 归一、/api/events 只列现 key；
+  浏览器实测 #epl2627/board 渲染「英超 26-27」。
+- P0-A 证据 docs/evidence/p0a-*.json：当季 0 场冻结（概率和误差 0.0、data_through=2026-05-24）、
+  五联赛参数化、账本隔离（五文件互异 + 别名同文件）、批量隔离（德甲无赛程不影响英超）、
+  **25-26 真实历史闭环**（Leeds 3-1 Burnley：赛前 p_home .582 冻结 → 结算 actual=H、
+  outcome_hit=true、赛前 15 字段逐字段不变）。
+
+### 遗留 / 未验证（如实）
+- **开球时间交叉核对未做**：26-27 赛程未发布，fixtures.csv 无赛季窗内场次 → 记为未核对，
+  五联赛冻结当前全部 blocked（安全默认，非故障）。8-08 前必须逐联赛 --crosscheck 通过解锁。
+- 生产启用分两步：首轮开球前启用冻结；首轮赛果进当季 CSV 后确认 settled。
+- P0-B~P2 未动（队列见 CLAUDE.md 十八轮条）。
+
 ## 2026-07-19（第 N 轮，决赛日）阶段 0 诊断完成 + 三份文档落地
 
 ### 做了什么

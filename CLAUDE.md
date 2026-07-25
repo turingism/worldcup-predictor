@@ -28,7 +28,42 @@
 - **「25-26 赛季 8 月开赛/8 月滚入/记得 _CUR_END+1」系口径错误**：2025-26 赛季（2025-08 至 2026-05）**已是踢完的史实赛季**，2026-07-19 已整季回补入库（十联赛实拉成功，数据至 2026-05-24，`_CUR_END=2026`）；**2026 年 8 月开赛的是 26-27 赛季**。下方旧接手条目中「25-26 季 8 月才开」「P2 在 25-26 开赛前」等表述以本条为准（P2 时限=26-27 开赛前）。
 - 连带：① events 注册表五联赛条目 key/显示名「25-26」实为 26-27 窗口——**更名留用户裁决**（账本未写入前成本最低）；② 季前 preseason JSON 已删（误标赛季产物），`club_preseason.py` 加闸待 26-27 升班马名单（直升队已知：E0←Coventry/Ipswich 等，见 progress.md 第五轮；**附加赛胜者需外部信息，未确认前标未验证**）；③ 25-26 真实终局已可从库直读（英超降级 West Ham/Burnley/Wolves 等）。
 
-## 📌 最新接手（2026-07-24 十七 · 7-Agent 评审轮：四修复包 + bt_ucl E4a 闸门，158 测试绿）
+## 📌 最新接手（2026-07-25 十八 · events 更名 + P0-A 俱乐部冻结/结算链路，186 测试绿）
+- **本轮形态**：用户授权 computer-use 与本机 Codex 桌面端**跨模型对谈**——我给状态与硬约束、
+  Codex 出评审与需求 MD、我提三处反驳、Codex 全部采纳并出定稿修正案。产物落
+  **`docs/UPGRADE_REQUIREMENTS_2026-07-25.md`**（P0-A→P2 六阶段，逐项带完成判据/回滚条件/
+  与既有裁决的冲突避让；**第 10 节修正案与前文冲突时以第 10 节为准**）。后续几轮照此施工。
+- **① events 五联赛更名 25-26 → 26-27（9043359，用户拍板）**：这些条目的 window 本就是 26-27
+  赛季窗，旧字面是 07-19 赛季口径勘误留下的认知债；实测 data/ 无任何联赛账本 → 零迁移。
+  `events.ALIASES`+`resolve()` 旧 key 别名（**不进 EVENTS**，`/api/events` 只列现 key、账本
+  唯一性不变量不被绕过），入口归一在 app._event/_event_gate、verify.ledger_path、
+  jc_review.store_path、前端 EVENT_ALIAS（深链 replaceState 回填现 key）。
+- **② P0-A 五大联赛赛前冻结 + 赛后结算（7171e4c，新模块 `clubverify.py` + `scripts/club_freeze.py`）**：
+  - **不改 verify.freeze()**——它 import schedule、走 TournamentSimulator，是世界杯赛制专属；
+    clubverify 只借 verify 的公开原子账本读写（测试用 AST 断言它不进世界杯赛制分支）。
+  - **当季 CSV 0 场也能冻结**（赛程 fixtures.csv 与训练帧解耦）——新季 CSV 通常开赛后才出现，
+    等它必错过首轮。比赛身份=赛季内「主队\|客队」**不含日期**（含日期会让改期变成两场）。
+  - 开球后赛前字段永久不可变；改期只更 kickoff 留 rescheduled_from、概率不重算；池外队不写
+    伪概率；`no_fixtures`（赛程层）与 `no_model`（模型层）分开——两者混用文案必串。
+  - `settle_event()` 只写赛后字段、赛前 15 字段逐字段不变；赛季窗限定匹配（近 7 季同一主客
+    对阵会出现 7 次）；缺赛果保持 unsettled 计数；幂等；改判留 `result_revised_from`。
+  - **时区闸（安全默认）**：fixtures.csv 是英国当地时间，统一 Europe/London→UTC→北京
+    （8 月 BST 差 1 小时，且账本按错时间冻结不可回改）。**批量调度只对已通过 `--crosscheck`
+    （3 场、差≤5 分钟）的联赛自动冻结，未核对返回 blocked**；台账 data/club/kickoff_tz_verified.json
+    已 gitignore（缺失=闸生效）。
+  - 调度从注册表推导（universe=club_* 且 soon/live，排除 feeder），五联赛一次覆盖、单赛事异常
+    隔离；daily_update 第④步调用同一 run_all()，不复制逻辑。
+- **⚠️ 生产启用未完成（分两步，按赛程/CSV 到来）**：26-27 赛程尚未发布 → 开球时间核对
+  **如实记为未核对**（docs/evidence/p0a-top5-kickoff-crosscheck.json），五联赛冻结当前全部
+  blocked。**8-08 英超首轮前必须**：跑 `--crosscheck` 逐联赛通过 → 定时冻结自动解锁 →
+  确认账本出现 retro=false 条目；首轮赛果进当季 CSV 后再确认 settled。
+- **下一步队列（按定稿 MD）**：P0-B 事件能力正向契约（kind+universe+tabs+capabilities，删
+  tabs_off/isClub；**key 零特判只约束新装配层**，世界杯遗留 WC_SECTIONS/wcArchived 等进
+  allowlist——否则与「不得重写世界杯全部 DOM」自相矛盾）→ P0-C 欧国联最小壳（9-03）→
+  P1-A 欧冠单场引擎（先补 season-stratified/LOSO，Green/Yellow/Red 三级闸，Red 只留报告）→
+  P1-B 欧冠回顾 Tab（tie 只给五档确定性带宽、不显示单点概率、不进账本与 jc_review）→ P2 文档。
+
+## 📌 上一次接手（2026-07-24 十七 · 7-Agent 评审轮：四修复包 + bt_ucl E4a 闸门，158 测试绿）
 - **本轮形态**：7 角色并行评审 + 3 透镜交叉裁决 → 顺序施工四包（每包独立 commit + pytest + golden + 截图验收，档案见 progress.md 07-24 各条）：
   ① **A1 前端正确性**（8a2a0d8）：evShowTab 渲染世代护栏（_evEpoch/evSetContent 唯一异步写出口，jc 单例覆写前归位）、fixtures SWR 去阻塞（clubdata 后台单飞刷新，冷态 30s+ 挂起清除）、evGet in-flight 去重、loadEvents 失败可重试、not_wired 不进缓存、DataScheduler 补 CUR_EVENT 条件、matchup 预填护栏、jc 日期取 data_through、默认落地跟随状态排序。
   ② **A2 视觉/身份/移动端**（40a76e3）：evApplyIdentity 赛事身份化页头（wc 默认值逐字节不变保 golden）、≤430px 积分榜隐胜平负三列保积分可见、.hscroll 渐隐提示、evWdlBar 改 token、按钮 .go、evLineChart 默认滚最右、index.html 跨联赛旧文案改 E3 完成口径。
