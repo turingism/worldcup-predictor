@@ -80,6 +80,25 @@ def main() -> int:
         ok = False
         log(f"[espn][失败] 初始化: {e}\n{traceback.format_exc()}")
 
+    # ④ 俱乐部赛前冻结 + 赛后结算（P0-A）。顺序刻意是「先冻结后结算」且都在 CSV 刷新之后：
+    #    冻结只依赖 fixtures 与历史模型（当季 0 场也能跑），结算依赖当季 CSV（首轮打完才有）。
+    #    调用同一份 clubverify 实现，不复制逻辑。
+    try:
+        import clubverify
+        r = clubverify.run_all()
+        for key, row in r["events"].items():
+            f_, s_ = row.get("freeze", {}), row.get("settle", {})
+            log(f"[freeze] {key}: {f_.get('status')} 新冻结 {f_.get('frozen_new', 0)} "
+                f"改期更新 {f_.get('updated_prekickoff', 0)} 池外跳过 {f_.get('skipped_no_model', 0)}"
+                f" | [settle] {s_.get('status')} 新结算 {s_.get('settled_new', 0)} "
+                f"待结算 {s_.get('unsettled', 0)}")
+        if r["hard_failures"]:
+            ok = False
+            log(f"[freeze][失败] 硬失败 {r['hard_failures']} 项（见上）")
+    except Exception as e:  # noqa
+        ok = False
+        log(f"[freeze][失败] 初始化: {e}\n{traceback.format_exc()}")
+
     log(f"=== daily_update 结束：{'全部成功' if ok else '存在失败（见上）'} ===")
     return 0 if ok else 1
 

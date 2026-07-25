@@ -1,0 +1,37 @@
+{
+  "note": "26-27 当季 CSV 不存在（0 场已赛），模型全部由历史季训练，仍产出 retro=false 赛前冻结",
+  "current_season_csv_exists": false,
+  "result": {
+    "status": "ok",
+    "event": "epl2627",
+    "fixtures_seen": 3,
+    "frozen_new": 3,
+    "updated_prekickoff": 0,
+    "skipped_no_model": 0,
+    "skipped_started": 0,
+    "ledger": "/var/folders/nq/81rp8lgn3nz4hv6jn27vl1br0000gn/T/tmp5zp90glb/epl.json"
+  },
+  "prob_sum_error": 1.1102230246251565e-16,
+  "sample_entry": {
+    "event": "epl2627",
+    "stage": "league",
+    "home": "Arsenal",
+    "away": "Man United",
+    "kickoff_utc": "2026-08-08T14:00:00Z",
+    "kickoff_bj": "2026-08-08 22:00",
+    "date": "2026-08-08",
+    "source": "football-data",
+    "model_universe": "club_E0",
+    "model_half_life": 365.0,
+    "data_through": "2026-05-24",
+    "score_basis": "90min_regulation",
+    "retro": false,
+    "frozen_at": "2026-07-25 10:00:00",
+    "p_home": 0.6226903265344503,
+    "p_draw": 0.22254483035224185,
+    "p_away": 0.1547648431133077,
+    "xg_home": 1.929,
+    "xg_away": 0.851,
+    "settlement_status": "unsettled"
+  }
+}

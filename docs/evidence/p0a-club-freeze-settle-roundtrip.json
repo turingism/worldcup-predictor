@@ -1,0 +1,53 @@
+{
+  "note": "25-26 真实历史数据的冻结→结算闭环；赛前字段逐字段不变（下方 prematch_fields_unchanged=true）",
+  "freeze": {
+    "status": "ok",
+    "event": "epl2526hist",
+    "fixtures_seen": 1,
+    "frozen_new": 1,
+    "updated_prekickoff": 0,
+    "skipped_no_model": 0,
+    "skipped_started": 0,
+    "ledger": "/var/folders/nq/81rp8lgn3nz4hv6jn27vl1br0000gn/T/tmp5zp90glb/hist.json"
+  },
+  "settle": {
+    "status": "ok",
+    "event": "epl2526hist",
+    "frozen_entries": 1,
+    "settled_new": 1,
+    "already_settled": 0,
+    "unsettled": 0,
+    "result_corrections": 0,
+    "ledger": "/var/folders/nq/81rp8lgn3nz4hv6jn27vl1br0000gn/T/tmp5zp90glb/hist.json"
+  },
+  "prematch_fields_unchanged": true,
+  "entry": {
+    "event": "epl2526hist",
+    "stage": "league",
+    "home": "Leeds",
+    "away": "Burnley",
+    "kickoff_utc": "2026-04-30T23:00:00Z",
+    "kickoff_bj": "2026-05-01 07:00",
+    "date": "2026-05-01",
+    "source": "football-data",
+    "model_universe": "club_E0",
+    "model_half_life": 365.0,
+    "data_through": "2026-05-24",
+    "score_basis": "90min_regulation",
+    "retro": false,
+    "frozen_at": "2026-04-01 10:00:00",
+    "p_home": 0.5817980525408335,
+    "p_draw": 0.22925939385206628,
+    "p_away": 0.18894255360710033,
+    "xg_home": 1.903,
+    "xg_away": 0.994,
+    "settlement_status": "settled",
+    "home_score_90": 3,
+    "away_score_90": 1,
+    "actual": "H",
+    "outcome_hit": true,
+    "result_source": "football-data",
+    "result_date": "2026-05-01",
+    "settled_at": "2026-06-01 10:00:00"
+  }
+}

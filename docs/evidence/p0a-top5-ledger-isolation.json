@@ -1,0 +1,13 @@
+{
+  "note": "账本按赛事隔离（registry 层不变量）；旧 key 别名解析到同一账本，不产生第二份",
+  "ledger_files": {
+    "epl2627": "predictions_epl2627.json",
+    "laliga2627": "predictions_laliga2627.json",
+    "seriea2627": "predictions_seriea2627.json",
+    "bundes2627": "predictions_bundes2627.json",
+    "ligue12627": "predictions_ligue12627.json"
+  },
+  "distinct": 5,
+  "wc_ledger": "predictions.json",
+  "alias_same_file": true
+}

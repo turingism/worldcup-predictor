@@ -1,0 +1,101 @@
+{
+  "status": "ok",
+  "events": {
+    "epl2627": {
+      "freeze": {
+        "status": "blocked",
+        "event": "epl2627",
+        "reason_code": "kickoff_tz_unverified",
+        "hint": "先跑 scripts/club_freeze.py --crosscheck epl2627"
+      },
+      "settle": {
+        "status": "ok",
+        "event": "epl2627",
+        "frozen_entries": 0,
+        "settled_new": 0,
+        "already_settled": 0,
+        "unsettled": 0,
+        "result_corrections": 0,
+        "ledger": "/Users/melvin/worldcup-predictor/data/predictions_epl2627.json",
+        "reason": "current_season_results_unavailable"
+      }
+    },
+    "laliga2627": {
+      "freeze": {
+        "status": "blocked",
+        "event": "laliga2627",
+        "reason_code": "kickoff_tz_unverified",
+        "hint": "先跑 scripts/club_freeze.py --crosscheck laliga2627"
+      },
+      "settle": {
+        "status": "ok",
+        "event": "laliga2627",
+        "frozen_entries": 0,
+        "settled_new": 0,
+        "already_settled": 0,
+        "unsettled": 0,
+        "result_corrections": 0,
+        "ledger": "/Users/melvin/worldcup-predictor/data/predictions_laliga2627.json",
+        "reason": "current_season_results_unavailable"
+      }
+    },
+    "seriea2627": {
+      "freeze": {
+        "status": "blocked",
+        "event": "seriea2627",
+        "reason_code": "kickoff_tz_unverified",
+        "hint": "先跑 scripts/club_freeze.py --crosscheck seriea2627"
+      },
+      "settle": {
+        "status": "ok",
+        "event": "seriea2627",
+        "frozen_entries": 0,
+        "settled_new": 0,
+        "already_settled": 0,
+        "unsettled": 0,
+        "result_corrections": 0,
+        "ledger": "/Users/melvin/worldcup-predictor/data/predictions_seriea2627.json",
+        "reason": "current_season_results_unavailable"
+      }
+    },
+    "bundes2627": {
+      "freeze": {
+        "status": "blocked",
+        "event": "bundes2627",
+        "reason_code": "kickoff_tz_unverified",
+        "hint": "先跑 scripts/club_freeze.py --crosscheck bundes2627"
+      },
+      "settle": {
+        "status": "ok",
+        "event": "bundes2627",
+        "frozen_entries": 0,
+        "settled_new": 0,
+        "already_settled": 0,
+        "unsettled": 0,
+        "result_corrections": 0,
+        "ledger": "/Users/melvin/worldcup-predictor/data/predictions_bundes2627.json",
+        "reason": "current_season_results_unavailable"
+      }
+    },
+    "ligue12627": {
+      "freeze": {
+        "status": "blocked",
+        "event": "ligue12627",
+        "reason_code": "kickoff_tz_unverified",
+        "hint": "先跑 scripts/club_freeze.py --crosscheck ligue12627"
+      },
+      "settle": {
+        "status": "ok",
+        "event": "ligue12627",
+        "frozen_entries": 0,
+        "settled_new": 0,
+        "already_settled": 0,
+        "unsettled": 0,
+        "result_corrections": 0,
+        "ledger": "/Users/melvin/worldcup-predictor/data/predictions_ligue12627.json",
+        "reason": "current_season_results_unavailable"
+      }
+    }
+  },
+  "hard_failures": 0
+}

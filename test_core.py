@@ -2571,3 +2571,416 @@ def test_advancement_host_orientation(model):
     hosted = sim.advancement_paths("United States", "Japan", host="United States",
                                    city="Los Angeles")["adv"]
     assert hosted > neutral
+
+
+# ==================== P0-A 俱乐部赛前冻结 / 赛后结算（clubverify） ====================
+import os as _os
+# 需求：docs/UPGRADE_REQUIREMENTS_2026-07-25.md §3（冻结）+ §10 修正二/三（五联赛批量、结算闭环）
+# 全部离线：赛程与赛果都用合成帧注入，不依赖网络，也不写生产账本（ledger 参数指向 tmp）。
+
+def _fx(rows):
+    """合成 fixtures 帧（列名与 clubdata.load_fixtures 一致）。"""
+    import pandas as pd
+    return pd.DataFrame({"div": [r[0] for r in rows],
+                         "date": [pd.Timestamp(r[1]) for r in rows],
+                         "home_team": [r[2] for r in rows],
+                         "away_team": [r[3] for r in rows]})
+
+
+def _res(rows):
+    """合成赛果帧（列名与 clubdata.load 一致的最小子集）。"""
+    import pandas as pd
+    return pd.DataFrame({"date": [pd.Timestamp(r[0]) for r in rows],
+                         "home_team": [r[1] for r in rows], "away_team": [r[2] for r in rows],
+                         "home_score": [r[3] for r in rows], "away_score": [r[4] for r in rows]})
+
+
+def _utc(s):
+    import datetime as _dt
+    return _dt.datetime.fromisoformat(s).replace(tzinfo=_dt.timezone.utc)
+
+
+@pytest.fixture
+def led(tmp_path):
+    return str(tmp_path / "predictions_epl2627.json")
+
+
+EPL_FX = [("E0", "2026-08-08 15:00", "Arsenal", "Man United"),
+          ("E0", "2026-08-08 17:30", "Liverpool", "Chelsea"),
+          ("E0", "2026-08-09 16:30", "Man City", "Tottenham")]
+
+
+def test_clubverify_freezes_with_zero_current_season_results(led):
+    """核心约束：26-27 当季 CSV 尚不存在（0 场已赛）时仍能出赛前冻结。
+    否则冻结器要等 CSV 落地，而 CSV 通常开赛后才有——正好错过首轮。"""
+    import json, clubverify
+    r = clubverify.freeze_event("epl2627", fixtures=_fx(EPL_FX),
+                                now_utc=_utc("2026-07-25T02:00:00"), ledger=led)
+    assert r["status"] == "ok" and r["frozen_new"] == 3
+    preds = json.load(open(led, encoding="utf-8"))["preds"]
+    e = preds["Arsenal|Man United"]
+    assert e["retro"] is False and e["settlement_status"] == "unsettled"
+    assert abs(e["p_home"] + e["p_draw"] + e["p_away"] - 1.0) < 1e-8
+    assert e["model_universe"] == "club_E0" and e["model_half_life"] == 365
+
+
+def test_clubverify_uses_historical_model_before_new_csv(led):
+    """训练帧与赛程解耦：data_through 落在历史季（26-27 一场未赛）。"""
+    import json, clubverify
+    clubverify.freeze_event("epl2627", fixtures=_fx(EPL_FX),
+                            now_utc=_utc("2026-07-25T02:00:00"), ledger=led)
+    e = json.load(open(led, encoding="utf-8"))["preds"]["Arsenal|Man United"]
+    assert e["data_through"] < "2026-08-01"
+
+
+def test_clubverify_never_mutates_after_kickoff(led):
+    """开球后再跑，赛前字段逐字节不变（冻结账本的全部意义）。"""
+    import json, clubverify
+    clubverify.freeze_event("epl2627", fixtures=_fx(EPL_FX),
+                            now_utc=_utc("2026-07-25T02:00:00"), ledger=led)
+    before = open(led, encoding="utf-8").read()
+    r = clubverify.freeze_event("epl2627", fixtures=_fx(EPL_FX),
+                                now_utc=_utc("2026-08-10T02:00:00"), ledger=led)
+    assert r["skipped_started"] == 3 and r["frozen_new"] == 0
+    assert open(led, encoding="utf-8").read() == before
+
+
+def test_clubverify_updates_rescheduled_fixture_before_kickoff(led):
+    """改期：开球前更新开球时间并留 rescheduled_from；概率不重算、不产生第二条记录。"""
+    import json, clubverify
+    clubverify.freeze_event("epl2627", fixtures=_fx(EPL_FX),
+                            now_utc=_utc("2026-07-25T02:00:00"), ledger=led)
+    p0 = json.load(open(led, encoding="utf-8"))["preds"]["Arsenal|Man United"]
+    moved = [("E0", "2026-08-12 20:00", "Arsenal", "Man United")] + EPL_FX[1:]
+    r = clubverify.freeze_event("epl2627", fixtures=_fx(moved),
+                                now_utc=_utc("2026-07-26T02:00:00"), ledger=led)
+    preds = json.load(open(led, encoding="utf-8"))["preds"]
+    assert r["updated_prekickoff"] == 1 and len(preds) == 3          # 不新增重复场次
+    e = preds["Arsenal|Man United"]
+    assert e["rescheduled_from"] == p0["kickoff_utc"] and e["kickoff_utc"] != p0["kickoff_utc"]
+    assert (e["p_home"], e["p_draw"], e["p_away"]) == (p0["p_home"], p0["p_draw"], p0["p_away"])
+
+
+def test_clubverify_unknown_team_writes_no_fake_prediction(led):
+    """池外队（升班马/错拼）只计数跳过，绝不写伪概率。"""
+    import json, clubverify
+    fx = _fx(EPL_FX + [("E0", "2026-08-09 14:00", "Arsenal", "Nowhere United FC")])
+    r = clubverify.freeze_event("epl2627", fixtures=fx,
+                                now_utc=_utc("2026-07-25T02:00:00"), ledger=led)
+    assert r["skipped_no_model"] == 1 and r["frozen_new"] == 3
+    assert "Arsenal|Nowhere United FC" not in json.load(open(led, encoding="utf-8"))["preds"]
+
+
+def test_clubverify_empty_schedule_returns_no_fixtures(led):
+    """赛程未发布 = no_fixtures（赛程层），不得伪装成 no_model（模型层）。"""
+    import clubverify
+    r = clubverify.freeze_event("epl2627", fixtures=_fx([]),
+                                now_utc=_utc("2026-07-25T02:00:00"), ledger=led)
+    assert r["status"] == "no_fixtures" and r["reason_code"] == "schedule_unpublished"
+    assert r["poll_after_seconds"] == 0 and "no_model" not in str(r)
+    assert not _os.path.exists(led)                                   # 空态不创建空账本
+
+
+def test_clubverify_bst_to_utc_and_beijing(led):
+    """时区口径：8 月英超是 BST(UTC+1)，1 月是 GMT——naive 当 UTC 会整整偏 1 小时。"""
+    import json, clubverify
+    fx = _fx([("E0", "2026-08-08 15:00", "Arsenal", "Man United"),
+              ("E0", "2027-01-02 15:00", "Liverpool", "Chelsea")])
+    clubverify.freeze_event("epl2627", fixtures=fx,
+                            now_utc=_utc("2026-07-25T02:00:00"), ledger=led)
+    preds = json.load(open(led, encoding="utf-8"))["preds"]
+    assert preds["Arsenal|Man United"]["kickoff_utc"] == "2026-08-08T14:00:00Z"    # BST
+    assert preds["Arsenal|Man United"]["kickoff_bj"] == "2026-08-08 22:00"
+    assert preds["Liverpool|Chelsea"]["kickoff_utc"] == "2027-01-02T15:00:00Z"     # GMT
+    assert preds["Liverpool|Chelsea"]["kickoff_bj"] == "2027-01-02 23:00"
+
+
+def test_clubverify_event_ledger_isolated():
+    """账本按赛事隔离：五联赛 + 世界杯路径互异（registry 层不变量的冻结器侧断言）。"""
+    import clubverify, verify
+    paths = [clubverify.ledger_path(k) for k in
+             ("epl2627", "laliga2627", "seriea2627", "bundes2627", "ligue12627")]
+    assert len(set(paths)) == 5 and verify.ledger_path("wc2026") not in paths
+    assert clubverify.ledger_path("epl2526") == clubverify.ledger_path("epl2627")  # 别名同账本
+
+
+def test_clubverify_rejects_non_club_event():
+    """国家队赛事不得走俱乐部冻结器（错走会把 intl 预测写进联赛账本）。"""
+    import clubverify
+    with pytest.raises(ValueError):
+        clubverify.freeze_event("wc2026", fixtures=_fx([]))
+    with pytest.raises(KeyError):
+        clubverify.freeze_event("bogus2627", fixtures=_fx([]))
+
+
+def test_clubverify_atomic_concurrent_freeze(led):
+    """并发冻结：读改写串行 + 原子替换，账本不撕裂、不丢更新。"""
+    import json, threading, clubverify
+    fxs = [_fx([("E0", "2026-08-08 15:00", "Arsenal", "Man United")]),
+           _fx([("E0", "2026-08-08 17:30", "Liverpool", "Chelsea")]),
+           _fx([("E0", "2026-08-09 16:30", "Man City", "Tottenham")])]
+    ts = [threading.Thread(target=clubverify.freeze_event, args=("epl2627", f),
+                           kwargs=dict(now_utc=_utc("2026-07-25T02:00:00"), ledger=led))
+          for f in fxs]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    assert len(json.load(open(led, encoding="utf-8"))["preds"]) == 3
+
+
+def test_clubverify_does_not_import_worldcup_schedule():
+    """冻结器不得进世界杯赛制分支（schedule / TournamentSimulator）。"""
+    # 走 AST 而不是字符串匹配：模块文档字符串里恰好写了「不得 import schedule」的理由，
+    # 纯 grep 会被自己的注释误伤。
+    import ast
+    tree = ast.parse(open(_os.path.join(_os.path.dirname(__file__), "clubverify.py"),
+                          encoding="utf-8").read())
+    mods = set()
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Import):
+            mods |= {a.name.split(".")[0] for a in n.names}
+        elif isinstance(n, ast.ImportFrom) and n.module:
+            mods.add(n.module.split(".")[0])
+    assert "schedule" not in mods and "simulate" not in mods
+    names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)} | \
+            {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    assert "TournamentSimulator" not in names
+
+
+def test_clubverify_scheduler_discovers_all_active_club_events():
+    """调度从注册表推导，五大联赛全覆盖——手工 key 列表必然漏掉 8 月中旬开赛的四家。"""
+    import datetime as _dt, clubverify
+    act = clubverify.active_club_events(_dt.date(2026, 7, 25))
+    assert set(act) == {"epl2627", "laliga2627", "seriea2627", "bundes2627", "ligue12627"}
+
+
+def test_clubverify_scheduler_excludes_feeder_leagues():
+    """feeder（英冠等）只做升班马评级来源，绝不进冻结调度。"""
+    import datetime as _dt, clubdata, clubverify, events
+    feeders = set(clubdata.FEEDER.values())
+    for k in clubverify.active_club_events(_dt.date(2026, 7, 25)):
+        assert events.EVENTS[k]["data"] not in feeders
+
+
+def test_clubverify_parameterized_for_all_top5(tmp_path):
+    """同一 freeze_event 路径覆盖五联赛：各用自己的模型池，账本互不相同。"""
+    import json, clubverify
+    cases = [("epl2627", "E0", "Arsenal", "Man United"),
+             ("laliga2627", "SP1", "Barcelona", "Real Madrid"),
+             ("seriea2627", "I1", "Inter", "Milan"),
+             ("bundes2627", "D1", "Bayern Munich", "Dortmund"),
+             ("ligue12627", "F1", "Paris SG", "Marseille")]
+    seen = set()
+    for key, code, h, a in cases:
+        p = str(tmp_path / f"predictions_{key}.json")
+        r = clubverify.freeze_event(key, fixtures=_fx([(code, "2026-08-25 20:00", h, a)]),
+                                    now_utc=_utc("2026-08-01T02:00:00"), ledger=p)
+        assert r["status"] == "ok" and r["frozen_new"] == 1, (key, r)
+        e = json.load(open(p, encoding="utf-8"))["preds"][f"{h}|{a}"]
+        assert e["model_universe"] == f"club_{code}"
+        seen.add(p)
+    assert len(seen) == 5
+
+
+def test_clubverify_batch_failure_isolated_per_event(monkeypatch, tmp_path):
+    """单赛事炸掉不拖垮其他联赛，但必须计入 hard_failures。"""
+    import clubverify
+    real = clubverify.freeze_event
+
+    def boom(key, **kw):
+        if key == "seriea2627":
+            raise RuntimeError("模拟意甲映射损坏")
+        return {"status": "no_fixtures", "reason_code": "schedule_unpublished", "event": key}
+
+    monkeypatch.setattr(clubverify, "tz_verified", lambda code: True)   # 绕开时区闸，只测隔离
+    monkeypatch.setattr(clubverify, "freeze_event", boom)
+    monkeypatch.setattr(clubverify, "settle_event", lambda key, **kw: {"status": "ok"})
+    out = clubverify.run_all()
+    assert out["hard_failures"] == 1 and out["status"] == "partial"
+    assert out["events"]["seriea2627"]["freeze"]["status"] == "error"
+    assert out["events"]["epl2627"]["freeze"]["status"] == "no_fixtures"
+    assert clubverify.freeze_event is boom and real is not boom
+
+
+def test_clubverify_freezes_epl_and_second_league(tmp_path):
+    """一个联赛无赛程不影响另一个联赛冻结（批量隔离的正向证据）。"""
+    import json, clubverify
+    p1, p2 = str(tmp_path / "a.json"), str(tmp_path / "b.json")
+    r1 = clubverify.freeze_event("epl2627", fixtures=_fx(EPL_FX),
+                                 now_utc=_utc("2026-07-25T02:00:00"), ledger=p1)
+    r2 = clubverify.freeze_event("bundes2627", fixtures=_fx([]),
+                                 now_utc=_utc("2026-07-25T02:00:00"), ledger=p2)
+    assert r1["frozen_new"] == 3 and r2["status"] == "no_fixtures"
+    assert len(json.load(open(p1, encoding="utf-8"))["preds"]) == 3 and not _os.path.exists(p2)
+
+
+def test_daily_update_invokes_club_freeze(monkeypatch):
+    """每日任务必须调用同一份 clubverify 实现（不得另写一套逻辑）。"""
+    import daily_update, clubverify
+    called = {}
+    monkeypatch.setattr(clubverify, "run_all", lambda **kw: called.setdefault("hit", True) and {} or
+                        {"events": {}, "hard_failures": 0})
+    src = open(_os.path.join(_os.path.dirname(__file__), "daily_update.py"), encoding="utf-8").read()
+    assert "clubverify" in src and "run_all()" in src
+    daily_update_main_src = src[src.index("def main"):]
+    assert daily_update_main_src.count("freeze_event(") == 0      # 不复制逻辑，只调 run_all
+
+
+# ---------- 结算（settle_event） ----------
+def _frozen(led):
+    import clubverify
+    clubverify.freeze_event("epl2627", fixtures=_fx(EPL_FX),
+                            now_utc=_utc("2026-07-25T02:00:00"), ledger=led)
+
+
+PRE_FIELDS = ("home", "away", "event", "kickoff_utc", "kickoff_bj", "frozen_at", "retro",
+              "model_universe", "model_half_life", "data_through",
+              "p_home", "p_draw", "p_away", "xg_home", "xg_away")
+
+
+def test_clubverify_settle_writes_result_only(led):
+    """结算写赛后字段并给出对账结果。"""
+    import json, clubverify
+    _frozen(led)
+    res = _res([("2026-08-08 15:00", "Arsenal", "Man United", 2, 1)])
+    r = clubverify.settle_event("epl2627", results=res,
+                                now_utc=_utc("2026-08-09T02:00:00"), ledger=led)
+    assert r["settled_new"] == 1 and r["unsettled"] == 2
+    e = json.load(open(led, encoding="utf-8"))["preds"]["Arsenal|Man United"]
+    assert e["settlement_status"] == "settled" and e["actual"] == "H"
+    assert e["home_score_90"] == 2 and e["away_score_90"] == 1
+    assert e["result_source"] == "football-data" and e["score_basis"] == "90min_regulation"
+
+
+def test_clubverify_settle_never_touches_frozen_probs(led):
+    """赛前字段逐字段不变——结算改赛前预测就等于事后诸葛。"""
+    import json, clubverify
+    _frozen(led)
+    before = json.load(open(led, encoding="utf-8"))["preds"]["Arsenal|Man United"]
+    snap = {k: before[k] for k in PRE_FIELDS}
+    clubverify.settle_event("epl2627", results=_res([("2026-08-08 15:00", "Arsenal",
+                                                      "Man United", 0, 3)]),
+                            now_utc=_utc("2026-08-09T02:00:00"), ledger=led)
+    after = json.load(open(led, encoding="utf-8"))["preds"]["Arsenal|Man United"]
+    assert {k: after[k] for k in PRE_FIELDS} == snap
+
+
+def test_clubverify_settle_missing_result_stays_unsettled(led):
+    """缺赛果保持 unsettled 并计数：不删除、不写 0:0、不静默跳过。"""
+    import json, clubverify
+    _frozen(led)
+    r = clubverify.settle_event("epl2627", results=_res([]),
+                                now_utc=_utc("2026-08-09T02:00:00"), ledger=led)
+    assert r["settled_new"] == 0 and r["unsettled"] == 3
+    assert r.get("reason") == "current_season_results_unavailable"
+    preds = json.load(open(led, encoding="utf-8"))["preds"]
+    assert len(preds) == 3
+    assert all(e["settlement_status"] == "unsettled" for e in preds.values())
+    assert all("home_score_90" not in e for e in preds.values())
+
+
+def test_clubverify_settle_filters_results_to_event_window(led):
+    """赛季窗限定：近 7 季同一主客对阵出现多次，不限定必然张冠李戴。"""
+    import clubverify
+    _frozen(led)
+    r = clubverify.settle_event("epl2627",
+                                results=_res([("2025-09-14 15:00", "Arsenal", "Man United", 5, 0)]),
+                                now_utc=_utc("2026-08-09T02:00:00"), ledger=led)
+    assert r["settled_new"] == 0 and r["unsettled"] == 3      # 25-26 赛季那场不得入账
+
+
+def test_clubverify_settle_preserves_home_away_identity(led):
+    """主客顺序必须一致：反过来的同两队是另一场比赛。"""
+    import clubverify
+    _frozen(led)
+    r = clubverify.settle_event("epl2627",
+                                results=_res([("2026-08-08 15:00", "Man United", "Arsenal", 1, 0)]),
+                                now_utc=_utc("2026-08-09T02:00:00"), ledger=led)
+    assert r["settled_new"] == 0
+
+
+def test_clubverify_settle_is_idempotent(led):
+    """重复结算幂等：同源同比分不更新 settled_at、账本内容不变。"""
+    import clubverify
+    _frozen(led)
+    res = _res([("2026-08-08 15:00", "Arsenal", "Man United", 2, 1)])
+    clubverify.settle_event("epl2627", results=res, now_utc=_utc("2026-08-09T02:00:00"), ledger=led)
+    snap = open(led, encoding="utf-8").read()
+    r2 = clubverify.settle_event("epl2627", results=res,
+                                 now_utc=_utc("2026-08-10T02:00:00"), ledger=led)
+    assert r2["already_settled"] == 1 and r2["settled_new"] == 0
+    assert open(led, encoding="utf-8").read() == snap
+
+
+def test_clubverify_settle_result_correction_is_audited(led):
+    """上游赛果正式修正：可改赛后字段，但必须留 result_revised_from 审计，赛前字段仍不动。"""
+    import json, clubverify
+    _frozen(led)
+    clubverify.settle_event("epl2627", results=_res([("2026-08-08 15:00", "Arsenal",
+                                                      "Man United", 2, 1)]),
+                            now_utc=_utc("2026-08-09T02:00:00"), ledger=led)
+    pre = json.load(open(led, encoding="utf-8"))["preds"]["Arsenal|Man United"]
+    snap = {k: pre[k] for k in PRE_FIELDS}
+    r = clubverify.settle_event("epl2627", results=_res([("2026-08-08 15:00", "Arsenal",
+                                                          "Man United", 2, 2)]),
+                                now_utc=_utc("2026-08-11T02:00:00"), ledger=led)
+    e = json.load(open(led, encoding="utf-8"))["preds"]["Arsenal|Man United"]
+    assert r["result_corrections"] == 1
+    assert e["result_revised_from"]["home_score_90"] == 2 and e["result_revised_from"]["away_score_90"] == 1
+    assert e["actual"] == "D" and e["away_score_90"] == 2
+    assert {k: e[k] for k in PRE_FIELDS} == snap
+
+
+def test_clubverify_freeze_to_settle_historical_roundtrip(tmp_path, monkeypatch):
+    """历史闭环：用 25-26 真实赛果跑「赛前冻结 → 结算 → 对账」。
+
+    刻意不用 epl2526 别名（会被归一成 epl2627，赛季窗错配反而被掩盖），
+    而是注入一条临时的 25-26 registry 条目——这正是别名机制的边界测试。
+    """
+    import json, clubdata, clubpredict, clubverify, events
+    df = clubdata.load("E0", seasons=clubpredict.SEASONS)
+    hist = df[(df.date >= "2026-05-01") & (df.date <= "2026-05-24")]
+    if not len(hist):
+        pytest.skip("25-26 末轮数据不可得")
+    row = hist.iloc[0]
+    monkeypatch.setitem(events.EVENTS, "epl2526test",
+                        dict(name="英超 25-26（测试）", kind="league", universe="club_E0",
+                             espn="eng.1", data="E0",
+                             window=("2025-08-01", "2026-05-31"),
+                             ledger="predictions_epl2526test.json"))
+    led = str(tmp_path / "hist.json")
+    fx = _fx([("E0", str(row.date), row.home_team, row.away_team)])
+    r = clubverify.freeze_event("epl2526test", fixtures=fx,
+                                now_utc=_utc("2026-04-01T02:00:00"), ledger=led)
+    assert r["frozen_new"] == 1
+    key = f"{row.home_team}|{row.away_team}"
+    pre = json.load(open(led, encoding="utf-8"))["preds"][key]
+    snap = {k: pre[k] for k in PRE_FIELDS}
+    r2 = clubverify.settle_event("epl2526test", results=df,
+                                 now_utc=_utc("2026-06-01T02:00:00"), ledger=led)
+    e = json.load(open(led, encoding="utf-8"))["preds"][key]
+    assert r2["settled_new"] == 1 and e["settlement_status"] == "settled"
+    assert e["home_score_90"] == int(row.home_score) and e["away_score_90"] == int(row.away_score)
+    assert e["retro"] is False and {k: e[k] for k in PRE_FIELDS} == snap
+    assert isinstance(e["outcome_hit"], bool)
+
+
+def test_clubverify_scheduled_freeze_blocked_until_tz_verified(monkeypatch, tmp_path):
+    """时区闸：未通过开球时间交叉核对的联赛，定时调度不得自动冻结。
+
+    账本按错误时区冻结后无法重写（赛前预测不可变），所以宁可 blocked 也不能先写再改。
+    手工调用不受闸限制（诊断用），闸只在批量调度层。"""
+    import clubverify
+    monkeypatch.setattr(clubverify, "TZ_VERIFIED_PATH", str(tmp_path / "tz.json"))
+    monkeypatch.setattr(clubverify, "settle_event", lambda key, **kw: {"status": "ok"})
+    out = clubverify.run_all()
+    assert all(v["freeze"]["status"] == "blocked" for v in out["events"].values())
+    assert out["hard_failures"] == 0                       # blocked 不是失败
+    assert all(v["freeze"]["reason_code"] == "kickoff_tz_unverified"
+               for v in out["events"].values())
+    clubverify.record_tz_verified("E0", 0.0, 3)            # 核对通过后解锁
+    assert clubverify.tz_verified("E0") and not clubverify.tz_verified("SP1")
+    out2 = clubverify.run_all()
+    assert out2["events"]["epl2627"]["freeze"]["status"] != "blocked"
+    assert out2["events"]["laliga2627"]["freeze"]["status"] == "blocked"

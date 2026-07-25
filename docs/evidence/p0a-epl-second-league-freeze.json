@@ -1,0 +1,21 @@
+{
+  "note": "批量隔离：德甲赛程未发布不影响英超冻结；空态不创建空账本",
+  "epl2627": {
+    "status": "ok",
+    "event": "epl2627",
+    "fixtures_seen": 1,
+    "frozen_new": 1,
+    "updated_prekickoff": 0,
+    "skipped_no_model": 0,
+    "skipped_started": 0,
+    "ledger": "/var/folders/nq/81rp8lgn3nz4hv6jn27vl1br0000gn/T/tmp5zp90glb/a.json"
+  },
+  "bundes2627": {
+    "status": "no_fixtures",
+    "reason_code": "schedule_unpublished",
+    "event": "bundes2627",
+    "fixtures_seen": 0,
+    "poll_after_seconds": 0
+  },
+  "bundes_ledger_created": false
+}

@@ -1,0 +1,50 @@
+{
+  "note": "同一 freeze_event 路径覆盖五大联赛，各用自己的 club_<code> 模型池",
+  "events": {
+    "epl2627": {
+      "status": "ok",
+      "frozen_new": 1,
+      "model_universe": "club_E0",
+      "data_through": "2026-05-24",
+      "p_home": 0.6226903265344503,
+      "p_draw": 0.22254483035224185,
+      "p_away": 0.1547648431133077
+    },
+    "laliga2627": {
+      "status": "ok",
+      "frozen_new": 1,
+      "model_universe": "club_SP1",
+      "data_through": "2026-05-24",
+      "p_home": 0.5156198306401394,
+      "p_draw": 0.22488122138751382,
+      "p_away": 0.2594989479723468
+    },
+    "seriea2627": {
+      "status": "ok",
+      "frozen_new": 1,
+      "model_universe": "club_I1",
+      "data_through": "2026-05-24",
+      "p_home": 0.5808088285188004,
+      "p_draw": 0.22320864245554653,
+      "p_away": 0.19598252902565308
+    },
+    "bundes2627": {
+      "status": "ok",
+      "frozen_new": 1,
+      "model_universe": "club_D1",
+      "data_through": "2026-05-16",
+      "p_home": 0.6320754134557932,
+      "p_draw": 0.18061525178899837,
+      "p_away": 0.18730933475520833
+    },
+    "ligue12627": {
+      "status": "ok",
+      "frozen_new": 1,
+      "model_universe": "club_F1",
+      "data_through": "2026-05-17",
+      "p_home": 0.6434785526384859,
+      "p_draw": 0.1910851977315068,
+      "p_away": 0.1654362496300072
+    }
+  }
+}

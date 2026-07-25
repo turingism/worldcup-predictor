@@ -1,0 +1,14 @@
+{
+  "status": "no_fixtures",
+  "reason_code": "schedule_unpublished",
+  "event": "epl2627",
+  "checked": 0,
+  "note": "2026-07-25 实跑：26-27 赛程尚未发布（fixtures.csv 无本赛季窗内场次），故开球时间口径无法核对——如实记为未核对，不伪造通过。clubverify.run_all() 的时区闸因此对五联赛全部返回 blocked：赛程发布后须先跑 --crosscheck 各联赛（3 场、差值≤5 分钟）通过并登记，定时冻结才会自动解锁。硬期限：英超 2026-08-08 首轮开球前必须完成。",
+  "pending_leagues": [
+    "epl2627",
+    "laliga2627",
+    "seriea2627",
+    "bundes2627",
+    "ligue12627"
+  ]
+}
