@@ -4,6 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>⚽ 世界杯比分预测器</title>
+<script>
+/* 启动路由（同步、零网络，必须在首帧前跑完）——修的是「刷新时世界杯页面闪一下」：
+   静态 HTML 本身就是世界杯页（title/页头/8 个 Tab/#verify 看板默认可见），而首页落地此前要等
+   /api/events 返回才切换，闪动窗口 = 一次网络往返。这里先按 hash 给 <html> 打 boot 类，
+   让 CSS 在首帧就压住世界杯骨架。
+   注：URL fragment 不会发给服务器，所以分类只能在前端做；但 key/别名/默认赛事全部由服务端注入，
+   代码里不出现任何赛事 key 字面量（不算「赛事 key 特判」）。 */
+window.__BOOT_CFG = {keys: {{ event_keys | tojson }}, aliases: {{ event_alias | tojson }},
+                     defaultKey: {{ event_default | tojson }}};
+window.__HDR_DEF = {title: document.title};      // 世界杯页头原值：改写前先存，供 evApplyIdentity 还原
+(function(){
+  var cfg = window.__BOOT_CFG, raw = (location.hash || '').slice(1).split('?')[0];
+  var seg = raw.split('/')[0]; seg = cfg.aliases[seg] || seg;
+  var mode = (!raw || raw === 'home') ? 'home'
+           : (cfg.keys.indexOf(seg) >= 0 && seg !== cfg.defaultKey) ? 'event' : 'wc';
+  document.documentElement.classList.add('boot-' + mode);
+  window.__BOOT_MODE = mode;
+  if (mode === 'home') document.title = '足球赛事预测器';
+  else if (mode === 'event') document.title = '赛事预测';
+})();
+</script>
 <style>
   :root{
     --bg:#0d1117; --panel:#161b22; --panel2:#1c2230; --line:#2a3240;
@@ -531,6 +552,12 @@
   .ev-standings th:nth-child(n+4):nth-child(-n+6),
   .ev-standings td:nth-child(n+4):nth-child(-n+6){display:none}
 }
+/* 启动期压住世界杯骨架（首帧就生效，见 <head> 的 boot 脚本）。
+   #verify 带内联 style="display:block"，内联样式优先级更高 → 必须 !important，否则看板照样闪出来。
+   正式路由落地后由 finishBoot() 清除这几个类；不清除的话，之后进世界杯页 Tab 会被永久压住。 */
+html.boot-home .tabs, html.boot-event .tabs,
+html.boot-home #verify, html.boot-event #verify{display:none !important}
+
 /* ===== P0-H 首页总览（L0）===== */
 /* 字号/字重档位与间距 token 集中在此，首页所有层级只准引用这里，避免又长出一套散落数值。 */
 :root{
@@ -662,6 +689,23 @@
     <a class="sponsor-link" onclick="openSponsor()" title="开源免费项目，赞赏纯自愿，不解锁任何功能">♥ 赞赏支持</a>
   </div>
 </header>
+<script>
+/* 页头文案的启动占位（解析期执行，仍在首帧前）：header 已解析完才拿得到这两个节点。
+   先把世界杯原值补进 __HDR_DEF——evApplyIdentity(null) 靠它还原世界杯页头，
+   若让主脚本晚一步去 DOM 现场取值，取到的就是这里改写后的首页文案（切回世界杯会串标题）。 */
+(function(){
+  var h1 = document.querySelector('header h1'), sub = document.querySelector('header p');
+  var D = window.__HDR_DEF || (window.__HDR_DEF = {});
+  D.h1 = h1 ? h1.innerHTML : ''; D.sub = sub ? sub.innerHTML : '';
+  if (window.__BOOT_MODE === 'home') {
+    if (h1) h1.textContent = '足球赛事预测器';
+    if (sub) sub.textContent = '国家队与五大联赛 · 历史比分模型研究与赛事数据看板';
+  } else if (window.__BOOT_MODE === 'event') {   // 非默认赛事深链：中性占位，等元数据回来再写准确名称
+    if (h1) h1.textContent = '足球赛事预测器';
+    if (sub) sub.textContent = '正在加载赛事信息…';
+  }
+})();
+</script>
 
 <div id="sponsor-modal" class="sp-mask" onclick="if(event.target===this)closeSponsor()">
   <div class="sp-box">
@@ -2779,9 +2823,16 @@ function evBadge(e){
 // 赛事身份化页头：切换赛事时同步 document.title 与 header 主/副标题。
 // wc2026 恢复静态默认值（开局从 DOM 捕获，逐字节不变——保 golden 口径与旧截图对照）；
 // 联赛/国家队显示各自事实行（数据源/模型口径），避免联赛视图下顶着世界杯口径的页面级错误信息。
-const _HDR_DEF = {title: document.title,
-  h1: document.querySelector('header h1').innerHTML,
-  sub: document.querySelector('header p').innerHTML};
+// 世界杯页头默认值：优先用 boot 脚本在改写前存下的原值（此刻 DOM 里可能已是首页/占位文案）
+const _HDR_DEF = (window.__HDR_DEF && window.__HDR_DEF.h1)
+  ? {title: window.__HDR_DEF.title, h1: window.__HDR_DEF.h1, sub: window.__HDR_DEF.sub}
+  : {title: document.title, h1: document.querySelector('header h1').innerHTML,
+     sub: document.querySelector('header p').innerHTML};
+// 视图切换完成后清除 boot 类：留着的话，之后进世界杯页 CSS 仍会压住 .tabs 与 #verify。
+// 必须"先切视图再清类"，否则中间会露出世界杯骨架。
+function finishBoot(){
+  document.documentElement.classList.remove('boot-home', 'boot-event', 'boot-wc');
+}
 function evApplyIdentity(meta, home){
   const h1=document.querySelector('header h1'), sub=document.querySelector('header p');
   if(home){                                     // 首页顶部是系统身份，不是某一赛事身份
@@ -2798,6 +2849,8 @@ function evApplyIdentity(meta, home){
     if(sub) sub.innerHTML=_HDR_DEF.sub;
     return;
   }
+  if(!meta.name) return;              // 元数据还没到（或拉取失败）：保留 boot 期的中性占位，
+                                      // 不把赛事 key 当标题写出去
   const isClub=(meta.universe||'').startsWith('club');
   const line = isClub
     ? `${meta.name} · football-data.co.uk · 每联赛独立模型 hl=365`
@@ -2853,6 +2906,7 @@ function selectEvent(key, tab, qs){
     renderEventView(key, tab);
   }
   renderEvbar();
+  finishBoot();
 }
 // ===== P0-H 首页总览（L0）=====
 // 数据只来自 /api/home（后端已保证只读：不训练/不模拟/不联网/不写盘）。
@@ -2998,6 +3052,7 @@ function goHome(push){
   if(push!==false && location.hash !== '#home') history.replaceState(null,'','#home');
   renderHome();
   renderEvbar();
+  finishBoot();                                    // 视图已切到首页，撤掉启动期的隐藏规则
 }
 function evPct(p){ return (p*100).toFixed(1)+'%'; }
 function evWdlBar(ph,pd,pa){
@@ -3431,7 +3486,9 @@ async function renderEventView(key, tab){
   const v = $('#eventview'); if(!v) return;
   jcRestoreHome();                                   // 视图整体重建前归位 jc 组件
   await loadEvents();
-  const meta = (EVENTS_META||[]).find(e=>e.key===key) || {key, name:key, status:'', kind:'', universe:''};
+  // events 拉不到时不拿赛事 key 冒充赛事名（页头会写出 "⚽ epl2627" 这种原始 key）；
+  // name 留空 → evApplyIdentity 保留启动期的中性占位文案。
+  const meta = (EVENTS_META||[]).find(e=>e.key===key) || {key, name:'', status:'', kind:'', universe:''};
   const isClub = (meta.universe||'').startsWith('club');
   evApplyIdentity(meta);                             // meta 已就绪（await loadEvents 后），页头按赛事身份化
   if(!meta.wired && !isClub && key!=='nl2026'){
@@ -3441,7 +3498,7 @@ async function renderEventView(key, tab){
   }
   const tabbar = `<div class="tabs" id="ev_tabs">`+LEAGUE_TABS.map(t=>
     `<div class="tab" data-t="${t.k}" onclick="evShowTab('${key}','${t.k}')">${t.ico} ${t.name}</div>`).join('')+`</div>`;
-  v.innerHTML = `<div class="card"><h3 style="margin:0 0 8px">${meta.name} ${evBadge(meta)}</h3><div id="ev_head" class="muted">加载中…</div></div>`
+  v.innerHTML = `<div class="card"><h3 style="margin:0 0 8px">${meta.name||key} ${evBadge(meta)}</h3><div id="ev_head" class="muted">加载中…</div></div>`
     + tabbar + `<div id="ev_content"></div>`;
   if(isClub){
     evGet(key,'overview').then(o=>{
@@ -3467,7 +3524,7 @@ async function renderEventView(key, tab){
 loadEvents();
 (function(){let raw=location.hash.slice(1), [h,qs]=raw.split('?');
   if(!raw || h==='home'){               // 无 hash / #home：落地首页总览（P0-H；有 hash 的旧深链行为一律不变）
-    loadEvents().then(()=>goHome()).catch(()=>goHome());
+    goHome();                        // 立即渲染首页：不等 /api/events（外层已调 loadEvents，菜单到了自动填）
     return;
   }
   let ev='wc2026';
@@ -3475,11 +3532,12 @@ loadEvents();
   else if(EVENT_KEYS.includes(evResolve(h))){ ev=evResolve(h); h=''; }
   if(!EVENT_KEYS.includes(ev)) ev='wc2026';
   if(ev!=='wc2026'){ loadEvents().then(()=>selectEvent(ev, h||'')); return; }
-  if(h==='market-demo'){ marketLoaded=true; document.querySelector('.tab[data-t="market"]').click(); setTimeout(loadMarketDemo,60); return; }
+  if(h==='market-demo'){ finishBoot(); marketLoaded=true; document.querySelector('.tab[data-t="market"]').click(); setTimeout(loadMarketDemo,60); return; }
   if(h==='ratings') h='champ';     // 实力榜已并入「夺冠概率」tab，旧深链回退到夺冠概率
   if(h==='match') h='manager';     // 单场预测已并入「对阵分析」，旧深链回退到对阵分析
   const t=h&&document.querySelector(`.tab[data-t="${h}"]`);
-  if(!t){ loadDashboard(); return; }
+  if(!t){ finishBoot(); loadDashboard(); return; }
+  finishBoot();                       // 世界杯路径：boot-wc 本就不隐藏任何东西，清掉保持状态干净
   t.click();
   history.replaceState(null,'','#wc2026/'+h+(qs?'?'+qs:''));   // 旧深链回填为规范双段形式
   if(h==='champ' && qs && new URLSearchParams(qs).get('run')==='1')

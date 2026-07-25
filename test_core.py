@@ -3234,3 +3234,36 @@ def test_frontend_menu_visible_on_home_and_grouped():
     body = src[i:i + 1400]
     assert "国家队" in body and "俱乐部" in body and "ev-home" in body
     assert "location.hash='home'" in body          # 回首页走 push，后退能回到刚才的赛事
+
+
+def test_boot_route_prevents_wc_chrome_flash():
+    """启动期不再闪世界杯页面（静态护栏；真首帧由 scripts/ui_check.py --boot 实测）。
+
+    根因回归：静态 HTML 本身是世界杯页（title/页头/8 Tab/#verify 默认可见），而首页落地此前要等
+    /api/events 返回才切换——闪动窗口 = 一次网络往返。"""
+    src = open(_os.path.join(_os.path.dirname(__file__), "templates", "index.html"),
+               encoding="utf-8").read()
+    head = src[:src.index("</head>")]
+    assert "__BOOT_CFG" in head and "boot-' + mode" in head        # 同步分类，零网络
+    assert "event_keys | tojson" in head and "event_default | tojson" in head
+    # boot 脚本必须数据驱动：不得出现任何赛事 key 字面量
+    import re as _re
+    boot = head[head.index("__BOOT_CFG"):]
+    assert not _re.search(r"['\"](wc2026|nl2026|epl\d{4}|laliga\d{4})['\"]", boot)
+    # #verify 带内联 display:block，隐藏规则必须 !important 才压得住
+    assert "html.boot-home #verify, html.boot-event #verify{display:none !important}" in \
+           src.replace("\n", "").replace("html.boot-home .tabs, html.boot-event .tabs,", "")
+    # boot 类必须被清除，否则之后进世界杯页 Tab 会被永久压住
+    assert "function finishBoot()" in src and src.count("finishBoot()") >= 4
+    # 首页落地不得等 /api/events
+    i = src.index("if(!raw || h==='home')")
+    assert "loadEvents().then(()=>goHome())" not in src[i:i + 300]
+
+
+def test_boot_header_default_preserved_for_wc():
+    """boot 改写页头前必须存原值：否则切回世界杯会把首页标题贴到世界杯页上。"""
+    src = open(_os.path.join(_os.path.dirname(__file__), "templates", "index.html"),
+               encoding="utf-8").read()
+    assert "window.__HDR_DEF" in src[:src.index("</head>")]        # title 在 head 就存下
+    i = src.index("const _HDR_DEF")
+    assert "window.__HDR_DEF" in src[i:i + 300]                    # 主脚本优先读它

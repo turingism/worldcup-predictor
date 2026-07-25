@@ -168,13 +168,87 @@ def check(url: str, w: int, h: int, ready_sel: str) -> dict:
         c.close()
 
 
+STATE_JS = r"""(() => {
+  const tb = document.querySelector('.tabs'), v = document.querySelector('#verify'),
+        h = document.querySelector('header h1');
+  return {title: document.title, h1: h ? h.textContent.trim() : null,
+          tabs: tb ? getComputedStyle(tb).display : null,
+          verify: v ? getComputedStyle(v).display : null,
+          boot: document.documentElement.className, hash: location.hash};
+})()"""
+
+
+def boot_checks(base_url: str) -> dict:
+    """启动期验收（修「刷新时世界杯页面闪一下」）：三项都是 pytest 断不了的浏览器事实。
+
+    ① 真首帧：把 /api/events 与 /api/home 全部堵死（最坏情况：永不返回），
+       首页与联赛深链的首帧都不得出现世界杯页头/Tab/看板；世界杯深链必须原样保留。
+       注意不能用「关掉 JS」来验——关了 JS，boot 脚本本身也不执行，验的是个空气。
+    ② 路由生命周期：#home → #wc2026/bracket → #home → #wc2026/verify，
+       抓 boot 类没清理导致世界杯 Tab 被永久压住这类问题。
+    """
+    out = {"first_frame": [], "lifecycle": []}
+    for path, label, expect_wc in (("", "home", False), ("#epl2627/board", "event", False),
+                                   ("#wc2026/bracket", "wc", True)):
+        c = Chrome(1440, 900)
+        try:
+            c.cmd("Network.enable")
+            c.cmd("Network.setBlockedURLs", {"urls": ["*/api/events*", "*/api/home*"]})
+            c.cmd("Page.enable")
+            c.cmd("Page.navigate", {"url": f"{base_url}/{path}"})
+            time.sleep(2.0)
+            s = c.eval(STATE_JS)
+            wc_chrome = ("世界杯" in (s.get("h1") or "")) or s.get("tabs") == "flex" \
+                or s.get("verify") == "block"
+            s.update(label=label, expect_wc=expect_wc, ok=(wc_chrome == expect_wc))
+            out["first_frame"].append(s)
+        finally:
+            c.close()
+
+    c = Chrome(1440, 900)
+    try:
+        c.cmd("Page.enable")
+        c.cmd("Page.navigate", {"url": base_url + "/"})
+        for _ in range(80):
+            time.sleep(0.25)
+            if c.eval("!!document.querySelector('#homeview[data-home-ready]')"):
+                break
+        steps = [("#home", False), ("wc2026/bracket", True), ("home", False),
+                 ("wc2026/verify", True)]
+        for i, (h, want_tabs) in enumerate(steps):
+            if i:
+                c.eval(f"location.hash={h!r}")
+                time.sleep(3.0)
+            s = c.eval(STATE_JS)
+            s.update(step=h, want_tabs=want_tabs,
+                     ok=((s["tabs"] == "flex") == want_tabs) and s["boot"].find("boot-") < 0)
+            out["lifecycle"].append(s)
+    finally:
+        c.close()
+    out["ok"] = all(x["ok"] for x in out["first_frame"] + out["lifecycle"])
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-url", default="http://127.0.0.1:8000")
+    ap.add_argument("--boot", action="store_true", help="只跑启动期验收（首帧 + 路由生命周期）")
     ap.add_argument("--path", default="#home", help="要验收的 hash 路由")
     ap.add_argument("--ready", default=None, help="就绪标记选择器（默认按 path 推断）")
     ap.add_argument("--out", default="docs/evidence/home-ui-check.json")
     a = ap.parse_args()
+    if a.boot:
+        out = boot_checks(a.base_url)
+        for x in out["first_frame"]:
+            print(f"  首帧 {x['label']:6} {'OK' if x['ok'] else 'FAIL'}  h1={x['h1']} tabs={x['tabs']}")
+        for x in out["lifecycle"]:
+            print(f"  路由 {x['step']:16} {'OK' if x['ok'] else 'FAIL'}  tabs={x['tabs']} boot={x['boot']!r}")
+        os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
+        with open(a.out, "w", encoding="utf-8") as f:
+            json.dump(out, f, ensure_ascii=False, indent=2)
+        print(("通过" if out["ok"] else "存在失败") + f" → {a.out}")
+        return 0 if out["ok"] else 1
+
     ready = a.ready or ("#homeview[data-home-ready]" if a.path in ("#home", "")
                         else "#eventview, #verify")
     url = f"{a.base_url}/{a.path}"

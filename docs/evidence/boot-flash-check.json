@@ -1,0 +1,84 @@
+{
+  "first_frame": [
+    {
+      "title": "足球赛事预测器",
+      "h1": "足球赛事预测器",
+      "tabs": "none",
+      "verify": "none",
+      "boot": "",
+      "hash": "#home",
+      "label": "home",
+      "expect_wc": false,
+      "ok": true
+    },
+    {
+      "title": "赛事预测",
+      "h1": "足球赛事预测器",
+      "tabs": "none",
+      "verify": "none",
+      "boot": "",
+      "hash": "#epl2627/board",
+      "label": "event",
+      "expect_wc": false,
+      "ok": true
+    },
+    {
+      "title": "⚽ 世界杯比分预测器",
+      "h1": "⚽ 世界杯比分预测器",
+      "tabs": "flex",
+      "verify": "none",
+      "boot": "",
+      "hash": "#wc2026/bracket",
+      "label": "wc",
+      "expect_wc": true,
+      "ok": true
+    }
+  ],
+  "lifecycle": [
+    {
+      "title": "足球赛事预测器",
+      "h1": "足球赛事预测器",
+      "tabs": "none",
+      "verify": "none",
+      "boot": "",
+      "hash": "#home",
+      "step": "#home",
+      "want_tabs": false,
+      "ok": true
+    },
+    {
+      "title": "⚽ 世界杯比分预测器",
+      "h1": "⚽ 世界杯比分预测器",
+      "tabs": "flex",
+      "verify": "none",
+      "boot": "",
+      "hash": "#wc2026/bracket",
+      "step": "wc2026/bracket",
+      "want_tabs": true,
+      "ok": true
+    },
+    {
+      "title": "足球赛事预测器",
+      "h1": "足球赛事预测器",
+      "tabs": "none",
+      "verify": "none",
+      "boot": "",
+      "hash": "#home",
+      "step": "home",
+      "want_tabs": false,
+      "ok": true
+    },
+    {
+      "title": "⚽ 世界杯比分预测器",
+      "h1": "⚽ 世界杯比分预测器",
+      "tabs": "flex",
+      "verify": "block",
+      "boot": "",
+      "hash": "#wc2026/verify",
+      "step": "wc2026/verify",
+      "want_tabs": true,
+      "ok": true
+    }
+  ],
+  "ok": true
+}

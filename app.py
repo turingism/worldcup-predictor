@@ -167,7 +167,8 @@ def index():
     # 用户反复看到"点实时比分后布局崩坏"正是旧缓存页在跑旧 layoutBracket。
     resp = make_response(render_template("index.html", readonly=READONLY,
                                          event_keys=list(eventsmod.EVENTS),
-                                         event_alias=eventsmod.ALIASES))
+                                         event_alias=eventsmod.ALIASES,
+                                         event_default=eventsmod.DEFAULT))
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"
