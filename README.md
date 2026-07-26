@@ -51,7 +51,7 @@ Quote the stratified numbers, not the mixed one. **World-Cup-finals only** (2014
 
 ### The 2026 World Cup, settled in full
 
-All **104 matches** are played and scored. Every prediction was **frozen before kickoff** (3 were backfilled with leakage-protected as-of models, and are tagged as such), then checked against the real result:
+All **104 matches** are played and scored. Every prediction was **frozen before kickoff** — each row carries its `frozen_at` timestamp — then checked against the real result. 3 rows were backfilled with leakage-protected as-of models and are tagged `retro`. The ledger is committed to this repo, so the live demo shows the same pre-committed record rather than one rebuilt after the fact:
 
 | | |
 |---|---|
