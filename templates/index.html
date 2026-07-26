@@ -5,6 +5,57 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>⚽ 世界杯比分预测器</title>
 <script>
+/* 静态快照适配层（GitHub Pages）。动态服务下 STATIC_MODE=false，apiFetch 就是 fetch 本身，
+   零行为差异；静态导出时由 export_static.py 注入 true，改走 manifest 查表读预生成 JSON。
+   刻意只包一层取数：既有 render* 函数与错误分支一行不改，「未预生成」复用「查询失败」那条降级路径。
+   刻意不用 manifest：导出约 3 万个组合，映射表约 3MB，访客首次取数就得整个下载它。
+   改用确定性哈希直接算出文件路径，零索引零预载；没预生成就自然 404。
+   canon() 与 fnv1a64() 的口径必须与 export_static.py 同名函数逐字节一致——
+   任一改动都要同步改，否则全站取数落空。 */
+var STATIC_MODE = false;
+(function () {
+  function canon(u) {
+    var q = u.indexOf('?');
+    if (q < 0) return u;
+    var path = u.slice(0, q), sp = new URLSearchParams(u.slice(q + 1)), items = [];
+    sp.forEach(function (v, k) { items.push([k, v]); });
+    items.sort(function (a, b) {
+      return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0);
+    });
+    return path + '?' + items.map(function (p) { return p[0] + '=' + p[1]; }).join('&');
+  }
+  // FNV-1a 64 位，用 BigInt 保证与 Python 侧逐位相同
+  function fnv1a64(s) {
+    var bytes = new TextEncoder().encode(s);
+    var h = 0xcbf29ce484222325n, P = 0x100000001b3n, M = 0xffffffffffffffffn;
+    for (var i = 0; i < bytes.length; i++) { h ^= BigInt(bytes[i]); h = (h * P) & M; }
+    var hex = h.toString(16);
+    while (hex.length < 16) hex = '0' + hex;
+    return hex;
+  }
+  function jsonResp(obj, status) {
+    return new Response(JSON.stringify(obj), {
+      status: status, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  window.apiFetch = function (url, opts) {
+    if (!STATIC_MODE) return fetch(url, opts);
+    // 写接口在静态站不存在：回 403 并复用只读模式那套文案，前端已有分支能渲染
+    if (opts && opts.method && opts.method.toUpperCase() !== 'GET'
+        && !/\/api\/(champions|insights)\b/.test(url)) {
+      return Promise.resolve(jsonResp(
+        { ok: false, readonly: true, error: '静态快照：写操作（刷新/实时/录入假设）不可用。' }, 403));
+    }
+    var d = fnv1a64(canon(url));
+    return fetch('./api/' + d.slice(0, 2) + '/' + d + '.json').then(function (r) {
+      return r.ok ? r : jsonResp({ error: '静态快照未预生成此组合。' }, 404);
+    }, function () {
+      return jsonResp({ error: '静态快照未预生成此组合。' }, 404);
+    });
+  };
+})();
+</script>
+<script>
 /* 启动路由（同步、零网络，必须在首帧前跑完）——修的是「刷新时世界杯页面闪一下」：
    静态 HTML 本身就是世界杯页（title/页头/8 个 Tab/#verify 看板默认可见），而首页落地此前要等
    /api/events 返回才切换，闪动窗口 = 一次网络往返。这里先按 hash 给 <html> 打 boot 类，
@@ -997,7 +1048,7 @@ async function exReadCard(btn, homeEn, awayEn, slug){
   if(box.dataset.loaded){ return; }                                          // 已加载过，直接展开
   box.innerHTML='<span class="muted">读盘卡加载中…</span>';
   try{
-    const r=await fetch(`/api/explainer?home=${encodeURIComponent(homeEn)}&away=${encodeURIComponent(awayEn)}`);
+    const r=await apiFetch(`/api/explainer?home=${encodeURIComponent(homeEn)}&away=${encodeURIComponent(awayEn)}`);
     const d=await r.json();
     if(!r.ok || d.error){ box.innerHTML=`<span class="muted">${d.error||'该场暂无市场让球盘口，无读盘卡。'}</span>`; return; }
     if(!d.handicap_reading){ box.innerHTML='<span class="muted">该场暂无市场让球盘口，无读盘卡。</span>'; return; }
@@ -1027,7 +1078,7 @@ async function loadExplainer(){
   const box=$('#exres'); box.innerHTML='<div class="card spin">解读市场机制中…</div>';
   const h=encodeURIComponent(($('#ex_home').value||'').trim()), a=encodeURIComponent(($('#ex_away').value||'').trim());
   try{
-    const r=await fetch(`/api/explainer?home=${h}&away=${a}`); const d=await r.json();
+    const r=await apiFetch(`/api/explainer?home=${h}&away=${a}`); const d=await r.json();
     if(!r.ok || d.error){ box.innerHTML=`<div class="card muted">${d.error||'解读失败'}</div>`; return; }
     box.innerHTML=renderExplainer(d);
   }catch(e){ box.innerHTML=`<div class="card muted">解读失败：${e}</div>`; }
@@ -1207,7 +1258,7 @@ async function jcSubmitResult(){
 }
 
 // 载入球队列表
-fetch('/api/teams').then(r=>r.json()).then(ts=>{
+apiFetch('/api/teams').then(r=>r.json()).then(ts=>{
   $('#teams').innerHTML = ts.map(t=>`<option value="${t}">`).join('');
 });
 
@@ -1235,7 +1286,7 @@ async function champions(){
   const sims=$('#sims').value;
   const novr=Object.keys(OV).length;
   $('#champres').innerHTML = `<div class="card spin">模拟 ${sims} 次中…（约几秒）${novr?'（含'+novr+'场设定赛果）':''}</div>`;
-  const r = await fetch(`/api/champions?sims=${sims}`,{method:'POST',
+  const r = await apiFetch(`/api/champions?sims=${sims}`,{method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({overrides:Object.values(OV)})});
   const d = await r.json();
@@ -1268,7 +1319,7 @@ async function champions(){
 async function insightsPanel(){
   try{
     const novr=Object.keys(OV).length;
-    const r = await fetch(`/api/insights?sims=3000`,{method:'POST',
+    const r = await apiFetch(`/api/insights?sims=3000`,{method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({overrides:Object.values(OV)})});
     const d = await r.json();
@@ -1300,7 +1351,7 @@ async function insightsPanel(){
 // —— 关键球员可用性『上下文层』面板（补充层，非引擎核心）——
 async function availabilityPanel(){
   try{
-    const d = await (await fetch('/api/availability')).json();
+    const d = await (await apiFetch('/api/availability')).json();
     if(!d.active){ $('#availres').innerHTML=''; return; }
     const rolezh = {attack:'进攻',defence:'防守',all:'攻防'};
     $('#availres').innerHTML = `<div class="card">
@@ -1320,7 +1371,7 @@ async function availabilityPanel(){
 // —— 环境上下文层面板（海拔/高温，补充层）——
 async function environmentPanel(){
   try{
-    const d = await (await fetch('/api/environment')).json();
+    const d = await (await apiFetch('/api/environment')).json();
     if(!d.venues || !d.venues.length){ $('#envres').innerHTML=''; return; }
     const heatzh = {extreme:'🔥 极端高温',high:'☀️ 高温'};
     $('#envres').innerHTML = `<div class="card">
@@ -1358,12 +1409,12 @@ let OV={};  // what-if 赛果覆盖：key "home_en|away_en" -> {home,away,gh,ga}
 
 // —— 赛果录入/假设的持久化（存盘，刷新/重启不丢）——
 function persistOV(){  // 每次 OV 变更后同步到服务端（fire-and-forget）
-  fetch('/api/overrides',{method:'POST',headers:{'Content-Type':'application/json'},
+  apiFetch('/api/overrides',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({overrides:Object.values(OV)})}).catch(()=>{});
 }
 async function loadSavedOV(){  // 首次进入括号 tab 前回填已存盘的录入
   try{
-    const d=await (await fetch('/api/overrides')).json();
+    const d=await (await apiFetch('/api/overrides')).json();
     OV={};
     (d.overrides||[]).forEach(o=>{ if(o&&o.home&&o.away) OV[o.home+'|'+o.away]=o; });
   }catch(e){ /* 取不到就用空 OV，不阻塞 */ }
@@ -1521,7 +1572,7 @@ function groupsEditHTML(d){
 async function loadProjection(){
   $('#bracketres').innerHTML='<div class="card spin">投影计算中…</div>';
   $('#groupsedit').innerHTML='';
-  const d=await (await fetch('/api/project',{method:'POST',
+  const d=await (await apiFetch('/api/project',{method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({overrides:Object.values(OV)})})).json();
   const nov=Object.keys(OV).length;
@@ -1546,7 +1597,7 @@ async function loadProjection(){
 async function refreshFacts(btn){
   const old=btn.textContent; btn.textContent='拉取+重训评级中…'; btn.disabled=true;
   try{
-    const r=await (await fetch('/api/refresh',{method:'POST'})).json();
+    const r=await (await apiFetch('/api/refresh',{method:'POST'})).json();
     if(!r.ok) alert('刷新失败：'+(r.error||''));
   }catch(e){ alert('刷新失败：'+e); }
   btn.textContent=old; btn.disabled=false;
@@ -1558,7 +1609,7 @@ async function refreshFacts(btn){
 let _liveInflight=null;
 function postLive(){
   if(_liveInflight) return _liveInflight;
-  _liveInflight=fetch('/api/live',{method:'POST'}).then(r=>r.json())
+  _liveInflight=apiFetch('/api/live',{method:'POST'}).then(r=>r.json())
     .catch(e=>({ok:false,error:String(e)})).finally(()=>{ _liveInflight=null; });
   return _liveInflight;
 }
@@ -1622,12 +1673,12 @@ const secHead=(t,n)=>`<div class="dsec-h">${t}<span class="cnt">${n}</span></div
 
 async function loadDashboard(btn){
   if(btn){ btn.dataset.old=btn.textContent; btn.textContent='⚡ 拉取实时数据…'; btn.disabled=true;
-    try{ await fetch('/api/live',{method:'POST'}); }catch(e){}   // 先 ingest 完场+重训
+    try{ await apiFetch('/api/live',{method:'POST'}); }catch(e){}   // 先 ingest 完场+重训
   }
   const host=$('#dashres');
   if(!host.dataset.loaded) host.innerHTML='<div class="card spin">加载赛事看板…（首次可能需训练回溯模型，约 10 秒）</div>';
   try{
-    const d=await (await fetch('/api/dashboard'+(btn?'?fresh=1':''))).json();
+    const d=await (await apiFetch('/api/dashboard'+(btn?'?fresh=1':''))).json();
     renderDashboard(d); host.dataset.loaded='1';
   }catch(e){ host.innerHTML=`<div class="card err">✗ 看板加载失败：${e}</div>`; _dashFp=null; }
   if(btn){ btn.textContent=btn.dataset.old; btn.disabled=false; }
@@ -1690,7 +1741,7 @@ async function loadHandicapLedger(){
   const box=$('#hcledger'); if(!box||hcLedgerLoading) return;
   hcLedgerLoading=true;
   box.innerHTML='<div class="card spin">结算让球预测命中率…</div>';
-  let b; try{ b=await (await fetch('/api/handicap_ledger')).json(); }
+  let b; try{ b=await (await apiFetch('/api/handicap_ledger')).json(); }
   catch(e){ box.innerHTML=''; hcLedgerLoading=false; return; }
   hcLedgerLoading=false;
   if(!b||b.error||!b.n){ box.innerHTML=''; return; }
@@ -2009,7 +2060,7 @@ function renderDone(ev){
 // —— 实力榜（贝叶斯分层评级 + 94% 可信区间）——
 async function loadRatings(){
   $('#ratingsres').innerHTML='<div class="card spin">加载评级…</div>';
-  const d=await (await fetch('/api/ratings')).json();
+  const d=await (await apiFetch('/api/ratings')).json();
   if(!d.available || !d.rows.length){
     $('#ratingsres').innerHTML='<div class="card err">贝叶斯评级尚未生成。请在项目目录运行 <code>python3 bayes.py</code> 后刷新。</div>';
     return;
@@ -2278,7 +2329,7 @@ function valuePanel(d){
 }
 async function loadMarketDemo(){
   const host=$('#marketres'); host.innerHTML='<div class="card spin">生成合成演示数据…</div>';
-  try{ const d=await (await fetch('/api/market?demo=1')).json(); host.innerHTML=renderMarket(d); }
+  try{ const d=await (await apiFetch('/api/market?demo=1')).json(); host.innerHTML=renderMarket(d); }
   catch(e){ host.innerHTML=`<div class="card err">✗ ${e}</div>`; }
 }
 
@@ -2287,7 +2338,7 @@ let champCIpollTimer=null;
 async function loadChampCI(){
   const host=$('#champcires');
   try{
-    const d=await (await fetch('/api/champ_ci')).json();
+    const d=await (await apiFetch('/api/champ_ci')).json();
     host.innerHTML=renderChampCI(d);
     if(champCIpollTimer){ clearTimeout(champCIpollTimer); champCIpollTimer=null; }
     if(d.computing){ champCIpollTimer=setTimeout(loadChampCI, 15000); }  // 算完前每 15s 轮询拿新区间
@@ -2295,7 +2346,7 @@ async function loadChampCI(){
 }
 async function regenChampCI(btn){
   if(btn){ btn.disabled=true; btn.textContent='启动中…'; }
-  try{ const r=await (await fetch('/api/champ_ci/regen',{method:'POST'})).json();
+  try{ const r=await (await apiFetch('/api/champ_ci/regen',{method:'POST'})).json();
     if(r.readonly) alert('只读分享模式：无法重算区间。'); }
   catch(e){}
   loadChampCI();
@@ -2350,7 +2401,7 @@ async function loadManager(lineup){
   const home=$('#mg_home').value, away=$('#mg_away').value, neutral=$('#mg_neutral').checked?1:0;
   $('#mgres').innerHTML='<div class="card spin">'+(lineup?'⚡ 拉取真实首发名单、按确认阵容重算…':'正在获取过程数据、运行算法模型并生成报告…')+'</div>';
   let d;
-  try{ d=await (await fetch(`/api/manager?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&neutral=${neutral}${lineup?'&lineup=1':''}${mgMotivAdj?'&motiv_adj=1':''}`)).json(); }
+  try{ d=await (await apiFetch(`/api/manager?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&neutral=${neutral}${lineup?'&lineup=1':''}${mgMotivAdj?'&motiv_adj=1':''}`)).json(); }
   catch(e){ $('#mgres').innerHTML=`<div class="card err">✗ 请求失败：${e}</div>`; return; }
   if(d.error){ $('#mgres').innerHTML=`<div class="card err">✗ ${d.error}</div>`; return; }
   $('#mgres').innerHTML=renderManager(d);
@@ -2361,7 +2412,7 @@ async function loadFixtures(){
   const box=$('#mgfixtures'); if(!box) return;
   box.innerHTML='<div class="card spin">加载近期对战…</div>';
   $('#mgres').innerHTML='<div class="card muted">👆 点击上方任意对战，或在表单输入两队后点「生成报告」。</div>';
-  let d; try{ d=await (await fetch('/api/fixtures')).json(); }catch(e){ box.innerHTML=''; return; }
+  let d; try{ d=await (await apiFetch('/api/fixtures')).json(); }catch(e){ box.innerHTML=''; return; }
   // 建「对阵→口径」映射：东道主排主队槽的场次记 '0'（非中立），供手输对阵自动识别（mgAutoNeutral）。
   // 注意 /api/fixtures 的 host 是显示名（与 f.home 同码），不是英文名——别与 home_en 比。
   MG_FIXHOST={}; ((d&&d.fixtures)||[]).forEach(f=>{ MG_FIXHOST[f.home+'|'+f.away]=(f.host&&f.host===f.home)?'0':'1'; });
@@ -2403,7 +2454,7 @@ function mgPick(el){
 async function loadLineupLedger(){
   const box=$('#mgledger'); if(!box) return;
   box.innerHTML='<div class="card spin">📊 拉取近期完赛首发、补算「纯模型 vs 首发版」对比中…（约 10 秒）</div>';
-  let d; try{ d=await (await fetch('/api/lineup_ledger')).json(); }
+  let d; try{ d=await (await apiFetch('/api/lineup_ledger')).json(); }
   catch(e){ box.innerHTML='<div class="card err">✗ 记分卡加载失败</div>'; return; }
   if(d.error){ box.innerHTML=`<div class="card err">✗ ${d.error}</div>`; return; }
   box.innerHTML=renderLineupLedger(d);
@@ -2430,7 +2481,7 @@ async function loadXuanxue(force){
   if(force) $('#xxres').innerHTML='<div class="card spin">🔮 起卦排盘、结算赛果中…</div>';
   else if(!$('#xxres').innerHTML) $('#xxres').innerHTML='<div class="card spin">🔮 起卦排盘、结算赛果中…</div>';
   let b;
-  try{ b=await (await fetch('/api/xuanxue/board')).json(); }
+  try{ b=await (await apiFetch('/api/xuanxue/board')).json(); }
   catch(e){ $('#xxres').innerHTML=`<div class="card err">✗ 擂台加载失败：${e}</div>`; return; }
   if(b.error){ $('#xxres').innerHTML=`<div class="card err">✗ ${b.error}</div>`; return; }
   $('#xxres').innerHTML=renderXuanxue(b);
@@ -2812,7 +2863,7 @@ const evResolve = k => (EVENT_ALIAS[k] || k);
 const WC_SECTIONS = ['manager','bracket','champ','verify','market','explainer','jcreview','xuanxue'];
 let CUR_EVENT = 'wc2026', EVENTS_META = null, _evLoadP = null;
 function loadEvents(){
-  return _evLoadP || (_evLoadP = fetch('/api/events').then(r=>r.json())
+  return _evLoadP || (_evLoadP = apiFetch('/api/events').then(r=>r.json())
     .then(d=>{ EVENTS_META=d; renderEvbar(); })
     .catch(()=>{ EVENTS_META=null; _evLoadP=null; }));   // 失败清引用：下次入口调用可重拉，
 }                                                        // 否则一次网络抖动 L0 栏永久消失
@@ -2915,7 +2966,7 @@ let _homeP = null, _homeAt = 0, _homeData = null;
 function loadHomeData(){
   const fresh = Date.now() - _homeAt > 60000;
   if(_homeP && !fresh) return _homeP;
-  _homeP = fetch('/api/home').then(r=>{ if(!r.ok) throw new Error('home '+r.status); return r.json(); })
+  _homeP = apiFetch('/api/home').then(r=>{ if(!r.ok) throw new Error('home '+r.status); return r.json(); })
     .then(d=>{ _homeData = d; _homeAt = Date.now(); return d; })
     .catch(e=>{ _homeP = null; throw e; });          // 失败清引用：下次入口可重试
   return _homeP;
@@ -3081,7 +3132,7 @@ async function evClubPredict(key){
   if(!h||!a||!out||!h.value.trim()||!a.value.trim()) return;
   out.innerHTML='<div class="card spin">计算中…</div>';
   try{
-    const r=await fetch(`/api/club/predict?event=${key}&home=${encodeURIComponent(h.value)}&away=${encodeURIComponent(a.value)}&neutral=${$('#ev_neutral')&&$('#ev_neutral').checked?1:0}&detail=1`);
+    const r=await apiFetch(`/api/club/predict?event=${key}&home=${encodeURIComponent(h.value)}&away=${encodeURIComponent(a.value)}&neutral=${$('#ev_neutral')&&$('#ev_neutral').checked?1:0}&detail=1`);
     const d=await r.json();
     out.innerHTML = r.ok ? evPredCard(d)+evMatchupDetail(d)
       : `<div class="card"><span class="muted">${d.error||'查询失败'}${d.suggest&&d.suggest.length?'；你是想找：'+d.suggest.join(' / '):''}</span></div>`;
@@ -3124,7 +3175,7 @@ async function evNlPredict(key){
   if(!h||!a||!out||!h.value.trim()||!a.value.trim()) return;
   out.innerHTML='<div class="card spin">计算中…</div>';
   try{
-    const r=await fetch(`/api/predict?event=${key}&home=${encodeURIComponent(h.value)}&away=${encodeURIComponent(a.value)}&neutral=${$('#ev_neutral')&&$('#ev_neutral').checked?1:0}`);
+    const r=await apiFetch(`/api/predict?event=${key}&home=${encodeURIComponent(h.value)}&away=${encodeURIComponent(a.value)}&neutral=${$('#ev_neutral')&&$('#ev_neutral').checked?1:0}`);
     const d=await r.json();
     if(!r.ok){ out.innerHTML=`<div class="card"><span class="muted">${d.error||'查询失败'}</span></div>`; return; }
     out.innerHTML=evPredCard({home_disp:d.home, away_disp:d.away,
@@ -3163,7 +3214,7 @@ function evGet(key, kind){              // kind: 'overview' | 'seasonsim' | 'mar
   // 失败与 not_wired 占位不留缓存（占位当正常数据缓存会永久误显空态）。
   EV_DATA[key] = EV_DATA[key] || {};
   if(!EV_DATA[key][kind]){
-    const p = fetch(`/api/club/${kind}?event=${key}`).then(async r=>{
+    const p = apiFetch(`/api/club/${kind}?event=${key}`).then(async r=>{
       if(!r.ok) throw new Error(kind+' '+r.status);
       const d = await r.json();
       if(d && d.status==='not_wired'){ const e=new Error('not_wired'); e.notWired=true; throw e; }

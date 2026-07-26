@@ -3267,3 +3267,69 @@ def test_boot_header_default_preserved_for_wc():
     assert "window.__HDR_DEF" in src[:src.index("</head>")]        # title 在 head 就存下
     i = src.index("const _HDR_DEF")
     assert "window.__HDR_DEF" in src[i:i + 300]                    # 主脚本优先读它
+
+
+# ——— 静态导出（GitHub Pages）：Python 与前端 shim 的取数口径契约 ———
+# 静态站靠「同一个 URL 在两侧算出同一个文件名」工作。任一侧改了 canon()/fnv1a64()
+# 而另一侧没跟，全站取数会静默落空（页面不报错，只是每个请求都 404 降级）——
+# 故用金标准向量把两侧口径钉死：本测试变红时，templates/index.html 里的
+# canon()/fnv1a64() 必须同步改，且下面的期望值要用 node 重新对拍后再更新。
+_STATIC_HASH_VECTORS = [
+    ("/api/home", "dc317310f27716d4"),
+    # emoji 国旗 + 中文队名 + 参数乱序（前端实际发出的就是这种）
+    ("/api/predict?event=wc2026&home=%F0%9F%87%A7%F0%9F%87%B7%20%E5%B7%B4%E8%A5%BF"
+     "&away=%F0%9F%87%AB%F0%9F%87%B7%20%E6%B3%95%E5%9B%BD&neutral=0",
+     "f2e4d39092be7d0c"),
+    # 队名含空格与撇号（football-data 拼写：Ath Madrid / Nott'm Forest）
+    ("/api/club/predict?event=epl2627&home=Ath%20Madrid&away=Nott%27m%20Forest"
+     "&neutral=1&detail=1", "47e39b6332a462ce"),
+    ("/api/manager?away=B&home=A&neutral=1", "a40a04f5df34fc26"),
+    ("/api/champions?sims=10000", "70c7269fc238a27c"),
+]
+
+
+def _load_export_helpers():
+    """只取 export_static 的纯函数——直接 import 会触发模块级模型训练。"""
+    import ast
+    from urllib.parse import parse_qsl, urlparse
+    src = open(_os.path.join(_os.path.dirname(__file__), "export_static.py"),
+               encoding="utf-8").read()
+    tree = ast.parse(src)
+    keep = [n for n in tree.body
+            if (isinstance(n, ast.FunctionDef) and n.name in {"canon", "fnv1a64", "path_for"})
+            or (isinstance(n, ast.Assign)
+                and getattr(n.targets[0], "id", "").startswith(("_FNV", "_MASK")))]
+    ns = {"parse_qsl": parse_qsl, "urlparse": urlparse}
+    exec(compile(ast.Module(body=keep, type_ignores=[]), "<export_static>", "exec"), ns)
+    return ns
+
+
+def test_static_export_hash_vectors_frozen():
+    """金标准向量：改了口径就得两侧一起改（期望值需用 node 重新对拍）。"""
+    ns = _load_export_helpers()
+    for url, expect in _STATIC_HASH_VECTORS:
+        assert ns["fnv1a64"](ns["canon"](url)) == expect, f"口径漂移：{url}"
+
+
+def test_static_export_canon_is_order_and_encoding_insensitive():
+    """参数顺序与百分号编码不得影响取数——否则同一请求会落到两个文件。"""
+    ns = _load_export_helpers()
+    c = ns["canon"]
+    assert c("/api/predict?home=A&away=B") == c("/api/predict?away=B&home=A")
+    assert c("/api/predict?home=Ath%20Madrid") == c("/api/predict?home=Ath+Madrid")
+    assert c("/api/home") == "/api/home"                      # 无参数不加问号
+    # 分片目录取哈希前两位，避免单目录几万文件
+    assert ns["path_for"]("/api/home") == "api/dc/dc317310f27716d4.json"
+
+
+def test_frontend_static_shim_present_and_off_by_default():
+    """动态服务下 STATIC_MODE 必须是 false，且全部 /api/ 取数都走 apiFetch。"""
+    import re
+    src = open(_os.path.join(_os.path.dirname(__file__), "templates", "index.html"),
+               encoding="utf-8").read()
+    assert "var STATIC_MODE = false;" in src                   # 导出器按这行原文替换
+    head = src[:src.index("</script>")]                        # shim 块自身不该被改写
+    assert "window.apiFetch" in head
+    body = src[src.index("</script>"):]
+    leaked = re.findall(r"(?<!api)\bfetch\(\s*[`'\"]/api/", body)
+    assert not leaked, f"有 {len(leaked)} 处 /api/ 取数漏改成 apiFetch，静态站上会 404"

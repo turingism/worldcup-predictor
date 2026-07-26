@@ -1,0 +1,77 @@
+# 静态快照发布到 GitHub Pages。
+#
+# 为什么把重活放这里：标准 ubuntu-latest runner 是 4 核 / 16GB（公开仓库免费且无限量），
+# 而本项目冷启动回溯验证峰值约 3GB、/api/market 单接口峰值约 1.1GB、预热约 262 秒——
+# 这些在任何免费的托管运行时里都跑不动，放构建期就全部消失，线上只发算好的文件。
+#
+# 触发：推 main 自动跑；也可在 Actions 页手动触发。
+# 若想每日自动刷新数据快照，取消下面 schedule 的注释即可（无需本机开机）。
+
+name: Deploy static snapshot to Pages
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'skill/**'
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '0 22 * * *'      # 每日 UTC 22:00 = 北京 06:00
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同时只保留一次发布；进行中的不打断（构建约 10 分钟，打断会浪费整轮预热）
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # 版本区间与本地实测环境一致（numpy 2.4.6 / pandas 3.0.3 通过）。
+      # 不装 pymc：仅 bayes.py 的实力榜可信区间用得上，体积巨大，缺失时前端有提示。
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install "numpy>=2.4,<3" "pandas>=3.0,<4" "scipy>=1.18,<2" \
+                      "statsmodels>=0.14,<1" "flask>=3.1,<4" "requests>=2.32"
+
+      # 训练模型 + 烤热看板与五大联赛缓存。失败软处理，导出阶段会自愈（只是慢）。
+      - name: 预热
+        run: python warmup.py
+
+      # 不带 READONLY：导出器要真实数据，只读守卫会把 champions/insights 挡成 403
+      - name: 静态导出
+        run: python export_static.py --out dist
+
+      - name: 汇总产物
+        run: |
+          echo "文件数: $(find dist -type f | wc -l)"
+          echo "体积:   $(du -sh dist | cut -f1)"
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
