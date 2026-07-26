@@ -12,7 +12,7 @@ Dixon-Coles 双泊松引擎，用 1872–2026 全部国际比赛训练，另有�
 > *This is a personal, educational open-source project for statistical modeling and programming study only. It is **not** betting, investment, or any other advice. The author accepts **no liability** for anyone's use of it or for **any gambling/betting activity directly or indirectly associated with it**. All outputs are probabilistic estimates — probability is not certainty; gambling is negative-EV for most people over time and is legally restricted in many jurisdictions. You bear all risk and legal responsibility. Provided "as is" without warranty.*
 
 <p align="center">
-  <img src="./docs/screenshot-dashboard.png" alt="赛事看板：正在比赛 / 即将开赛 / 已结束三态同屏，按日分组的预测与每场深度报告入口" width="820">
+  <img src="./docs/screenshot-home.png" alt="跨赛事首页总览：七个赛事按国家队与俱乐部分组、分源数据新鲜度、赛季启动时间轴，验证账本按赛事严格隔离" width="820">
 </p>
 
 ---
@@ -48,6 +48,23 @@ Dixon-Coles 双泊松引擎，用 1872–2026 全部国际比赛训练，另有�
 | **净胜球相关系数** | **65%** | 高盛自己用的指标 |
 
 要引用就引用**分层数字**，别引用这个混合口径。**仅世界杯正赛**（2014/18/22/26 合并，n=295）是 RPS 0.186 / 命中 61.0% CI[55.6, 66.8]——而在 2026 年同一批比赛上，**博彩闭盘线仍然赢过模型**（0.1462 vs 0.1514）。这个差距被如实报告而不是藏起来，这也正是本项目任何地方都没有投注建议界面的原因。
+
+### 2026 世界杯已整届结算
+
+**104 场全部踢完并逐场对账**。每条预测都在**开球前冻结**（其中 3 场是用防泄漏的 as-of 模型回溯补录的，已如实标注），赛后与真实结果核对：
+
+| | |
+|---|---|
+| **赛果命中率** | **70 / 104 = 67.3%** |
+| **平均 RPS** | **0.1528** |
+| 精确比分命中 | 15 / 104 = 14.4% |
+| 赋予实际赛果的平均概率 | 0.479 |
+
+两项都优于长期回测基线（59.7% / 0.1624）——但这是**赛事顺，不是模型变强了**：引擎自修掉时间泄漏起就没动过。底下的结构才是诚实的部分：全场 **24 场平局只叫中 1 场**，而"被逼平"占了 34 次失手中的 **23** 次；高把握档（≥60%）命中 78.4%。**argmax 几乎永远不会输出"平局"**——这是所有概率模型共同的天花板，不是本模型的缺陷。
+
+<p align="center">
+  <img src="./docs/screenshot-verify.png" alt="最终验证账本：104 场、赛果命中 67.3%、平均 RPS 0.1528，含置信度分桶与失手归因" width="820">
+</p>
 
 那些听起来很聪明、但**被回测否决**的做法（省得你交学费）：身价先验 · 动态 Elo（替换 / 集成 / 收缩先验三种形态）· 赛事分级加权 · 负二项过离散 · Isotonic/Platt 后校准 · 平局决策规则 · 中立场倾斜 · ρ 近期性重拟 · 分洲半衰期。
 

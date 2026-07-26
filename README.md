@@ -12,7 +12,7 @@ A Dixon-Coles double-Poisson engine fit on every international match from 1872�
 > *本项目为**个人学习与技术研究的开源作品**，仅用于统计建模、数据分析与编程学习，**不构成任何形式的投注、投资或决策建议**。作者不对任何人使用本项目、以及由此**直接或间接关联的任何赌球、博彩等行为及其后果**承担任何责任。概率不等于确定结果；博彩长期对绝大多数人 EV 为负且多地受法律限制。一切风险与法律责任由使用者自负。按"现状"提供，不附带任何担保。*
 
 <p align="center">
-  <img src="./docs/screenshot-dashboard.png" alt="Match dashboard: live / upcoming / finished in one view, with day-grouped predictions and a per-match deep-report button" width="820">
+  <img src="./docs/screenshot-home.png" alt="Cross-event home overview: seven events grouped by national teams and clubs, per-source data freshness, season start timeline, and per-event verification ledgers kept strictly separate" width="820">
 </p>
 
 ---
@@ -48,6 +48,23 @@ Out-of-sample over ~1,388 international matches, trained only on pre-cutoff data
 | **Goal-diff correlation** | **65%** | Goldman's own metric |
 
 Quote the stratified numbers, not the mixed one. **World-Cup-finals only** (2014/18/22/26 pooled, n=295) is RPS 0.186 / hit 61.0% CI[55.6, 66.8] — and on identical 2026 matches the bookmaker's closing line still beat the model (0.1462 vs 0.1514). That gap is reported rather than buried, and it is why this project has no betting-advice surface anywhere.
+
+### The 2026 World Cup, settled in full
+
+All **104 matches** are played and scored. Every prediction was **frozen before kickoff** (3 were backfilled with leakage-protected as-of models, and are tagged as such), then checked against the real result:
+
+| | |
+|---|---|
+| **Result hit-rate** | **70 / 104 = 67.3%** |
+| **Mean RPS** | **0.1528** |
+| Exact scoreline | 15 / 104 = 14.4% |
+| Mean probability assigned to what actually happened | 0.479 |
+
+Both beat the long-run backtest baseline (59.7% / 0.1624) — a good tournament, not a better model; the engine has been frozen since the time-leak fix. The honest structure underneath: of **24 draws** the model called exactly **1**, and being held to a draw accounts for **23** of the 34 misses. On the high-confidence bucket (≥60%) it hit 78.4%. **argmax almost never outputs "draw"** — the shared ceiling of every probability model, not a defect of this one.
+
+<p align="center">
+  <img src="./docs/screenshot-verify.png" alt="Final verification ledger: 104 matches, 67.3% result hit-rate, RPS 0.1528, with confidence buckets and miss attribution" width="820">
+</p>
 
 Things that sound clever and were **rejected by backtest**, so you don't pay the sucker's tax: market-value priors · dynamic Elo (as replacement, ensemble, or shrinkage prior) · tournament-tier weighting · negative-binomial over-dispersion · isotonic/Platt post-calibration · draw-aware decision rules · neutral-venue tilt · ρ recency refit · per-confederation half-life.
 
