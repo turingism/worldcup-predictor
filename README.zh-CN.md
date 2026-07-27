@@ -138,6 +138,12 @@ python3 export_static.py --out dist    # 预渲染 API 面
 
 ---
 
+## 开源协议
+
+MIT，见 [`LICENSE`](./LICENSE)。无论以何种方式使用，上方免责声明同样适用。
+
+---
+
 ## 方法源流
 
 Maher (1982) 泊松进球建模 · Dixon & Coles (1997) 低比分相关性修正与时间加权 · Lee (1997) 独立双泊松基线 · Shin (1992) 去抽水用于读市场价格 · Fjelstul World Cup DB 用于重构 90 分钟比分 · martj42 国际比赛结果数据集 · football-data.co.uk 俱乐部数据与赔率。

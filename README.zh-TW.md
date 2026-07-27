@@ -138,6 +138,12 @@ python3 export_static.py --out dist    # 預先算出 API 面
 
 ---
 
+## 開源協議
+
+MIT，見 [`LICENSE`](./LICENSE)。無論以何種方式使用，上方免責聲明同樣適用。
+
+---
+
 ## 方法源流
 
 Maher (1982) 泊松進球建模 · Dixon & Coles (1997) 低比分相關性修正與時間加權 · Lee (1997) 獨立雙泊松基線 · Shin (1992) 去抽水用於讀市場價格 · Fjelstul World Cup DB 用於重構 90 分鐘比分 · martj42 國際比賽結果資料集 · football-data.co.uk 俱樂部資料與賠率。

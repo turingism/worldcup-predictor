@@ -138,6 +138,12 @@ Operations manual for AI coding agents: **[`skill/SKILL.md`](./skill/SKILL.md)**
 
 ---
 
+## License
+
+MIT — see [`LICENSE`](./LICENSE). The disclaimer above applies regardless of licence.
+
+---
+
 ## Method provenance
 
 Maher (1982) for Poisson goal modeling · Dixon & Coles (1997) for the low-score correlation correction and time weighting · Lee (1997) for the independent double-Poisson baseline · Shin (1992) de-vigging for reading market prices · Fjelstul World Cup DB for 90-minute score reconstruction · martj42's international results dataset · football-data.co.uk for club data and odds.
