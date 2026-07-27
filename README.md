@@ -2,6 +2,8 @@
 
 <p align="right"><strong>English</strong> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./README.zh-TW.md">繁體中文</a></p>
 
+[![SkillSafe verified](https://api.skillsafe.ai/v1/badge/@melvin/football-match-forecasting/verified)](https://skillsafe.ai/skill/@melvin/football-match-forecasting/) [![Installs](https://api.skillsafe.ai/v1/badge/@melvin/football-match-forecasting/installs)](https://skillsafe.ai/skill/@melvin/football-match-forecasting/) [![Scan](https://api.skillsafe.ai/v1/badge/@melvin/football-match-forecasting/scan)](https://skillsafe.ai/skill/@melvin/football-match-forecasting/)
+
 ### **[▶ Open the live demo](https://turingism.github.io/worldcup-predictor/)** — nothing to install, no API key
 
 A Dixon-Coles double-Poisson engine fit on every international match from 1872–2026, plus per-league models for Europe's top five. Every number is falsifiable: any model change must beat the baseline in an out-of-sample backtest, or it doesn't ship.

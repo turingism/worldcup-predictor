@@ -2,6 +2,8 @@
 
 <p align="right"><a href="./README.md">English</a> · <strong>简体中文</strong> · <a href="./README.zh-TW.md">繁體中文</a></p>
 
+[![SkillSafe verified](https://api.skillsafe.ai/v1/badge/@melvin/football-match-forecasting/verified)](https://skillsafe.ai/skill/@melvin/football-match-forecasting/) [![Installs](https://api.skillsafe.ai/v1/badge/@melvin/football-match-forecasting/installs)](https://skillsafe.ai/skill/@melvin/football-match-forecasting/) [![Scan](https://api.skillsafe.ai/v1/badge/@melvin/football-match-forecasting/scan)](https://skillsafe.ai/skill/@melvin/football-match-forecasting/)
+
 ### **[▶ 打开在线版](https://turingism.github.io/worldcup-predictor/)** —— 不用装、不用配 API key
 
 Dixon-Coles 双泊松引擎，用 1872–2026 全部国际比赛训练，另有欧洲五大联赛各自独立的俱乐部模型。每个数字都可证伪：任何模型改动**必须在样本外回测里赢过基线**，否则不采用。

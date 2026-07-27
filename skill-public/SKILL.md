@@ -19,7 +19,7 @@ tags: football, soccer, forecasting, dixon-coles, poisson, backtesting, calibrat
 github_repo_url: https://github.com/turingism/worldcup-predictor
 metadata:
   author: melvin
-  version: "1.0"
+  version: "1.0.0"
   demo: https://turingism.github.io/worldcup-predictor/
 ---
 

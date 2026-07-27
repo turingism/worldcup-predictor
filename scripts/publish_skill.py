@@ -75,10 +75,15 @@ def load_skill() -> tuple[bytes, dict]:
     for field in ("name", "description"):
         if not fm.get(field):
             sys.exit(f"✗ frontmatter 缺少必填字段 {field}")
+    # 平台要求严格 semver MAJOR.MINOR.PATCH；写成 "1.0" 会在上传时 400，
+    # 而那时授权已经消耗掉了——所以必须在联网前就拦住
+    ver = str(fm.get("metadata", {}).get("version", ""))
+    if not re.fullmatch(r"\d+\.\d+\.\d+", ver):
+        sys.exit(f"✗ metadata.version 必须是 MAJOR.MINOR.PATCH（当前 {ver!r}）")
     return raw, fm
 
 
-def device_login() -> tuple[str, str]:
+def device_login(auto_open: bool = True) -> tuple[str, str]:
     """设备授权流。返回 (api_key, namespace)。key 只在内存里流转。"""
     r = _post("/v1/auth/cli", {"label": f"publish-skill-{uuid.uuid4().hex[:8]}"})
     d = r["data"] if "data" in r else r
@@ -87,10 +92,11 @@ def device_login() -> tuple[str, str]:
     print("\n请在浏览器里批准这次授权：")
     print(f"  {login_url}\n")
     # 文档明确：login_url 必须原样使用，且 shell 里要引号包裹（zsh 下 ? 是通配符）
-    try:
-        subprocess.run(["open", login_url], check=False)
-    except Exception:
-        print("  （自动打开失败，请手动复制上面的链接）")
+    if auto_open:
+        try:
+            subprocess.run(["open", login_url], check=False)
+        except Exception:
+            print("  （自动打开失败，请手动复制上面的链接）")
 
     print("等待批准中… 批准后【不要刷新或重开那个页面】——", end="")
     print("页面自身的状态检查会消耗掉一次性的 key。")
@@ -160,6 +166,8 @@ def publish(key: str, namespace: str, raw: bytes, fm: dict) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true", help="只做本地校验，不联网")
+    ap.add_argument("--no-open", action="store_true",
+                    help="不自动开浏览器（调用方自行打开 login_url）")
     args = ap.parse_args()
 
     raw, fm = load_skill()
@@ -170,7 +178,7 @@ def main() -> int:
         print("\n--dry-run：到此为止，未联网、未发布。")
         return 0
 
-    key, namespace = device_login()
+    key, namespace = device_login(auto_open=not args.no_open)
     try:
         publish(key, namespace, raw, fm)
     finally:
