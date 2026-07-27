@@ -25,14 +25,19 @@ import time
 import urllib.request
 import uuid
 
-API = "https://deploy.skillsafe.ai"
+API = "https://deploy.skillsafe.ai"        # 官方 agent 通道；api.skillsafe.ai 等价可换
 SKILL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                           "skill-public", "SKILL.md")
+
+# 必须显式给 UA：站点在 Cloudflare 后面，默认的 `Python-urllib/3.x` 会被规则 1010
+# 直接 403（实测：同一端点换任意其它 UA 即 201）。这里如实标明身份，不伪装浏览器。
+UA = "worldcup-predictor-publish/1.0 (+https://github.com/turingism/worldcup-predictor)"
 
 
 def _post(path: str, payload: dict | None = None, key: str | None = None) -> dict:
     data = json.dumps(payload).encode() if payload is not None else None
     req = urllib.request.Request(API + path, data=data, method="POST")
+    req.add_header("User-Agent", UA)
     if data:
         req.add_header("Content-Type", "application/json")
     if key:
@@ -43,6 +48,7 @@ def _post(path: str, payload: dict | None = None, key: str | None = None) -> dic
 
 def _get(path: str, key: str | None = None) -> dict:
     req = urllib.request.Request(API + path)
+    req.add_header("User-Agent", UA)
     if key:
         req.add_header("Authorization", f"Bearer {key}")
     with urllib.request.urlopen(req, timeout=30) as r:
@@ -135,6 +141,7 @@ def publish(key: str, namespace: str, raw: bytes, fm: dict) -> None:
                                  data=body, method="POST")
     req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
     req.add_header("Authorization", f"Bearer {key}")
+    req.add_header("User-Agent", UA)
     try:
         with urllib.request.urlopen(req, timeout=120) as r:
             resp = json.loads(r.read())
