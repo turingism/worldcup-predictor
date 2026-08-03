@@ -3450,3 +3450,23 @@ def test_frontend_static_shim_present_and_off_by_default():
     body = src[src.index("</script>"):]
     leaked = re.findall(r"(?<!api)\bfetch\(\s*[`'\"]/api/", body)
     assert not leaked, f"有 {len(leaked)} 处 /api/ 取数漏改成 apiFetch，静态站上会 404"
+
+
+def test_comp_tier_championship_collision_locked():
+    """clubpredict 升班马路径的前提：comp_tier 把英冠判为 major（'championship' 关键词
+    撞车，本意是欧锦赛）、EPL 判为 other——两 tier 可分，E1 降权才有 comp_weights 通道。
+    此映射一变，PROMOTED_E1_W 通道静默失效，本测试必须先红。"""
+    from data import comp_tier
+    assert comp_tier("English Championship") == "major"
+    assert comp_tier("English Premier League") == "other"
+
+
+def test_promoted_resolution_offline():
+    """升班马解析纯函数：中文/英文/大小写命中，非升班马与空池返回 None。"""
+    import clubpredict
+    assert clubpredict.PROMOTED_E1_W == 0.25
+    promoted = {"Coventry", "Hull"}
+    assert clubpredict.resolve_promoted("考文垂", promoted) == "Coventry"
+    assert clubpredict.resolve_promoted("hull", promoted) == "Hull"
+    assert clubpredict.resolve_promoted("曼城", promoted) is None
+    assert clubpredict.resolve_promoted("考文垂", set()) is None
