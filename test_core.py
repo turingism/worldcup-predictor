@@ -2074,7 +2074,9 @@ def test_club_overview_upcoming(client, monkeypatch):
     up = d["upcoming"]
     assert "rows" in up and (up["rows"] or up["reason"])            # 无场次必须给原因
     assert up["timezone"] == "Asia/Shanghai" and up["fixtures_source"]
-    sched = _sched([(2, 20, "Arsenal", "Chelsea"), (2, 22, "Coventry", "Sunderland")])
+    # 第二场用虚构队名：升班马（考文垂/赫尔城）自 E1 降权合训采纳后已能出数，
+    # 「池外→暂无数据」这条不变量得用真正池外的队来验。
+    sched = _sched([(2, 20, "Arsenal", "Chelsea"), (2, 22, "Nowhere United FC", "Sunderland")])
     fx = pd.DataFrame({                                            # 盘口源：只有一场有盘
         "div": ["E0"], "date": [pd.Timestamp.now().normalize() + pd.Timedelta(days=2, hours=15)],
         "home_team": ["Arsenal"], "away_team": ["Chelsea"],
@@ -2088,8 +2090,65 @@ def test_club_overview_upcoming(client, monkeypatch):
     r0 = next(r for r in rows if r["home"] == "Arsenal")
     assert abs(r0["p_home"] + r0["p_draw"] + r0["p_away"] - 1.0) < 1e-3
     assert r0["b365"] == [1.5, 4.2, 6.0] and r0["home_disp"] and r0["time"] == "20:00"
-    r1 = next(r for r in rows if r["home"] == "Coventry")
-    assert r1.get("no_model") is True and "b365" not in r1          # 池外新队诚实「暂无数据」
+    r1 = next(r for r in rows if r["home"] == "Nowhere United FC")
+    assert r1.get("no_model") is True and "b365" not in r1          # 真池外队诚实「暂无数据」
+
+
+def test_club_predict_resolves_promoted_newcomer(client):
+    """升班马新面孔（常规 E0 池外）在 Web 层可解析并出数，且必须标出 basis 与合训口径。
+    无赛程缓存时该通道自动关闭（promoted 为空）→ 跳过，不因缺网变红。"""
+    import app as appmod
+    if not appmod._promoted_newcomers("E0"):
+        pytest.skip("本机无 ESPN 赛程缓存，升班马通道关闭")
+    d = client.get("/api/club/predict?event=epl2627&home=阿森纳&away=考文垂&detail=1").get_json()
+    assert d.get("basis") == "promoted_cotrained" and d["promoted"] == ["Coventry"]
+    assert d["promoted_e1_weight"] == 0.25 and d["promoted_note"]
+    assert abs(d["p_home"] + d["p_draw"] + d["p_away"] - 1.0) < 1e-3
+    assert "英冠" in d["facts"]["strength_note"]          # 过程数据帧含英冠必须写明
+    assert d["facts"]["home"]["recent"]["matches"]        # 合并帧后近况不再整片空白
+
+
+def test_jc_review_club_promoted_entry(client, tmp_path, monkeypatch):
+    """竞彩复盘联赛入口同样认升班马（用户最初就是拿英超首轮竞彩截图来的），
+    且三个消费方（看板/单场/竞彩）必须同模型同数字——口径分叉就是同一场两个答案。
+    红线沿用：预览里不得出现任何「率」/推荐字样。"""
+    import app as appmod
+    import jc_review as jc
+    if not appmod._promoted_newcomers("E0"):
+        pytest.skip("本机无 ESPN 赛程缓存，升班马通道关闭")
+    monkeypatch.setattr(jc, "store_path", lambda k="wc2026": str(tmp_path / "jc.json"))
+    mp = client.get("/api/jc_review?event=epl2627&home=阿森纳&away=考文垂").get_json()["model_preview"]
+    assert mp["home_en"] == "Arsenal" and mp["away_en"] == "Coventry"
+    assert mp["basis"] == "promoted_cotrained" and mp["promoted_note"]
+    assert mp["is_knockout"] is False                       # 联赛恒非淘汰赛，红线不变
+    cp = client.get("/api/club/predict?event=epl2627&home=阿森纳&away=考文垂").get_json()
+    assert abs(mp["p_home"] - cp["p_home"]) < 1e-3          # 同模型同数字（predict 端点四舍五入到 4 位）
+    for banned in ("胜率", "准确率", "命中率", "推荐", "ROI"):
+        assert banned not in mp["promoted_note"]
+
+
+def test_club_predict_non_promoted_unchanged(client):
+    """纯英超对阵零改动：仍走 league 基准模型，且不带任何升班马字段。"""
+    d = client.get("/api/club/predict?event=epl2627&home=阿森纳&away=曼城").get_json()
+    assert d.get("basis") == "league"
+    assert "promoted" not in d and "promoted_note" not in d
+
+
+def test_club_upcoming_marks_promoted_basis_per_row(client, monkeypatch):
+    """同一张表里两种口径必须逐行可辨：升班马行 basis=promoted_cotrained、
+    纯英超行 basis=league——混在一起不标就是把不同口径的数字并列展示。"""
+    import app as appmod
+    import clubdata, clubfixtures
+    if not appmod._promoted_newcomers("E0"):
+        pytest.skip("本机无 ESPN 赛程缓存，升班马通道关闭")
+    monkeypatch.setattr(clubfixtures, "load", lambda code, refresh=False: _sched(
+        [(2, 19, "Arsenal", "Coventry"), (2, 21, "Everton", "Chelsea")]))
+    monkeypatch.setattr(clubdata, "load_fixtures", lambda code=None, refresh=False: None)
+    up = client.get("/api/club/overview?event=epl2627").get_json()["upcoming"]
+    by = {r["home"]: r for r in up["rows"]}
+    assert by["Arsenal"]["basis"] == "promoted_cotrained" and "no_model" not in by["Arsenal"]
+    assert by["Everton"]["basis"] == "league"
+    assert up["promoted_e1_weight"] == 0.25 and up["promoted_note"]
 
 
 def test_club_overview_upcoming_next_round_fallback(client, monkeypatch):

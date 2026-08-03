@@ -2,6 +2,46 @@
 
 体例：每轮记录做了什么、如何验证、证据路径、遗留问题。「未验证」按纪律如实标注。
 
+## 2026-08-03（二十二轮）升班马合训模型接进 Web 三个消费方
+
+### 触发
+二十一轮采纳了 E1 降权 w=0.25 合训，但只接在 clubpredict CLI 层。用户问「暂无数据的球队是
+因为什么」时实测发现：`/api/club/predict?home=阿森纳&away=考文垂` 返回「找不到球队」，
+看板首轮两场仍 no_model——**模型已有，网页侧一处没接**。
+
+### 做了什么
+1. **app 层两个共用函数，不另起一套**：`_promoted_newcomers(code)`（按 E0/E1 CSV +
+   ESPN 赛程缓存 mtime 记忆化；每请求重算要读十几个 CSV。异常一律退化空集=通道关闭）、
+   `_club_model_for(code, teams, promoted)`（涉升班马→合训模型，否则纯联赛模型）。
+   判定/解析/模型三件全部复用 clubpredict 既有函数（`promoted_newcomers` /
+   `resolve_promoted` / `get_promoted_model`）。
+2. **三个消费方接同一对函数**：`/api/club/overview` 的 upcoming 逐行选模型；
+   `/api/club/predict` 常规池解析失败时用 `resolve_promoted` 兜底；`/api/jc_review`
+   club 分支同样（用户最初就是拿英超首轮竞彩截图来的，这里不接等于没接）。
+   实测三处概率同源：阿森纳 vs 考文垂 0.8175/0.1275/0.0551。
+3. **口径逐行标出**：响应带 `basis` ∈ {league, promoted_cotrained} +
+   `promoted_e1_weight` + `promoted_note`；看板逐行显示「升班马合训估算（英冠权重 0.25）」，
+   单场卡与竞彩预览加脚注。**同表两种口径不标就是把不同模型的数字并列展示。**
+4. **对阵分析过程数据帧并英冠**：升班马在英超帧零场次，近况/主客拆分/交锋整片空白；
+   `facts` 帧改用 E0+E1 合并帧，`strength_note` 追加「本场过程数据帧含英冠场次」。
+   `data_through` 同步取两帧较晚者。
+
+### 验证
+- `pytest test_core.py -q` **224 passed**（新增 4：单场解析升班马并标 basis、纯英超零改动、
+  看板逐行 basis 可辨、竞彩入口同模型同数字且红线无「率」）。旧用例
+  `test_club_overview_upcoming` 里拿考文垂当「池外队」的断言已失效——改用虚构队名
+  `Nowhere United FC` 验同一条不变量（改判理由：考文垂现在有模型了，不是放宽断言）。
+- 实测英超首轮 10 场全部出数（原 2 场 no_model）；纯英超行逐位不变（埃弗顿 0.4038 前后一致）。
+- 其余四联赛 `promoted=None`、`basis` 只有 league/no_model —— 通道英格兰专属，符合设计。
+- 截图：`docs/evidence/upcoming-epl2627-promoted.png`。
+
+### 遗留
+- **其余四联赛升班马仍 no_model 且这是设计**：降权通道靠 `comp_tier` 关键词撞车才能把英冠
+  单独降权，西乙/意乙/法乙与其顶级同 tier 不可分。当前空缺：西甲 Santander、
+  德甲 Elversberg、法甲 Le Mans。要覆盖须先给 comp_weights 一个不依赖撞车的按联赛通道。
+- clubverify 冻结链路仍未接升班马模型（账本里这些场次仍会 no_model），与开球时区核验 0/5
+  一起在 08-21 首轮前解决。
+
 ## 2026-08-03（二十轮）联赛赛程接 ESPN 主源：看板「未来 14 天赛程预测」实数据落地
 
 ### 触发

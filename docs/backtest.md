@@ -142,3 +142,10 @@ EPL 判 other 的关键词撞车恰可分离，test_core 护栏锁死）；基�
 ∧ 有 E1 样本）自动走 `get_promoted_model()`（E0+E1 合训缓存 model_E0promo.pkl），
 输出带口径标注。**边界**：仅英格兰（西乙/意乙等与其顶级同 tier，comp_weights 通道不可用）；
 clubverify 冻结链路未接（升班马场次账本仍 no_model，待单独一轮）。
+
+**Web 层接线（2026-08-03 补记）**：采纳当轮只接了 CLI，网页侧三处仍 no_model。现已接完——
+`app._promoted_newcomers()` + `app._club_model_for()` 为共用入口，`/api/club/overview`
+（看板 upcoming 逐行选模型）、`/api/club/predict`、`/api/jc_review` club 分支三处同源，
+响应统一带 `basis` ∈ {league, promoted_cotrained} 与 `promoted_e1_weight`/`promoted_note`，
+前端逐行标「升班马合训估算（英冠权重 0.25）」。对阵分析的过程数据帧（近况/主客拆分/交锋）
+对这类场次并入 E1 并在 strength_note 写明，否则升班马那一侧整片空白。

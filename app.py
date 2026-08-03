@@ -211,6 +211,51 @@ def _club_event_or_400():
     return key, ev, None
 
 
+# ---- 升班马新面孔（E1 降权 w=0.25 合训，裁决见 docs/backtest.md 第九节）----
+# Web 层与 clubpredict CLI **共用同一组函数**，不另起一套判定/解析/模型。
+# 通道只对英格兰成立（promoted_newcomers 按 E0/E1 定义），其余联赛恒空集=路径关闭。
+_PROMO: dict = {"fp": None, "teams": frozenset()}
+_PROMO_LOCK = threading.Lock()
+
+
+def _promoted_newcomers(code: str) -> frozenset:
+    """当季升班马新面孔，按数据指纹记忆化——每请求重算要读十几个 CSV。
+
+    指纹=E0/E1 CSV 与 ESPN 赛程缓存的 mtime：赛程或历史帧一变即重算。
+    任何异常都退化成空集（该路径关闭、场次照旧 no_model），绝不让它拖垮看板。"""
+    if code != "E0":
+        return frozenset()
+    try:
+        import clubfixtures
+        import clubpredict
+        fp = (clubpredict._data_mtime("E0"), clubpredict._data_mtime("E1"),
+              os.path.getmtime(clubfixtures.cache_path("E0"))
+              if os.path.exists(clubfixtures.cache_path("E0")) else 0.0)
+        if _PROMO["fp"] == fp:
+            return _PROMO["teams"]
+        with _PROMO_LOCK:
+            if _PROMO["fp"] != fp:
+                _PROMO["teams"] = frozenset(clubpredict.promoted_newcomers())
+                _PROMO["fp"] = fp
+        return _PROMO["teams"]
+    except Exception as e:  # noqa
+        print(f"[app] 升班马名单解析失败（路径关闭）：{e}")
+        return frozenset()
+
+
+def _club_model_for(code: str, teams, promoted: frozenset):
+    """按对阵选模型 → (model, basis)。涉升班马新面孔才走 E0+E1 降权合训，其余零改动。"""
+    import clubpredict
+    with _CLUB_MODEL_LOCK:
+        if promoted and set(teams) & promoted:
+            return clubpredict.get_promoted_model(verbose=False), "promoted_cotrained"
+        return clubpredict.get_club_model(code, verbose=False), "league"
+
+
+PROMO_NOTE = ("含升班马新面孔：改用英超+英冠降权合训模型（英冠权重 {w}），"
+              "与纯英超场次不同口径；采纳依据见 docs/backtest.md 第九节")
+
+
 @app.route("/api/club/overview")
 def api_club_overview():
     """联赛 tab 概览：模型实力榜 + 季前夺冠/降级概率（预计算 JSON 直读）+ 数据时间戳。"""
@@ -283,17 +328,27 @@ def api_club_overview():
             sel = fut[fut.date <= fut.date.iloc[0].normalize() + pd.Timedelta(days=4)]
             upcoming["mode"] = "next_round"
         sel = clubfixtures.attach_b365(sel.copy(), fx)
+        promoted = _promoted_newcomers(code)
+        if promoted:
+            import clubpredict
+            upcoming["promoted"] = sorted(promoted)
+            upcoming["promoted_e1_weight"] = clubpredict.PROMOTED_E1_W
+            upcoming["promoted_note"] = PROMO_NOTE.format(w=clubpredict.PROMOTED_E1_W)
         for r in sel.itertuples():
             row = {"date": str(r.date.date()), "time": r.date.strftime("%H:%M"),
                    "home": r.home_team, "away": r.away_team,
                    "home_disp": teams_zh.disp(r.home_team), "away_disp": teams_zh.disp(r.away_team)}
+            # 涉升班马新面孔的场次改用合训模型；口径不同必须逐行标出（basis），
+            # 不能和纯英超场次的概率混在一起不作声。
+            mm, basis = _club_model_for(code, (r.home_team, r.away_team), promoted)
             try:
-                pr = m.predict(r.home_team, r.away_team, neutral=False)
+                pr = mm.predict(r.home_team, r.away_team, neutral=False)
                 row.update(p_home=round(pr["p_home"], 4), p_draw=round(pr["p_draw"], 4),
                            p_away=round(pr["p_away"], 4),
-                           xg_home=round(pr["xg_home"], 2), xg_away=round(pr["xg_away"], 2))
+                           xg_home=round(pr["xg_home"], 2), xg_away=round(pr["xg_away"], 2),
+                           basis=basis)
             except KeyError:
-                row["no_model"] = True               # 新升班马等样本不足 → 前端显示「暂无数据」
+                row["no_model"] = True               # 池外队（非升班马通道）→ 前端「暂无数据」
             if not pd.isna(r.B365H):
                 row["b365"] = [float(r.B365H), float(r.B365D), float(r.B365A)]
             upcoming["rows"].append(row)
@@ -372,17 +427,23 @@ def api_club_predict():
     neutral = request.args.get("neutral") == "1"
     if not home_q or not away_q:
         return make_response(jsonify({"error": "home/away 必填"}), 400)
+    promoted = _promoted_newcomers(code)
     pool = {code: clubpredict._league_teams((code,))[code]}   # 只在本联赛池内解析
     out, names = {}, {}
     for side, q in (("home", home_q), ("away", away_q)):
         got, sugg = clubpredict.resolve(q, pool)
         if got is None:
-            return make_response(jsonify({"error": f"找不到球队「{q}」", "suggest": sugg or []}), 404)
+            # 常规池找不到 → 再试升班马新面孔（它们在 E0 帧里没有，只在 E1 帧有）
+            p = clubpredict.resolve_promoted(q, promoted)
+            if p is None:
+                return make_response(jsonify({"error": f"找不到球队「{q}」",
+                                              "suggest": sugg or []}), 404)
+            names[side] = p
+            continue
         names[side] = got[0]
     if names["home"] == names["away"]:
         return make_response(jsonify({"error": "两队相同"}), 400)
-    with _CLUB_MODEL_LOCK:
-        m = clubpredict.get_club_model(code, verbose=False)
+    m, basis = _club_model_for(code, (names["home"], names["away"]), promoted)
     r = m.predict(names["home"], names["away"], neutral=neutral)
     M = r["matrix"]
     tot = np.add.outer(np.arange(M.shape[0]), np.arange(M.shape[1]))
@@ -401,17 +462,31 @@ def api_club_predict():
                        for (i, j), p in r["top_scores"]],
         "data_through": str(df.date.max().date()), "source": "football-data.co.uk",
         "note": "90 分钟口径（含补时，不含加时点球）；研究/信息性质",
+        "basis": basis,
     }
+    e1 = None
+    if basis == "promoted_cotrained":
+        # 口径不同必须写进响应本身：这两个数字不是纯英超模型给的
+        payload["promoted"] = sorted(promoted & {names["home"], names["away"]})
+        payload["promoted_e1_weight"] = clubpredict.PROMOTED_E1_W
+        payload["promoted_note"] = PROMO_NOTE.format(w=clubpredict.PROMOTED_E1_W)
+        e1 = clubdata.load("E1", seasons=clubpredict.SEASONS)
+        payload["data_through"] = str(max(df.date.max(), e1.date.max()).date())
     if request.args.get("detail") == "1":
         # C2 对阵分析展开区：账本层共用实现（manager.py 过程数据函数，两宇宙同一份）
         import manager
+        import pandas as pd
         hn, an = r["home"], r["away"]
+        # 升班马新面孔在英超帧里一场都没有，近况/主客拆分/交锋会整片空白。
+        # 概率既然已用合训模型，过程数据帧也并上英冠——但必须在 note 里写明含英冠场次。
+        fdf = (pd.concat([df, e1], ignore_index=True).sort_values("date").reset_index(drop=True)
+               if e1 is not None else df)
 
         def _mrows(ms):
             return [{**x, "opp_disp": teams_zh.disp(x["opp"])} for x in ms]
 
         def _split(t):
-            ms = manager._team_matches(df, t)
+            ms = manager._team_matches(fdf, t)
 
             def agg(xs):
                 if not xs:
@@ -426,16 +501,18 @@ def api_club_predict():
 
         facts = {}
         for side, t in (("home", hn), ("away", an)):
-            rf = manager.recent_form(df, t, 6)
+            rf = manager.recent_form(fdf, t, 6)
             rf["matches"] = _mrows(rf["matches"])
             facts[side] = {"team": t, "disp": teams_zh.disp(t),
-                           "recent": rf, "strength": manager.team_stats(df, t, m),
+                           "recent": rf, "strength": manager.team_stats(fdf, t, m),
                            "split": _split(t)}
-        h2h = manager.head_to_head(df, hn, an)
+        h2h = manager.head_to_head(fdf, hn, an)
         for x in h2h["rows"]:
             x["home_disp"], x["away_disp"] = teams_zh.disp(x["home"]), teams_zh.disp(x["away"])
         payload["facts"] = {"home": facts["home"], "away": facts["away"], "h2h": h2h,
-                            "strength_note": "攻防强度为联赛内相对值，跨联赛不可比",
+                            "strength_note": "攻防强度为联赛内相对值，跨联赛不可比"
+                            + ("；本场过程数据帧含英冠场次（升班马新面孔）"
+                               if basis == "promoted_cotrained" else ""),
                             "data_through": payload["data_through"]}
         nsz = int(min(6, M.shape[0], M.shape[1]))
         payload["matrix"] = {"n": nsz,
@@ -737,15 +814,22 @@ def _api_jc_review_club(key, ev, jc):
     import clubpredict
     code = _club_code(ev)
     path = jc.store_path(key)
-    with _CLUB_MODEL_LOCK:
-        m = clubpredict.get_club_model(code, verbose=False)
+    promoted = _promoted_newcomers(code)
     pool = {code: clubpredict._league_teams((code,))[code]}
 
     def _resolve(q):
         got, sugg = clubpredict.resolve((q or "").strip(), pool)
         if got is None:
-            raise KeyError(f"找不到球队「{q}」" + (f"（你是想找：{' / '.join(sugg)}）" if sugg else ""))
+            p = clubpredict.resolve_promoted((q or "").strip(), promoted)   # 升班马新面孔兜底
+            if p is None:
+                raise KeyError(f"找不到球队「{q}」"
+                               + (f"（你是想找：{' / '.join(sugg)}）" if sugg else ""))
+            return p
         return got[0]
+
+    def _model(h, a):
+        """按对阵取模型——升班马场次走合训模型，其余纯联赛模型（与看板/单场同一入口）。"""
+        return _club_model_for(code, (h, a), promoted)
 
     if request.method == "GET":
         home = request.args.get("home", "").strip()
@@ -757,13 +841,17 @@ def _api_jc_review_club(key, ev, jc):
                 h = _resolve(home); a = _resolve(away)
             except KeyError as e:
                 return jsonify({"error": str(e).strip("'\"")}), 400
+            m, basis = _model(h, a)
             pr = m.predict(h, a, neutral=False)
             out["model_preview"] = {
                 "home_en": h, "away_en": a,
                 "home_disp": teams_zh.disp(h), "away_disp": teams_zh.disp(a),
                 "p_home": pr["p_home"], "p_draw": pr["p_draw"], "p_away": pr["p_away"],
                 "pred_score": f"{int(round(pr['xg_home']))}-{int(round(pr['xg_away']))}",
-                "is_knockout": False}
+                "is_knockout": False, "basis": basis}
+            if basis == "promoted_cotrained":
+                out["model_preview"]["promoted_note"] = PROMO_NOTE.format(
+                    w=clubpredict.PROMOTED_E1_W)
             if date:
                 rec = jc.load_all(path).get(jc.match_key(date, h, a))
                 if rec:
@@ -777,6 +865,7 @@ def _api_jc_review_club(key, ev, jc):
     try:
         if act == "prematch":
             h = _resolve(body["home"]); a = _resolve(body["away"])
+            m, _basis = _model(h, a)
             *_, M = m.score_matrix(h, a, neutral=False)
             pr = m.predict(h, a, neutral=False)
             fav_is_home = bool(body["fav_is_home"]); line = float(body["line"])

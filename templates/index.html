@@ -1153,7 +1153,7 @@ async function jcLoad(){
 function jcFormHTML(d){
   const mp=d.model_preview, ko=mp.is_knockout;
   let h=`<div class="card"><h3 style="margin:0 0 8px">${mp.home_disp} vs ${mp.away_disp}　<span class="muted" style="font-size:12px;font-weight:400">${_jcCur.date}${ko?' · 淘汰赛':''}</span></h3>`;
-  h+=`<div class="muted" style="font-size:12.5px;margin-bottom:10px">模型冻结预测：三向 ${(mp.p_home*100).toFixed(0)}% / ${(mp.p_draw*100).toFixed(0)}% / ${(mp.p_away*100).toFixed(0)}%　最可能比分 ${mp.pred_score}（录入即按此刻冻结）</div>`;
+  h+=`<div class="muted" style="font-size:12.5px;margin-bottom:10px">模型冻结预测：三向 ${(mp.p_home*100).toFixed(0)}% / ${(mp.p_draw*100).toFixed(0)}% / ${(mp.p_away*100).toFixed(0)}%　最可能比分 ${mp.pred_score}（录入即按此刻冻结）${mp.promoted_note?`<br>${mp.promoted_note}`:''}</div>`;
   // 录入表单：竞彩让球线
   h+=`<div class="row" style="margin-top:6px">
     <div class="fld" style="max-width:200px"><label>谁让球（被看好方）</label>
@@ -3124,7 +3124,7 @@ function evPredCard(d, title){
       ${d.over25!=null?` · 大 2.5 球 ${evPct(d.over25)} · 双方进球 ${evPct(d.btts)}`:''}</div>
     <div style="margin-top:6px">最可能比分：${scores}</div>
     <div class="muted" style="margin-top:8px;font-size:11.5px">90 分钟口径（含补时，不含加时点球） · 研究/信息性质，非投注建议 ·
-      数据来源 ${d.source||''}${d.data_through?`（截至 ${d.data_through}）`:''}</div>
+      数据来源 ${d.source||''}${d.data_through?`（截至 ${d.data_through}）`:''}${d.promoted_note?`<br>${d.promoted_note}`:''}</div>
   </div>`;
 }
 async function evClubPredict(key){
@@ -3249,8 +3249,13 @@ function evBoardCards(o){
     const rows=up.rows.map(r=>{
       const f = FZ[`${o.event}|${r.home}|${r.away}`];      // 有冻结值就用冻结值，口径以账本为准
       const ph = f ? f.p_home : r.p_home, pd = f ? f.p_draw : r.p_draw, pa = f ? f.p_away : r.p_away;
+      // 升班马场次用的是英超+英冠降权合训模型，与同表其他行不同口径——必须逐行标出，
+      // 不能混在一列数字里不作声。
+      const est = r.basis==='promoted_cotrained'
+        ? `升班马合训估算（英冠权重 ${up.promoted_e1_weight!=null?up.promoted_e1_weight:'—'}）`
+        : '当前模型估算（未冻结）';
       const basis = f ? `<div class="muted" style="font-size:11px">赛前冻结 · ${f.frozen_at||''}</div>`
-                      : `<div class="muted" style="font-size:11px">当前模型估算（未冻结）</div>`;
+                      : `<div class="muted" style="font-size:11px">${est}</div>`;
       const pred = (r.no_model && !f)
         ? `<td colspan="4" class="muted">暂无数据（该队当前模型样本不足）</td>`
         : `<td><b>${(ph*100).toFixed(0)}</b>/${(pd*100).toFixed(0)}/<b>${(pa*100).toFixed(0)}</b>%${basis}</td>
@@ -3268,7 +3273,7 @@ function evBoardCards(o){
       : `未来 ${up.window_days||14} 天赛程预测（${up.rows.length} 场）`;
     t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">${title}</h3>
       <div class="hscroll"><table class="mgt"><tr><th>开球（北京时间）</th><th colspan="3">对阵</th><th>胜/平/负</th><th>期望进球</th><th>概率条</th><th>B365 赛前盘</th></tr>${rows}</table></div>
-      <div class="muted" id="ev_up_basis" style="margin-top:6px;font-size:11.5px">当前模型估算（未冻结） · 赛程来源 ${up.fixtures_source||'—'}${up.fetched_at?`（更新于 ${up.fetched_at}）`:''} · 盘口来源 ${up.odds_source||'—'}，通常仅未来一轮有盘 · 数据截至 ${o.data_through} · 90 分钟口径 · 研究/信息性质，非投注建议</div></div>`;
+      <div class="muted" id="ev_up_basis" style="margin-top:6px;font-size:11.5px">当前模型估算（未冻结） · 赛程来源 ${up.fixtures_source||'—'}${up.fetched_at?`（更新于 ${up.fetched_at}）`:''} · 盘口来源 ${up.odds_source||'—'}，通常仅未来一轮有盘 · 数据截至 ${o.data_through} · 90 分钟口径 · 研究/信息性质，非投注建议${up.promoted_note?`<br>${up.promoted_note}`:''}</div></div>`;
   } else {
     t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">未来 ${up.window_days||14} 天赛程预测</h3>
       <span class="muted">${up.reason||'暂无未来赛程数据。'}</span></div>`;
