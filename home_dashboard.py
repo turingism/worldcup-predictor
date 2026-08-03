@@ -26,6 +26,7 @@ import threading
 import pandas as pd
 
 import clubdata
+import clubfixtures
 import clubverify
 import events as eventsmod
 import teams_zh
@@ -61,6 +62,7 @@ def _fingerprint() -> str:
              os.path.join(DATA, "live_results.json"), os.path.join(DATA, "predictions.json"),
              os.path.join(CLUB, "fixtures.csv"), clubverify.TZ_VERIFIED_PATH,
              os.path.join(DATA, "euro", "euro_matches_raw.csv")]
+    paths += sorted(glob.glob(os.path.join(CLUB, "fixtures_espn_*.json")))
     paths += sorted(glob.glob(os.path.join(DATA, "predictions_*.json")))
     paths += sorted(glob.glob(os.path.join(CLUB, "seasonsim_*.json")))
     paths += sorted(glob.glob(os.path.join(CLUB, "[A-Z]*_????.csv")))
@@ -158,6 +160,7 @@ def _freshness(ctx: dict) -> dict:
 
     fx_path = os.path.join(CLUB, "fixtures.csv")
     fx = _fixtures_cached()
+    espn_at = sorted(filter(None, (clubfixtures.cached_at(c) for c in clubfixtures.LEAGUE_SLUG)))
     ver, blocked, relevant = [], [], False
     for k in eventsmod.EVENTS:
         ev = eventsmod.EVENTS[k]
@@ -172,16 +175,22 @@ def _freshness(ctx: dict) -> dict:
                 relevant = True
     return {"sources": src,
             "schedule": {"state": "published" if relevant else "awaiting_schedule",
-                         "source": "football-data fixtures",
+                         "source": "ESPN scoreboard + football-data fixtures",
                          "cached_at": (dt.datetime.fromtimestamp(os.path.getmtime(fx_path), tz=BJ)
                                        .strftime("%Y-%m-%d %H:%M") if os.path.exists(fx_path) else None),
+                         "espn_cached_at": espn_at[0] if espn_at else None,   # 最旧的一份=真实新鲜度
                          "timezone_verification": {"verified_events": ver, "blocked_events": blocked}}}
 
 
 # ---------- 赛程（只读缓存，绝不刷新/起线程） ----------
-def _fixtures_cached() -> pd.DataFrame:
+# 两源合流，口径必须逐行可辨：
+#   football-data fixtures.csv → date 是**英国本地** naive（开球串由 clubverify._kickoff 换算）
+#   clubfixtures ESPN 缓存     → date 是**北京时间** naive，另带 kickoff_utc 精确串
+# 故本帧多一列 kickoff_utc：非空即 ESPN 行、直接用；为空才走 _kickoff 的英国时区换算。
+# 混淆这两者会让开球时间整整偏 7-8 小时（P0-A 时区闸盯的正是这类错）。
+def _fd_fixtures_cached() -> pd.DataFrame:
     path = os.path.join(CLUB, "fixtures.csv")
-    cols = ["div", "date", "home_team", "away_team"]
+    cols = ["div", "date", "home_team", "away_team", "kickoff_utc"]
     if not os.path.exists(path):
         return pd.DataFrame(columns=cols)
     try:
@@ -192,9 +201,35 @@ def _fixtures_cached() -> pd.DataFrame:
                              "date": pd.to_datetime(raw["Date"] + " " + t, dayfirst=True,
                                                     format="mixed"),
                              "home_team": raw["HomeTeam"].str.strip(),
-                             "away_team": raw["AwayTeam"].str.strip()}).sort_values("date")
+                             "away_team": raw["AwayTeam"].str.strip(),
+                             "kickoff_utc": None}).sort_values("date")
     except (ValueError, OSError, KeyError):
         return pd.DataFrame(columns=cols)
+
+
+def _espn_fixtures_cached() -> pd.DataFrame:
+    """ESPN 赛程只读缓存（clubfixtures.load_cached 本身不联网/不起线程/不写盘）。"""
+    cols = ["div", "date", "home_team", "away_team", "kickoff_utc"]
+    frames = []
+    for code in clubfixtures.LEAGUE_SLUG:
+        d = clubfixtures.load_cached(code)
+        if len(d):
+            d = d.assign(div=code)
+            frames.append(d[cols])
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=cols)
+
+
+def _fixtures_cached() -> pd.DataFrame:
+    """两源合并去重：同（联赛, 主, 客）以 ESPN 行为准（开球时间原生 UTC，无时区歧义）。"""
+    espn, fd = _espn_fixtures_cached(), _fd_fixtures_cached()
+    if not len(espn):
+        return fd
+    if not len(fd):
+        return espn.sort_values("date")
+    key = ["div", "home_team", "away_team"]
+    seen = set(map(tuple, espn[key].itertuples(index=False, name=None)))
+    fd = fd[[tuple(r) not in seen for r in fd[key].itertuples(index=False, name=None)]]
+    return pd.concat([espn, fd], ignore_index=True).sort_values("date")
 
 
 def _ledger(key: str) -> dict:
@@ -218,7 +253,12 @@ def _match_stream(now: dt.datetime) -> dict:
                  & (fx["date"] <= min(hi, b + pd.Timedelta(days=1)))]
         led = _ledger(k)
         for r in sub.itertuples():
-            ko_utc, ko_bj = clubverify._kickoff(r.date)
+            # ESPN 行自带精确 UTC；只有 fixtures.csv 行才按英国本地时间换算（见 _fixtures_cached）
+            if r.kickoff_utc:
+                ko_utc = r.kickoff_utc
+                ko_bj = r.date.strftime("%Y-%m-%d %H:%M")     # 该帧 date 已是北京时间
+            else:
+                ko_utc, ko_bj = clubverify._kickoff(r.date)
             e = led.get(f"{r.home_team}|{r.away_team}")
             if e and e.get("p_home") is not None:
                 pred = {"status": "ok", "p_home": e["p_home"], "p_draw": e["p_draw"],

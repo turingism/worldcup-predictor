@@ -252,14 +252,38 @@ def api_club_overview():
                     "home_disp": teams_zh.disp(r.home_team), "away_disp": teams_zh.disp(r.away_team),
                     "score": f"{int(r.home_score)}-{int(r.away_score)}"}
                    for r in latest.itertuples()]
-    # D3 未来赛程预测：fixtures 未来 14 天 + 模型赛前概率（休赛期空态+原因）
-    upcoming = {"rows": [], "reason": None,
-                "note": "来源 football-data fixtures（约含未来一轮）；模型概率为当前数据下赛前口径"}
+    # D3 未来赛程预测：赛程主源=ESPN（整季已排期），B365 赛前盘从 football-data 合并。
+    # 窗口内（默认 14 天）无场次但赛季已排期 → 回退显示**下一轮**并如实标注距今天数，
+    # 不再一句「赛程未发布」把已公布的赛程盖掉（26-27 各联赛首轮 8-15~8-28，实测）。
+    import clubfixtures
+    WIN_DAYS = 14
+    upcoming = {"rows": [], "reason": None, "mode": "window", "window_days": WIN_DAYS,
+                "days_to_first": None, "timezone": "Asia/Shanghai",
+                "fixtures_source": "ESPN scoreboard", "odds_source": "football-data fixtures",
+                "fetched_at": clubfixtures.cached_at(code),
+                "note": "赛程来源 ESPN（北京时间）；B365 赛前盘来自 football-data，"
+                        "通常仅未来一轮有盘；模型概率为当前数据下赛前口径"}
     try:
-        fx = clubdata.load_fixtures(code)
+        sched = clubfixtures.load(code)
+        try:
+            fx = clubdata.load_fixtures(code)            # 只为 B365 赛前盘，缺失不影响赛程
+        except Exception as e:  # noqa
+            fx, upcoming["note"] = None, upcoming["note"] + f"（赔率源暂不可用：{e}）"
         today = pd.Timestamp.now().normalize()
-        fut = fx[(fx.date >= today) & (fx.date <= today + pd.Timedelta(days=14))]
-        for r in fut.itertuples():
+        fut = sched[sched.date >= today]
+        if len(fut):
+            # 距今天数按**首场当地（UTC）日期**算，与页头「N 天后开赛」（注册表开赛日）同基准；
+            # 若按北京时间算，欧洲晚场跨零点会平白多一天，同屏两个数字对不上。
+            k0 = fut["kickoff_utc"].iloc[0] if "kickoff_utc" in fut.columns else None
+            d0 = pd.Timestamp(k0[:10]) if isinstance(k0, str) else fut.date.iloc[0].normalize()
+            upcoming["days_to_first"] = int((d0 - today).days)
+        sel = fut[fut.date <= today + pd.Timedelta(days=WIN_DAYS)]
+        if not len(sel) and len(fut):
+            # 回退：取下一轮=首场起 4 天内的同轮场次（联赛一轮通常跨周五至周一）
+            sel = fut[fut.date <= fut.date.iloc[0].normalize() + pd.Timedelta(days=4)]
+            upcoming["mode"] = "next_round"
+        sel = clubfixtures.attach_b365(sel.copy(), fx)
+        for r in sel.itertuples():
             row = {"date": str(r.date.date()), "time": r.date.strftime("%H:%M"),
                    "home": r.home_team, "away": r.away_team,
                    "home_disp": teams_zh.disp(r.home_team), "away_disp": teams_zh.disp(r.away_team)}
@@ -274,8 +298,8 @@ def api_club_overview():
                 row["b365"] = [float(r.B365H), float(r.B365D), float(r.B365A)]
             upcoming["rows"].append(row)
         if not upcoming["rows"]:
-            upcoming["reason"] = ("休赛期或赛程未发布：fixtures 源当前无本联赛未来 14 天场次，"
-                                  "26-27 赛程发布后此处自动显示预测卡片")
+            upcoming["reason"] = ("休赛期：赛程源当前无本联赛未来场次，"
+                                  "新赛季赛程发布后此处自动显示预测卡片")
     except Exception as e:  # noqa   赛程源不可用不拖垮看板
         upcoming["reason"] = f"赛程源暂不可用（{e}）"
     return jsonify({"event": key, "league": clubdata.LEAGUES[code], "code": code,

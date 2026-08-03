@@ -2,6 +2,56 @@
 
 体例：每轮记录做了什么、如何验证、证据路径、遗留问题。「未验证」按纪律如实标注。
 
+## 2026-08-03（二十轮）联赛赛程接 ESPN 主源：看板「未来 14 天赛程预测」实数据落地
+
+### 触发
+用户报「英超赛事看板 未来 14 天赛程预测 可以更新了」。实测发现卡片仍空——
+根因**不是**没更新，而是源能力缺口：`fixtures.csv` 当日仅 21 行、全是苏格兰四级联赛，
+五大联赛 0 行（该文件只在盘口开出后登记未来数天）。同日 ESPN 已完整发布 26-27 赛程。
+
+### 做了什么
+1. **新模块 `clubfixtures.py`**：ESPN scoreboard 按月窗抓今天起 120 天未完场
+   （state != post）→ 队名映射 football-data 拼写（`eurodata.ESPN_FIX` + 新增
+   `LEAGUE_FIX` 18 条升降级队）→ UTC 转北京时间落帧、另存精确 `kickoff_utc`
+   → 缓存 `data/club/fixtures_espn_<code>.json`（TTL 12h + SWR）。
+   `load_cached()` 为**纯只读装载器**（不联网/不起线程/不写盘），供首页只读铁律。
+   裁决落 `docs/data-sources.md` 第十节。
+2. **`/api/club/overview` 的 upcoming 改接新源**：赛程走 clubfixtures，B365 赛前盘仍
+   从 fixtures.csv 按（主,客）**不含日期**合并（两源时区口径不同，含日期必失配）。
+   新增**下一轮回退**：14 天窗口内无场次但赛季已排期时，显示下一轮（首场起 4 天内同轮）
+   并置 `mode=next_round` + `days_to_first`，标题如实写「已超出 14 天窗口」——
+   不拿下一轮冒充窗内场次，也不再用一句「赛程未发布」把已公布赛程盖掉。
+3. **首页只读接同一份缓存**：`_fixtures_cached()` 两源合并（同主客以 ESPN 行为准），
+   帧多一列 `kickoff_utc`——非空即 ESPN 行直接用，为空才走 `clubverify._kickoff`
+   的英国时区换算。**这是本轮最大的雷**：两种 naive 时间戳互喂会整偏 7-8 小时。
+   指纹纳入 ESPN 缓存文件；`freshness.schedule` 双源标注 + `espn_cached_at`。
+   效果：首页从「赛程未发布 / 赛季启动时间轴」变为真实「接下来 14 天」比赛流。
+4. **赛历事实校正**（ESPN 实测 vs 旧估计值）：英超首轮 08-21（旧 08-08）、
+   德甲 08-28（旧 08-21）、法甲 08-21（旧 08-14）；西甲 08-15、意甲 08-22 原值即准。
+5. **teams_zh 补 2 条**：Hull 赫尔城、Malaga 马拉加（26-27 升班马）。
+
+### 滚动断言改判（按 07-24 立的改判纪律登记，依据=赛历事实而非放宽断言）
+- clubverify 用例里按旧赛历写死的 08-08/08-09 已落在新赛季窗外 → 整体平移到真实首轮周
+  08-21/08-22（BST 断言仍成立，8 月同为 BST）；五联赛参数化冒烟的 08-25 落在德甲窗外
+  → 改 09-01（五家窗内共同日）。
+- `test_clubverify_scheduler_discovers_all_active_club_events` 的 as-of 07-25 → 08-05：
+  德甲改 08-28 后距 07-25 已 34 天=upcoming，08-05 时五家全在 soon 的 30 天窗内。
+
+### 验证
+- `pytest test_core.py -q` **218 passed**（新增 6 个：ESPN 帧映射/时区、只读装载器离线性、
+  盘口不含日期合并、中文映射全覆盖、下一轮回退、真休赛期空态；首页只读铁测追加
+  禁用 `clubfixtures.harvest/load`，锁死首页只准走 `load_cached`）。
+- 世界杯五端点 200 且体积正常（本轮 diff 未触碰世界杯路径）。
+- 截图：`docs/evidence/upcoming-epl2627-espn.png`（下一轮回退态，10 场、2 场升班马
+  no_model）、`upcoming-laliga2627-window.png`（窗内态）、`home-match-stream-espn.png`
+  （首页 14 天比赛流）。页头「18 天后开赛」与卡片「距开赛 18 天」已统一基准（首场 UTC 日期）。
+
+### 遗留
+- **开球时间核验仍 0/5、五联赛冻结仍 blocked**（P0-A 闸未动，本轮只碰看板读路径）。
+  ESPN 源原生 UTC 无时区歧义，是把 `--crosscheck` 换成 ESPN 对表的天然素材，
+  但冻结账本写入不可回改，须单独一轮做。**英超首轮 08-21 前必须解闸**。
+- `clubverify.freeze_event` 仍只吃 fixtures.csv（英国本地时间口径），未改。
+
 ## 2026-07-25（十八轮）events 更名 + P0-A 俱乐部冻结/结算链路（跨模型对谈定稿需求）
 
 ### 做了什么

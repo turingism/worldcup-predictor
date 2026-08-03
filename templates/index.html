@@ -3260,11 +3260,17 @@ function evBoardCards(o){
       return `<tr><td class="muted" style="white-space:nowrap">${r.date} ${r.time}</td>
         <td style="text-align:right">${r.home_disp}</td><td style="text-align:center">vs</td><td>${r.away_disp}</td>${pred}</tr>`;
     }).join('');
-    t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">未来 14 天赛程预测（${up.rows.length} 场）</h3>
-      <div class="hscroll"><table class="mgt"><tr><th>开球</th><th colspan="3">对阵</th><th>胜/平/负</th><th>期望进球</th><th>概率条</th><th>B365 赛前盘</th></tr>${rows}</table></div>
-      <div class="muted" id="ev_up_basis" style="margin-top:6px;font-size:11.5px">当前模型估算（未冻结） · 数据截至 ${o.data_through} · 90 分钟口径 · 研究/信息性质，非投注建议</div></div>`;
+    // 标题随取数模式变化：窗口内有场次=「未来 N 天」；窗口内无但赛季已排期=回退「下一轮」，
+    // 并把「距今多少天」写在标题上——不拿下一轮冒充 14 天窗内场次。
+    const dtf = up.days_to_first;
+    const title = up.mode==='next_round'
+      ? `下一轮赛程预测（${up.rows.length} 场${dtf!=null?` · 距开赛 ${dtf} 天，已超出 ${up.window_days||14} 天窗口`:''}）`
+      : `未来 ${up.window_days||14} 天赛程预测（${up.rows.length} 场）`;
+    t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">${title}</h3>
+      <div class="hscroll"><table class="mgt"><tr><th>开球（北京时间）</th><th colspan="3">对阵</th><th>胜/平/负</th><th>期望进球</th><th>概率条</th><th>B365 赛前盘</th></tr>${rows}</table></div>
+      <div class="muted" id="ev_up_basis" style="margin-top:6px;font-size:11.5px">当前模型估算（未冻结） · 赛程来源 ${up.fixtures_source||'—'}${up.fetched_at?`（更新于 ${up.fetched_at}）`:''} · 盘口来源 ${up.odds_source||'—'}，通常仅未来一轮有盘 · 数据截至 ${o.data_through} · 90 分钟口径 · 研究/信息性质，非投注建议</div></div>`;
   } else {
-    t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">未来 14 天赛程预测</h3>
+    t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">未来 ${up.window_days||14} 天赛程预测</h3>
       <span class="muted">${up.reason||'暂无未来赛程数据。'}</span></div>`;
   }
   if(o.latest_matchday && o.latest_matchday.rows && o.latest_matchday.rows.length){

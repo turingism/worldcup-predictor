@@ -33,11 +33,13 @@ EVENTS: dict[str, dict] = {
     "epl2627": dict(
         name="英超 26-27", kind="league", universe="club_E0",
         espn="eng.1", data="E0",
-        window=("2026-08-08", "2027-05-23"),
+        window=("2026-08-21", "2027-05-23"),   # 首轮 2026-08-21（ESPN 赛程 08-03 实测；旧值 08-08 系赛历估计）
         ledger="predictions_epl2627.json",
         tabs_off=("xuanxue",),
     ),
-    # —— 其余四大联赛（P3；espn code 2026-07-08 已实测有响应，窗口=官方赛历近似）——
+    # —— 其余四大联赛（P3；espn code 2026-07-08 已实测有响应）——
+    # 开赛日 2026-08-03 按 ESPN 已发布赛程逐联赛核对：西甲 08-15、意甲 08-22 原值即准；
+    # 德甲实际 08-28（旧 08-21）、法甲实际 08-21（旧 08-14）——均已改为实测值。
     "laliga2627": dict(
         name="西甲 26-27", kind="league", universe="club_SP1",
         espn="esp.1", data="SP1",
@@ -55,14 +57,14 @@ EVENTS: dict[str, dict] = {
     "bundes2627": dict(
         name="德甲 26-27", kind="league", universe="club_D1",
         espn="ger.1", data="D1",
-        window=("2026-08-21", "2027-05-15"),
+        window=("2026-08-28", "2027-05-15"),
         ledger="predictions_bundes2627.json",
         tabs_off=("xuanxue",),
     ),
     "ligue12627": dict(
         name="法甲 26-27", kind="league", universe="club_F1",
         espn="fra.1", data="F1",
-        window=("2026-08-14", "2027-05-22"),
+        window=("2026-08-21", "2027-05-22"),
         ledger="predictions_ligue12627.json",
         tabs_off=("xuanxue",),
     ),

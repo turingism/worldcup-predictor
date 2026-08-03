@@ -28,7 +28,33 @@
 - **「25-26 赛季 8 月开赛/8 月滚入/记得 _CUR_END+1」系口径错误**：2025-26 赛季（2025-08 至 2026-05）**已是踢完的史实赛季**，2026-07-19 已整季回补入库（十联赛实拉成功，数据至 2026-05-24，`_CUR_END=2026`）；**2026 年 8 月开赛的是 26-27 赛季**。下方旧接手条目中「25-26 季 8 月才开」「P2 在 25-26 开赛前」等表述以本条为准（P2 时限=26-27 开赛前）。
 - 连带：① events 注册表五联赛条目 key/显示名「25-26」实为 26-27 窗口——**更名留用户裁决**（账本未写入前成本最低）；② 季前 preseason JSON 已删（误标赛季产物），`club_preseason.py` 加闸待 26-27 升班马名单（直升队已知：E0←Coventry/Ipswich 等，见 progress.md 第五轮；**附加赛胜者需外部信息，未确认前标未验证**）；③ 25-26 真实终局已可从库直读（英超降级 West Ham/Burnley/Wolves 等）。
 
-## 📌 最新接手（2026-07-25 十九 · P0-H 首页总览 + 交互修复，209 测试绿）
+## 📌 最新接手（2026-08-03 二十 · 联赛赛程接 ESPN 主源，218 测试绿）
+- **根因不是没更新，是源能力缺口**：`football-data/fixtures.csv` 只在**盘口开出后**登记未来数天，
+  2026-08-03 实拉仅 21 行、全苏格兰四级联赛、**五大联赛 0 行**；同日 ESPN 已完整发布 26-27 赛程。
+  → 新模块 **`clubfixtures.py`** 作赛程主源（ESPN scoreboard 月窗抓今起 120 天未完场，
+  队名映射 `eurodata.ESPN_FIX + LEAGUE_FIX`，缓存 `data/club/fixtures_espn_<code>.json`
+  TTL 12h+SWR）；football-data **只保留它独有的 B365 赛前盘**，按（主,客）**不含日期**合并
+  （两源时区不同，含日期必失配）。**赛果口径不变**：训练帧仍且只有 football-data CSV。
+  裁决落 `docs/data-sources.md` 第十节。
+- **⚠️ 本轮最大的雷（动赛程代码前必看）**：两种 naive 时间戳绝不可互喂——fixtures.csv 是
+  **英国本地时间**（`clubverify._kickoff` 按 Europe/London 解释），clubfixtures 帧的 `date` 是
+  **北京时间**，另带精确 `kickoff_utc`。喂错整偏 7-8 小时。首页 `_fixtures_cached()` 两源合并后
+  逐行按 `kickoff_utc` 是否非空分流，就是为这条。
+- **看板 upcoming 新增「下一轮回退」**：14 天窗内无场次但赛季已排期 → 显示下一轮（首场起 4 天内同轮）、
+  `mode=next_round` + `days_to_first`，标题如实写「已超出 14 天窗口」；真休赛期才走空态+原因。
+  `days_to_first` 按**首场 UTC 日期**算，与页头「N 天后开赛」同基准（按北京时间算欧洲晚场跨零点会多一天）。
+- **首页同源**：`freshness.schedule` 双源标注 + `espn_cached_at`，指纹纳入 ESPN 缓存；五联赛
+  readiness 由 `unpublished` 转 `published`，首页从「赛季启动时间轴」变真实「接下来 14 天」比赛流。
+  首页只读铁测追加禁用 `clubfixtures.harvest/load`（只准 `load_cached`）。
+- **赛历事实校正**（旧 window 值系估计）：英超首轮 **08-21**（旧 08-08）、德甲 **08-28**（旧 08-21）、
+  法甲 **08-21**（旧 08-14）；西甲 08-15、意甲 08-22 原值即准。teams_zh 补 Hull/Malaga。
+  连带按改判纪律平移了 clubverify 用例的写死日期与调度用例 as-of（详见 progress.md 二十轮）。
+- **遗留（优先级最高）**：**开球时间核验仍 0/5、五联赛冻结全 blocked**，本轮只碰看板读路径。
+  ESPN 原生 UTC 是把 `--crosscheck` 换成 ESPN 对表的天然素材，但账本写入不可回改，须单独一轮做；
+  **英超首轮 08-21 前必须解闸**（原文写的 08-08 期限系旧赛历估计，实际期限顺延到 08-21）。
+  `clubverify.freeze_event` 仍只吃 fixtures.csv，未改。
+
+## 📌 上一次接手（2026-07-25 十九 · P0-H 首页总览 + 交互修复，209 测试绿）
 - **P0-H 首页总览（79e2f8a）**：新增 `home_dashboard.py` + `/api/home` + `#home` 默认落地。
   只读铁律（测试逐条锁死）：不训练/不模拟/不冻结回补/不联网/不写盘——连 `clubdata.load_fixtures`
   都不能用（带 stale-while-revalidate 会起后台下载线程），改本地 cached-only loader。
