@@ -3397,8 +3397,40 @@ def test_frontend_has_hashchange_router():
                encoding="utf-8").read()
     assert "addEventListener('hashchange'" in src
     i = src.index("addEventListener('hashchange'")
-    body = src[i:i + 800]
+    body = src[i:i + 900]
     assert "goHome(false)" in body and "selectEvent(" in body and "evResolve(" in body
+
+
+def test_frontend_threads_matchup_params_through_router():
+    """点某场比赛要把**那一场的两队**带进对阵分析：?h=&a= 必须一路传到 evShowTab。
+
+    静态护栏只能证明四段签名都声明了 qs——本轮真实缺陷正是漏了一段
+    （renderEventView 没声明 qs 形参 → 运行时 ReferenceError → 整个赛事视图不渲染，
+    输入框根本不存在＝用户报的「获取不到 id」）。**行为事实以
+    scripts/ui_click_check.py 的退出码为准**，本测试只防签名被改回去。"""
+    src = open(_os.path.join(_os.path.dirname(__file__), "templates", "index.html"),
+               encoding="utf-8").read()
+    for sig in ("function selectEvent(key, tab, qs)",
+                "async function renderEventView(key, tab, qs)",
+                "function evShowTab(key, tk, qs)"):
+        assert sig in src, sig
+    assert "renderEventView(key, tab, qs)" in src          # selectEvent → renderEventView
+    assert "evShowTab(key, valid?tab:(isClub?'board':'matchup'), qs)" in src
+    assert "selectEvent(ev, h||'', qs)" in src             # 首次加载的深链路径（刷新/分享链接）
+    assert "function hmGo(el)" in src and "matchup?h=" in src
+
+
+def test_frontend_home_fills_unfrozen_from_board_source():
+    """首页未冻结场次的估算必须向**看板端点**取（首页后端只读、不现算），
+    且标注口径——同一场绝不出现两个数字，也绝不出现没有出处的裸数字。"""
+    src = open(_os.path.join(_os.path.dirname(__file__), "templates", "index.html"),
+               encoding="utf-8").read()
+    assert "function hmFillEstimates()" in src and "hmFillEstimates();" in src
+    i = src.index("function hmFillEstimates()")
+    body = src[i:i + 1200]
+    assert "evGet(ev, 'overview')" in body                  # 与看板同源
+    assert "当前模型估算（未冻结）" in body and "升班马合训估算（未冻结）" in body
+    assert "预测待冻结" in src                              # 取不到仍是待冻结，不猜不填
 
 
 def test_frontend_menu_visible_on_home_and_grouped():

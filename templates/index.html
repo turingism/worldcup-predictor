@@ -213,6 +213,8 @@ window.__HDR_DEF = {title: document.title};      // 世界杯页头原值：改�
   .mgt th{text-align:left;color:var(--mut);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);background:var(--panel2)}
   .mgt td{padding:6px 8px;border-bottom:1px solid var(--line)}
   .mgt tr:last-child td{border-bottom:none}
+  .mgt tr.ev-clk{cursor:pointer}
+  .mgt tr.ev-clk:hover td{background:var(--panel2)}
   /* 对阵分析报告：统一表格列宽，标签列固定对齐，消除跨卡锯齿感 */
   #mgres .mgt{table-layout:fixed}
   #mgres .mgt th:first-child,#mgres .mgt td:first-child{width:36%}
@@ -2953,8 +2955,8 @@ function selectEvent(key, tab, qs){
   } else {
     WC_SECTIONS.forEach(s=>{ const el=$('#'+s); if(el) el.style.display='none'; });
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));   // activeTab→null，调度器自动停轮询
-    history.replaceState(null,'','#'+key+(tab?'/'+tab:''));
-    renderEventView(key, tab);
+    history.replaceState(null,'','#'+key+(tab?'/'+tab:'')+(qs?'?'+qs:''));
+    renderEventView(key, tab, qs);
   }
   renderEvbar();
   finishBoot();
@@ -2996,15 +2998,26 @@ function hmHighlight(h){
   return `<div><span class="hm-big">${h.value}<span class="hm-unit">${hmEsc(h.unit||'')}</span></span>
     <div class="hm-meta">${hmEsc(h.label||'')}</div></div>`;
 }
+function hmAttr(s){ return hmEsc(s).replace(/"/g, '&quot;'); }   // 队名进 HTML 属性（Nott'm 等带撇号）
+// 点某场 → 对阵分析，并把**这一场的两队**带过去（?h=&a=）。
+// 此前只跳 #<event>/matchup，落地后由 ranking[0]/[1] 预填——点哪场都出实力榜前两名，
+// 用户看到的就是「输入框没拿到这场的队」。
+function hmGo(el){
+  const d = el.dataset;
+  location.hash = `${d.ev}/matchup?h=${encodeURIComponent(d.h)}&a=${encodeURIComponent(d.a)}`;
+}
 function hmMatchStream(ms){
   if(ms.status==='ok'){
     const rows = ms.rows.slice(0,8).map(r=>{
       const p = r.prediction;
+      // 冻结值优先；未冻结先占位，渲染后由 hmFillEstimates() 用**看板同一份**估算填上并标口径。
+      // 首页后端只读（不训练不现算，铁律①），估算只能由前端向看板端点取——同源即不会两个数字。
       const right = p.status==='ok'
         ? `${(p.p_home*100).toFixed(0)} / ${(p.p_draw*100).toFixed(0)} / ${(p.p_away*100).toFixed(0)}%
            <div class="hm-meta">赛前冻结 · ${hmEsc(p.frozen_at||'')}</div>`
-        : `<span class="muted">预测待冻结</span>`;   // 绝不借用现算值填空
-      return `<div class="hm-mrow" onclick="location.hash='${r.href.slice(1)}'">
+        : `<span class="muted">预测待冻结</span>`;
+      return `<div class="hm-mrow" data-ev="${hmAttr(r.event)}" data-h="${hmAttr(r.home)}"
+        data-a="${hmAttr(r.away)}" data-pending="${p.status==='ok'?'0':'1'}" onclick="hmGo(this)">
         <div class="m-ko">${hmEsc(r.kickoff_bj)}</div>
         <div>${hmEsc(r.home_disp)} <span class="muted">vs</span> ${hmEsc(r.away_disp)}
           <div class="hm-meta">${hmEsc(r.event_name)}</div></div>
@@ -3013,7 +3026,8 @@ function hmMatchStream(ms){
     return `<div class="hm-main"><h2 style="margin:0 0 12px;font-size:18px">接下来 ${ms.horizon_days} 天</h2>
       ${rows}${ms.rows.length>8?`<div class="hm-meta" style="margin-top:10px">共 ${ms.rows.length} 场，
       <a class="xlink" onclick="location.hash='${ms.rows[0].event}/board'">查看全部</a></div>`:''}
-      <div class="hm-meta" style="margin-top:10px">北京时间 · 概率取自赛前冻结账本 · 研究/信息性质，非投注建议</div></div>`;
+      <div class="hm-meta" style="margin-top:10px">北京时间 · 概率优先取赛前冻结账本，未冻结时显示当前模型估算并标注口径 ·
+      点任一场进入对阵分析 · 研究/信息性质，非投注建议</div></div>`;
   }
   // 无赛程不是空卡，而是同等正式的第二形态
   const rows = (ms.fallback&&ms.fallback.events||[]).map(e=>{
@@ -3087,9 +3101,30 @@ function renderHome(){
       <div class="hm-sec"><h2>数据覆盖<small>动态读取，不含任何解读</small></h2><div class="hm-cov">${cov}</div></div>
       ${(d.warnings||[]).length?`<div class="hm-sec"><div class="hm-fresh">${d.warnings.map(hmEsc).join(' · ')}</div></div>`:''}`;
     box.dataset.homeReady = '1';                       // ui_check.py 的完成标记
+    hmFillEstimates();                                 // 未冻结场次补当前模型估算（看板同源）
   }).catch(e=>{
     box.innerHTML = `<div class="card"><span class="muted">首页数据加载失败：${hmEsc(e.message)}。</span>
       <div style="margin-top:8px"><span class="tab" onclick="renderHome()">重试</span></div></div>`;
+  });
+}
+// 未冻结场次的概率补位：向**看板端点**取（首页后端只读、不现算，铁律①），
+// 因此与看板逐位同源，不会出现「同一场两个数字」。取不到就保持「预测待冻结」，不猜不填。
+function hmFillEstimates(){
+  const pend = [...document.querySelectorAll('.hm-mrow[data-pending="1"]')];
+  if(!pend.length) return;
+  [...new Set(pend.map(x=>x.dataset.ev))].forEach(ev=>{
+    evGet(ev, 'overview').then(o=>{
+      const ix = {};
+      ((o.upcoming||{}).rows||[]).forEach(r=>{ ix[r.home+'|'+r.away] = r; });
+      pend.filter(x=>x.dataset.ev===ev).forEach(x=>{
+        const r = ix[x.dataset.h+'|'+x.dataset.a], cell = x.querySelector('.m-p');
+        if(!r || !cell || r.p_home==null) return;      // 无模型/不在窗内：维持「预测待冻结」
+        const lab = r.basis==='promoted_cotrained'
+          ? `升班马合训估算（未冻结）` : `当前模型估算（未冻结）`;
+        cell.innerHTML = `${(r.p_home*100).toFixed(0)} / ${(r.p_draw*100).toFixed(0)} / `
+          + `${(r.p_away*100).toFixed(0)}%<div class="hm-meta">${lab}</div>`;
+      });
+    }).catch(()=>{});                                  // 看板端点失败不影响首页其余部分
   });
 }
 function goHome(push){
@@ -3127,7 +3162,7 @@ function evPredCard(d, title){
       数据来源 ${d.source||''}${d.data_through?`（截至 ${d.data_through}）`:''}${d.promoted_note?`<br>${d.promoted_note}`:''}</div>
   </div>`;
 }
-async function evClubPredict(key){
+async function evClubPredict(key, fromLink){
   const h=$('#ev_home'), a=$('#ev_away'), out=$('#ev_predout');
   if(!h||!a||!out||!h.value.trim()||!a.value.trim()) return;
   out.innerHTML='<div class="card spin">计算中…</div>';
@@ -3136,6 +3171,9 @@ async function evClubPredict(key){
     const d=await r.json();
     out.innerHTML = r.ok ? evPredCard(d)+evMatchupDetail(d)
       : `<div class="card"><span class="muted">${d.error||'查询失败'}${d.suggest&&d.suggest.length?'；你是想找：'+d.suggest.join(' / '):''}</span></div>`;
+    // 深链跳进来的：URL 里带的是 football-data 英文队名（短、可分享），成功后回写成
+    // 中文显示名——用户在输入框里看到的应该是队名而不是数据源拼写。手输的不动。
+    if(r.ok && fromLink && d.home_disp && d.away_disp){ h.value=d.home_disp; a.value=d.away_disp; }
   }catch(e){ out.innerHTML='<div class="card"><span class="muted">网络错误，请重试。</span></div>'; }
 }
 // C2 对阵分析展开区（参数化，任何联赛同一套组件）：比分矩阵 + 近 6 轮/交锋/主客场拆分/攻防强度
@@ -3262,7 +3300,10 @@ function evBoardCards(o){
            <td class="muted">${r.xg_home!=null?`${r.xg_home}-${r.xg_away}`:'—'}</td>
            <td style="min-width:90px">${evWdlBar(ph,pd,pa)}</td>
            <td class="muted">${r.b365?r.b365.map(x=>x.toFixed(2)).join(' / '):'—'}</td>`;
-      return `<tr><td class="muted" style="white-space:nowrap">${r.date} ${r.time}</td>
+      // 整行可点 → 对阵分析并带上这一场（与首页比赛流同一条路径）
+      return `<tr class="ev-clk" data-ev="${hmAttr(o.event)}" data-h="${hmAttr(r.home)}"
+        data-a="${hmAttr(r.away)}" onclick="hmGo(this)" title="查看该场对阵分析">
+        <td class="muted" style="white-space:nowrap">${r.date} ${r.time}</td>
         <td style="text-align:right">${r.home_disp}</td><td style="text-align:center">vs</td><td>${r.away_disp}</td>${pred}</tr>`;
     }).join('');
     // 标题随取数模式变化：窗口内有场次=「未来 N 天」；窗口内无但赛季已排期=回退「下一轮」，
@@ -3469,10 +3510,10 @@ function evSetContent(ep, html){        // 异步写 #ev_content 的唯一出口
   c.querySelectorAll('.evchart').forEach(el=>{ el.scrollLeft = el.scrollWidth; });
   return true;
 }
-function evShowTab(key, tk){
+function evShowTab(key, tk, qs){
   const ep = ++_evEpoch;
   document.querySelectorAll('#ev_tabs .tab').forEach(x=>x.classList.toggle('on', x.dataset.t===tk));
-  history.replaceState(null,'','#'+key+'/'+tk);
+  history.replaceState(null,'','#'+key+'/'+tk+(qs?'?'+qs:''));
   const c=$('#ev_content'); if(!c) return;
   jcRestoreHome();                                   // jc 组件若在本容器内，先归位再覆写，防节点销毁
   const meta=(EVENTS_META||[]).find(e=>e.key===key)||{};
@@ -3494,6 +3535,15 @@ function evShowTab(key, tk){
       .catch(e=>evSetContent(ep, evErrCard(e,'看板数据加载失败')));
   } else if(tk==='matchup'){
     c.innerHTML = evPredForm(key, true) + `<div id="ev_tables"></div>`;
+    // 深链带了具体对阵（首页比赛流/看板行点击）→ 直接用它，**同步预填**不等 overview，
+    // 否则 overview 回来时会把用户点的那场覆写成实力榜前两名。
+    const par = qs ? new URLSearchParams(qs) : null;
+    const qh = par && par.get('h'), qa = par && par.get('a');
+    if(qh && qa){
+      const h=$('#ev_home'), a=$('#ev_away');
+      if(h && a){ h.value=qh; a.value=qa; evClubPredict(key, true); }
+      return;
+    }
     evGet(key,'overview').then(o=>{
       if(ep!==_evEpoch) return;                      // 迟到响应不预填（防覆盖用户手输/写错视图）
       const h=$('#ev_home'), a=$('#ev_away');
@@ -3544,7 +3594,7 @@ function evShowTab(key, tk){
     jcInit();
   }
 }
-async function renderEventView(key, tab){
+async function renderEventView(key, tab, qs){
   const v = $('#eventview'); if(!v) return;
   jcRestoreHome();                                   // 视图整体重建前归位 jc 组件
   await loadEvents();
@@ -3578,7 +3628,7 @@ async function renderEventView(key, tab){
       国家队对阵；赛程看板与账本在开赛前接线。`;
   }
   const valid = LEAGUE_TABS.some(t=>t.k===tab);
-  evShowTab(key, valid?tab:(isClub?'board':'matchup'));
+  evShowTab(key, valid?tab:(isClub?'board':'matchup'), qs);   // qs 带对阵参数（?h=&a=）
 }
 
 // 深链：双段 #<event>/<tab>?qs；旧单段深链（#bracket / #manager?h=… 等，外部聊天记录里存量分享链）
@@ -3593,7 +3643,9 @@ loadEvents();
   if(h && h.includes('/')){ const i=h.indexOf('/'); ev=evResolve(h.slice(0,i)); h=h.slice(i+1); }
   else if(EVENT_KEYS.includes(evResolve(h))){ ev=evResolve(h); h=''; }
   if(!EVENT_KEYS.includes(ev)) ev='wc2026';
-  if(ev!=='wc2026'){ loadEvents().then(()=>selectEvent(ev, h||'')); return; }
+  // qs 必须一起传：否则「刷新/别人打开分享链接」时 ?h=&a= 被丢掉，
+  // 落地又变回实力榜前两名——站内点击能用、分享出去不能用，是最难自查的那种坑。
+  if(ev!=='wc2026'){ loadEvents().then(()=>selectEvent(ev, h||'', qs)); return; }
   if(h==='market-demo'){ finishBoot(); marketLoaded=true; document.querySelector('.tab[data-t="market"]').click(); setTimeout(loadMarketDemo,60); return; }
   if(h==='ratings') h='champ';     // 实力榜已并入「夺冠概率」tab，旧深链回退到夺冠概率
   if(h==='match') h='manager';     // 单场预测已并入「对阵分析」，旧深链回退到对阵分析
@@ -3615,15 +3667,17 @@ loadEvents();
 // 此前路由只在加载时跑一次（IIFE），首页里 location.hash=… 只改了地址栏、页面纹丝不动
 // ——「点了不跳转」的根因。同时它让浏览器前进/后退在首页与赛事之间正常工作。
 window.addEventListener('hashchange', function(){
-  const raw = location.hash.slice(1), [h] = raw.split('?');
+  const raw = location.hash.slice(1), [h, qs] = raw.split('?');
   if(!raw || h==='home'){ if(CUR_EVENT!=='__home__') goHome(false); return; }
   let ev='wc2026', tab='';
   if(h.includes('/')){ const i=h.indexOf('/'); ev=evResolve(h.slice(0,i)); tab=h.slice(i+1); }
   else if(EVENT_KEYS.includes(evResolve(h))){ ev=evResolve(h); }
   else { tab=h; }                                    // 旧单段深链（#bracket 等）→ 世界杯对应 tab
   if(!EVENT_KEYS.includes(ev)) ev='wc2026';
-  if(ev===CUR_EVENT && ev!=='wc2026' && !tab) return;   // 同赛事同视图：不重复渲染
-  selectEvent(ev, tab||undefined);
+  // 同赛事同视图不重复渲染；但**带了对阵参数就必须重render**——否则在同一联赛里
+  // 连点两场，第二场只改地址栏、输入框还停在上一场。
+  if(ev===CUR_EVENT && ev!=='wc2026' && !tab && !qs) return;
+  selectEvent(ev, tab||undefined, qs);
 });
 // —— 统一数据调度器 —— 取代之前分散的 4 个 setInterval。原先各自判 visibility + 当前 tab，
 // 易漏（曾导致后台轮询误渲晋级树）、且多 tab 来回切会叠多个 live 请求。现集中管理：
