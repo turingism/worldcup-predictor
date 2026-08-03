@@ -211,49 +211,68 @@ def _club_event_or_400():
     return key, ev, None
 
 
-# ---- 升班马新面孔（E1 降权 w=0.25 合训，裁决见 docs/backtest.md 第九节）----
+# ---- 升班马新面孔（顶级+feeder 加权合训，权重逐联赛裁决，见 docs/backtest.md 第九节）----
 # Web 层与 clubpredict CLI **共用同一组函数**，不另起一套判定/解析/模型。
-# 通道只对英格兰成立（promoted_newcomers 按 E0/E1 定义），其余联赛恒空集=路径关闭。
-_PROMO: dict = {"fp": None, "teams": frozenset()}
+# 五大联赛同一条通道（comp_weights 赛事名精确键）；无该联赛赛程缓存时自动关闭。
+_PROMO: dict = {}
 _PROMO_LOCK = threading.Lock()
 
 
 def _promoted_newcomers(code: str) -> frozenset:
-    """当季升班马新面孔，按数据指纹记忆化——每请求重算要读十几个 CSV。
+    """当季升班马新面孔，按数据指纹逐联赛记忆化——每请求重算要读十几个 CSV。
 
-    指纹=E0/E1 CSV 与 ESPN 赛程缓存的 mtime：赛程或历史帧一变即重算。
+    指纹=顶级/feeder CSV 与该联赛 ESPN 赛程缓存的 mtime：任一变即重算。
     任何异常都退化成空集（该路径关闭、场次照旧 no_model），绝不让它拖垮看板。"""
-    if code != "E0":
-        return frozenset()
     try:
+        import clubdata
         import clubfixtures
         import clubpredict
-        fp = (clubpredict._data_mtime("E0"), clubpredict._data_mtime("E1"),
-              os.path.getmtime(clubfixtures.cache_path("E0"))
-              if os.path.exists(clubfixtures.cache_path("E0")) else 0.0)
-        if _PROMO["fp"] == fp:
-            return _PROMO["teams"]
+        if code not in clubdata.FEEDER:
+            return frozenset()
+        cp = clubfixtures.cache_path(code)
+        fp = (clubpredict._data_mtime(code), clubpredict._data_mtime(clubdata.FEEDER[code]),
+              os.path.getmtime(cp) if os.path.exists(cp) else 0.0)
+        hit = _PROMO.get(code)
+        if hit and hit[0] == fp:
+            return hit[1]
         with _PROMO_LOCK:
-            if _PROMO["fp"] != fp:
-                _PROMO["teams"] = frozenset(clubpredict.promoted_newcomers())
-                _PROMO["fp"] = fp
-        return _PROMO["teams"]
+            hit = _PROMO.get(code)
+            if not hit or hit[0] != fp:
+                hit = (fp, frozenset(clubpredict.promoted_newcomers(code)))
+                _PROMO[code] = hit
+        return hit[1]
     except Exception as e:  # noqa
-        print(f"[app] 升班马名单解析失败（路径关闭）：{e}")
+        print(f"[app] {code} 升班马名单解析失败（路径关闭）：{e}")
         return frozenset()
 
 
 def _club_model_for(code: str, teams, promoted: frozenset):
-    """按对阵选模型 → (model, basis)。涉升班马新面孔才走 E0+E1 降权合训，其余零改动。"""
+    """按对阵选模型 → (model, basis)。涉升班马新面孔才走合训模型，其余零改动。"""
     import clubpredict
     with _CLUB_MODEL_LOCK:
         if promoted and set(teams) & promoted:
-            return clubpredict.get_promoted_model(verbose=False), "promoted_cotrained"
+            return clubpredict.get_promoted_model(code, verbose=False), "promoted_cotrained"
         return clubpredict.get_club_model(code, verbose=False), "league"
 
 
-PROMO_NOTE = ("含升班马新面孔：改用英超+英冠降权合训模型（英冠权重 {w}），"
-              "与纯英超场次不同口径；采纳依据见 docs/backtest.md 第九节")
+# 次级联赛中文简称（正文/数据区文案禁英文原名混排；英文原名另存 _en 供追溯）
+FEEDER_ZH = {"E1": "英冠", "SP2": "西乙", "I2": "意乙", "D2": "德乙", "F2": "法乙"}
+
+
+def _promo_meta(code: str) -> dict:
+    """升班马口径元信息（权重/次级联赛名/说明），三个消费方同一份文案。"""
+    import clubdata
+    import clubpredict
+    w = clubpredict.PROMOTED_FEEDER_W[code]
+    fcode = clubdata.FEEDER[code]
+    feeder_en = clubdata.LEAGUES[fcode]
+    feeder = FEEDER_ZH.get(fcode, feeder_en)
+    return {"promoted_feeder": feeder, "promoted_feeder_en": feeder_en,
+            "promoted_feeder_weight": w,
+            "promoted_note": f"含升班马新面孔：该队近 7 季无本联赛样本，"
+                             f"改用「本联赛 + {feeder}（权重 {w:g}）」合训模型评级，"
+                             f"与同表纯本联赛场次不同口径；权重逐联赛回测裁决"
+                             f"（依据见 docs/backtest.md 第九节）"}
 
 
 @app.route("/api/club/overview")
@@ -330,10 +349,8 @@ def api_club_overview():
         sel = clubfixtures.attach_b365(sel.copy(), fx)
         promoted = _promoted_newcomers(code)
         if promoted:
-            import clubpredict
             upcoming["promoted"] = sorted(promoted)
-            upcoming["promoted_e1_weight"] = clubpredict.PROMOTED_E1_W
-            upcoming["promoted_note"] = PROMO_NOTE.format(w=clubpredict.PROMOTED_E1_W)
+            upcoming.update(_promo_meta(code))
         for r in sel.itertuples():
             row = {"date": str(r.date.date()), "time": r.date.strftime("%H:%M"),
                    "home": r.home_team, "away": r.away_team,
@@ -464,23 +481,22 @@ def api_club_predict():
         "note": "90 分钟口径（含补时，不含加时点球）；研究/信息性质",
         "basis": basis,
     }
-    e1 = None
+    fdr = None
     if basis == "promoted_cotrained":
-        # 口径不同必须写进响应本身：这两个数字不是纯英超模型给的
+        # 口径不同必须写进响应本身：这两个数字不是纯顶级联赛模型给的
         payload["promoted"] = sorted(promoted & {names["home"], names["away"]})
-        payload["promoted_e1_weight"] = clubpredict.PROMOTED_E1_W
-        payload["promoted_note"] = PROMO_NOTE.format(w=clubpredict.PROMOTED_E1_W)
-        e1 = clubdata.load("E1", seasons=clubpredict.SEASONS)
-        payload["data_through"] = str(max(df.date.max(), e1.date.max()).date())
+        payload.update(_promo_meta(code))
+        fdr = clubdata.load(clubdata.FEEDER[code], seasons=clubpredict.SEASONS)
+        payload["data_through"] = str(max(df.date.max(), fdr.date.max()).date())
     if request.args.get("detail") == "1":
         # C2 对阵分析展开区：账本层共用实现（manager.py 过程数据函数，两宇宙同一份）
         import manager
         import pandas as pd
         hn, an = r["home"], r["away"]
-        # 升班马新面孔在英超帧里一场都没有，近况/主客拆分/交锋会整片空白。
-        # 概率既然已用合训模型，过程数据帧也并上英冠——但必须在 note 里写明含英冠场次。
-        fdf = (pd.concat([df, e1], ignore_index=True).sort_values("date").reset_index(drop=True)
-               if e1 is not None else df)
+        # 升班马新面孔在顶级联赛帧里一场都没有，近况/主客拆分/交锋会整片空白。
+        # 概率既然已用合训模型，过程数据帧也并上次级联赛——但必须在 note 里写明。
+        fdf = (pd.concat([df, fdr], ignore_index=True).sort_values("date").reset_index(drop=True)
+               if fdr is not None else df)
 
         def _mrows(ms):
             return [{**x, "opp_disp": teams_zh.disp(x["opp"])} for x in ms]
@@ -511,7 +527,7 @@ def api_club_predict():
             x["home_disp"], x["away_disp"] = teams_zh.disp(x["home"]), teams_zh.disp(x["away"])
         payload["facts"] = {"home": facts["home"], "away": facts["away"], "h2h": h2h,
                             "strength_note": "攻防强度为联赛内相对值，跨联赛不可比"
-                            + ("；本场过程数据帧含英冠场次（升班马新面孔）"
+                            + (f"；本场过程数据帧含{payload.get('promoted_feeder')}场次（升班马新面孔）"
                                if basis == "promoted_cotrained" else ""),
                             "data_through": payload["data_through"]}
         nsz = int(min(6, M.shape[0], M.shape[1]))
@@ -850,8 +866,7 @@ def _api_jc_review_club(key, ev, jc):
                 "pred_score": f"{int(round(pr['xg_home']))}-{int(round(pr['xg_away']))}",
                 "is_knockout": False, "basis": basis}
             if basis == "promoted_cotrained":
-                out["model_preview"]["promoted_note"] = PROMO_NOTE.format(
-                    w=clubpredict.PROMOTED_E1_W)
+                out["model_preview"].update(_promo_meta(code))
             if date:
                 rec = jc.load_all(path).get(jc.match_key(date, h, a))
                 if rec:

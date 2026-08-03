@@ -2102,9 +2102,9 @@ def test_club_predict_resolves_promoted_newcomer(client):
         pytest.skip("本机无 ESPN 赛程缓存，升班马通道关闭")
     d = client.get("/api/club/predict?event=epl2627&home=阿森纳&away=考文垂&detail=1").get_json()
     assert d.get("basis") == "promoted_cotrained" and d["promoted"] == ["Coventry"]
-    assert d["promoted_e1_weight"] == 0.25 and d["promoted_note"]
+    assert d["promoted_feeder_weight"] == 0.25 and d["promoted_note"]
     assert abs(d["p_home"] + d["p_draw"] + d["p_away"] - 1.0) < 1e-3
-    assert "英冠" in d["facts"]["strength_note"]          # 过程数据帧含英冠必须写明
+    assert "英冠" in d["facts"]["strength_note"]            # 过程数据帧含次级联赛必须写明
     assert d["facts"]["home"]["recent"]["matches"]        # 合并帧后近况不再整片空白
 
 
@@ -2148,7 +2148,7 @@ def test_club_upcoming_marks_promoted_basis_per_row(client, monkeypatch):
     by = {r["home"]: r for r in up["rows"]}
     assert by["Arsenal"]["basis"] == "promoted_cotrained" and "no_model" not in by["Arsenal"]
     assert by["Everton"]["basis"] == "league"
-    assert up["promoted_e1_weight"] == 0.25 and up["promoted_note"]
+    assert up["promoted_feeder_weight"] == 0.25 and up["promoted_note"]
 
 
 def test_club_overview_upcoming_next_round_fallback(client, monkeypatch):
@@ -3511,19 +3511,66 @@ def test_frontend_static_shim_present_and_off_by_default():
     assert not leaked, f"有 {len(leaked)} 处 /api/ 取数漏改成 apiFetch，静态站上会 404"
 
 
-def test_comp_tier_championship_collision_locked():
-    """clubpredict 升班马路径的前提：comp_tier 把英冠判为 major（'championship' 关键词
-    撞车，本意是欧锦赛）、EPL 判为 other——两 tier 可分，E1 降权才有 comp_weights 通道。
-    此映射一变，PROMOTED_E1_W 通道静默失效，本测试必须先红。"""
-    from data import comp_tier
-    assert comp_tier("English Championship") == "major"
-    assert comp_tier("English Premier League") == "other"
+def test_comp_weights_exact_name_beats_tier():
+    """升班马通道的机制前提（已从 comp_tier 关键词撞车换成赛事名精确键）：
+    build_training_frame 查表顺序=赛事名 > tier > 1.0。有了精确名这一级，
+    西乙/意乙等与顶级同 tier 的联赛才能单独降权——撞车那条路只对英格兰成立。"""
+    import datetime as _dt
+    import pandas as _pd
+    from data import build_training_frame
+    df = _pd.DataFrame({
+        "date": [_pd.Timestamp("2025-01-01")] * 2,
+        "home_team": ["A", "C"], "away_team": ["B", "D"],
+        "home_score": [1, 1], "away_score": [0, 0],
+        "tournament": ["Spanish La Liga", "Spanish Segunda Division"],
+        "neutral": [False, False]})
+    tf = build_training_frame(df, half_life_days=365, min_matches=0,
+                              as_of=_dt.date(2025, 1, 1),
+                              comp_weights={"Spanish Segunda Division": 0.25})
+    w = dict(zip(tf["attack"], tf["weight"]))
+    assert abs(w["A"] - 1.0) < 1e-9 and abs(w["C"] - 0.25) < 1e-9   # 同 tier 也能分开
+    # tier 键的既有行为不变（国家队侧仍按分级加权）
+    tf2 = build_training_frame(df, half_life_days=365, min_matches=0,
+                               as_of=_dt.date(2025, 1, 1), comp_weights={"other": 0.5})
+    assert abs(dict(zip(tf2["attack"], tf2["weight"]))["A"] - 0.5) < 1e-9
+
+
+def test_promoted_model_keys_weight_by_feeder_name():
+    """合训模型必须用 **feeder 赛事名** 作 comp_weights 键（不是 tier）——
+    这是「西乙/意乙与顶级同 tier 也能单独加权」的全部机制。抽德甲验：
+    它的最优权重是 1.0，若误用 tier 键，德乙权重会连带影响德甲行，数字必然走样。"""
+    import clubdata, clubpredict
+    m = clubpredict.get_promoted_model("D1", verbose=False)
+    assert m.comp_weights == {clubdata.LEAGUES["D2"]: clubpredict.PROMOTED_FEEDER_W["D1"]}
+    assert "major" not in m.comp_weights and "other" not in m.comp_weights
+
+
+def test_promoted_newcomers_per_league_subset_of_feeder():
+    """逐联赛升班马名单：必须是「本联赛赛程有 ∧ 顶级帧无 ∧ feeder 帧有」的交集。
+    无赛程缓存=空集（通道关闭），不因缺网变红。"""
+    import clubdata, clubpredict
+    seen = 0
+    for code, feeder in clubdata.FEEDER.items():
+        promo = clubpredict.promoted_newcomers(code)
+        if not promo:
+            continue
+        seen += 1
+        top = clubdata.load(code, seasons=clubpredict.SEASONS)
+        fdr = clubdata.load(feeder, seasons=clubpredict.SEASONS)
+        assert not (promo & (set(top.home_team) | set(top.away_team)))    # 顶级帧必须没有
+        assert promo <= (set(fdr.home_team) | set(fdr.away_team))         # feeder 帧必须有
+    if not seen:
+        pytest.skip("本机无 ESPN 赛程缓存，升班马通道全关")
+    assert clubpredict.promoted_newcomers("E1") == set()   # 非顶级联赛无 feeder → 空集
 
 
 def test_promoted_resolution_offline():
     """升班马解析纯函数：中文/英文/大小写命中，非升班马与空池返回 None。"""
-    import clubpredict
-    assert clubpredict.PROMOTED_E1_W == 0.25
+    import clubdata, clubpredict
+    # 权重逐联赛裁决（bt_promoted.py 第九节）：英西法 0.25、意德 1.0——**不是通用默认**
+    assert clubpredict.PROMOTED_FEEDER_W == {"E0": 0.25, "SP1": 0.25, "I1": 1.0,
+                                             "D1": 1.0, "F1": 0.25}
+    assert set(clubpredict.PROMOTED_FEEDER_W) == set(clubdata.FEEDER)   # 五联赛全覆盖
     promoted = {"Coventry", "Hull"}
     assert clubpredict.resolve_promoted("考文垂", promoted) == "Coventry"
     assert clubpredict.resolve_promoted("hull", promoted) == "Hull"

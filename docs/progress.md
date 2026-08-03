@@ -2,6 +2,50 @@
 
 体例：每轮记录做了什么、如何验证、证据路径、遗留问题。「未验证」按纪律如实标注。
 
+## 2026-08-03（二十三轮）升班马通道推广到五大联赛：逐联赛权重裁决
+
+### 触发
+用户报「西甲、法甲、德甲里还是有暂无数据」。二十二轮写的边界「通道仅英格兰可用」是
+**机制限制不是数据限制**——comp_tier 把西乙/意乙/德乙/法乙与各自顶级判成同一 tier，
+comp_weights 分不开；英格兰能分只因 "championship" 关键词撞车（本意欧锦赛）。
+
+### 做了什么
+1. **换掉撞车机制**：`data.build_training_frame` 的 comp_weights 查表改为
+   **赛事名精确匹配 > tier 分级 > 1.0**。tier 键既有行为逐字节不变（国家队赛事名不会
+   等于 friendly/qualification/major/other），国家队侧零影响。
+   **验收依据**：改后 E0 复跑数字逐位复现（w=0.25→0.1919，网格 0.1931/0.1941/0.1949，
+   与二十一轮记录完全一致），证明精确键与旧撞车键等价。
+2. **bt_promoted.py 参数化五联赛**，各用自己的 feeder（E0←E1/SP1←SP2/I1←I2/D1←D2/F1←F2），
+   同一套闸门（优于均匀 ∧ 无一 cutoff 逊于均匀 ∧ 对市场差 ≤0.03）。**五家全过**，
+   表与网格落 `docs/backtest.md` 第九-2 节。
+3. **接线泛化**：`promoted_newcomers(code)`/`get_promoted_model(code)` 按 `clubdata.FEEDER`
+   推导，缓存 `model_<code>promo.pkl`；`PROMOTED_FEEDER_W` 取代 `PROMOTED_E1_W`；
+   app 三个消费方 + CLI 去掉 E0 硬编码；响应字段改 `promoted_feeder_weight` +
+   `promoted_feeder`（中文简称，正文不混排英文原名，英文另存 `_en` 供追溯）。
+
+### 关键结果与诚实标注
+- 最优 w：E0 0.25 / SP1 0.25 / **I1 1.0** / **D1 1.0** / F1 0.25。
+- **「降权更好」不是普适结论**：意德两家满权更优（I1 4/5、D1 5/5 cutoff favor 1.0），
+  方向与英西法相反；但两家网格跨度仅 0.0009/0.0012（E0 为 0.0030），属**弱确定**——
+  逐联赛取 argmin 是数据驱动选择，不宜宣称「意甲证明满权更好」。D1 样本最少（330 场）。
+- 实测五大联赛未来赛程卡片 **no_model 归零**。当前新面孔：英超 Coventry/Hull、
+  西甲 La Coruna/Malaga/Santander、德甲 Elversberg、法甲 Le Mans；
+  **意甲本季无新面孔**（升班队近 7 季都有意甲样本，标准模型本就覆盖）。
+
+### 验证
+- `pytest test_core.py -q` **226 passed**（新增 2 + 改判 1）：新增
+  `test_comp_weights_exact_name_beats_tier`（同 tier 两联赛能分开加权 + tier 键行为不变）、
+  `test_promoted_model_keys_weight_by_feeder_name`（合训模型 comp_weights 键必须是 feeder
+  赛事名、不得含 major/other）、`test_promoted_newcomers_per_league_subset_of_feeder`。
+  旧 `test_comp_tier_championship_collision_locked` 删除——它锁的是已被替换掉的撞车前提，
+  留着会把「不许修 comp_tier」这条错误约束延续下去（改判理由：机制已换，非放宽断言）。
+- 截图：`upcoming-bundes2627-promoted.png`（德乙权重 1）、`upcoming-laliga2627-promoted.png`
+  （西乙权重 0.25，窗内态）。CLI 实测德甲升班马 埃弗斯贝格 vs 勒沃库森 19.5/20.7/59.8。
+
+### 遗留
+clubverify 冻结链路仍未接升班马模型（账本里这些场次仍会 no_model），与开球时区核验 0/5
+一起在 08-21 首轮前解决。
+
 ## 2026-08-03（二十二轮）升班马合训模型接进 Web 三个消费方
 
 ### 触发

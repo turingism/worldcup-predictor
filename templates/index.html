@@ -3252,7 +3252,7 @@ function evBoardCards(o){
       // 升班马场次用的是英超+英冠降权合训模型，与同表其他行不同口径——必须逐行标出，
       // 不能混在一列数字里不作声。
       const est = r.basis==='promoted_cotrained'
-        ? `升班马合训估算（英冠权重 ${up.promoted_e1_weight!=null?up.promoted_e1_weight:'—'}）`
+        ? `升班马合训估算（含${up.promoted_feeder||'次级联赛'}，权重 ${up.promoted_feeder_weight!=null?up.promoted_feeder_weight:'—'}）`
         : '当前模型估算（未冻结）';
       const basis = f ? `<div class="muted" style="font-size:11px">赛前冻结 · ${f.frozen_at||''}</div>`
                       : `<div class="muted" style="font-size:11px">${est}</div>`;

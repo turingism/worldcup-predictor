@@ -43,14 +43,24 @@ S5 = ("E0", "SP1", "I1", "D1", "F1")
 HL_CLUB = 365.0        # 俱乐部半衰期正式裁决值；国家队的 730 不可照搬
 SEASONS = 7
 
-# 升班马路径：E1 降权并入，**只对涉升班马新面孔的 E0 场次启用**（2026-08-03 bt_promoted.py
-# 专项裁决，正是 07-08 否决时预留的「后续可研究 E1 降权(w<1)并入」）。5 个赛季初 cutoff ×
-# 537 场涉升班马留出：w=0.25 RPS 0.1919，且 w 单调劣化至 1.0=0.1949（与全量并入否决同向）；
-# 全部 cutoff 显著优于均匀基线 0.2409；对 B365 闭盘差 +0.018=本项目模型对市场的常态差距。
-# 一般场次仍走纯 E0 模型，零改动零风险。E1 行降权通道=comp_weights：
-# data.comp_tier("English Championship")=="major"（"championship" 关键词撞车，本意欧锦赛）
-# 而 EPL→"other"，恰好可分——脆弱巧合，test_core 有护栏测试锁死；此路仅适用英格兰。
-PROMOTED_E1_W = 0.25
+# 升班马路径：次级联赛（feeder）加权并入，**只对涉升班马新面孔的场次启用**——一般场次
+# 仍走纯顶级联赛模型，零改动零风险。这正是 07-08 否决 E1 全量并入「一般单场」时预留的
+# 「后续可研究 feeder 降权(w<1)并入」。
+#
+# 权重逐联赛裁决（bt_promoted.py，5 个赛季初 cutoff × 涉升班马留出场次，见 backtest.md 第九节）：
+#   E0  w=0.25  RPS 0.1919（网格单调劣化至 1.0=0.1949，与全量并入否决同向）  n=537
+#   SP1 w=0.25  RPS 0.1921（3/5 cutoff favor 0.25，网格跨度仅 0.0011）        n=535
+#   I1  w=1.00  RPS 0.1936（**方向与英西法相反**，4/5 cutoff favor 1.0）      n=535
+#   D1  w=1.00  RPS 0.1927（5/5 cutoff 单调 favor 1.0）                       n=330
+#   F1  w=0.25  RPS 0.2078（网格单调 favor 0.25）                             n=437
+# 五联赛闸门均过：优于均匀基线且无一 cutoff 逊于它、对 B365 闭盘差 ≤0.018。
+# **「降权更好」不是普适结论**——意德两家满权更优，网格近乎持平（跨度 0.0009/0.0012），
+# 属弱确定；勿把英超的 0.25 当成通用默认往别处抄。
+#
+# 降权通道=comp_weights 的**赛事名精确键**（data.build_training_frame 查表：赛事名 > tier > 1.0）。
+# 初版靠 comp_tier("English Championship")=="major" 的关键词撞车才分得出英冠，只对英格兰成立；
+# 改精确名后五联赛同一条通道，不再依赖撞车。
+PROMOTED_FEEDER_W = {"E0": 0.25, "SP1": 0.25, "I1": 1.0, "D1": 1.0, "F1": 0.25}
 
 
 def _cache_path(code: str) -> str:
@@ -101,24 +111,26 @@ def _atomic_dump(obj, path: str) -> None:
             os.remove(tmp)
 
 
-def promoted_newcomers() -> set[str]:
-    """当季 E0 赛程（ESPN 缓存）里、近 7 季 E0 帧没有、但 E1 帧有的队=升班马新面孔。
+def promoted_newcomers(code: str = "E0") -> set[str]:
+    """当季该联赛赛程（ESPN 缓存）里、近 7 季顶级帧没有、但 feeder 帧有的队=升班马新面孔。
 
     只读缓存不联网（clubfixtures.load_cached）；无赛程缓存返回空集=路径自动关闭。
-    有近 7 季 E0 历史的升班马（如降而复升）不算新面孔——标准模型本就有其参数，
+    有近 7 季顶级历史的升班马（如降而复升）不算新面孔——标准模型本就有其参数，
     且专项回测显示合训对这类队同样成立，但按最小改动原则只对「池外队」开新路径。"""
+    if code not in clubdata.FEEDER:
+        return set()
     try:
         import clubfixtures
-        fx = clubfixtures.load_cached("E0")
+        fx = clubfixtures.load_cached(code)
     except Exception:
         return set()
     if fx is None or not len(fx):
         return set()
     fixture_teams = set(fx.home_team) | set(fx.away_team)
-    e0 = clubdata.load("E0", seasons=SEASONS)
-    e1 = clubdata.load("E1", seasons=SEASONS)
-    return (fixture_teams - set(e0.home_team) - set(e0.away_team)) \
-        & (set(e1.home_team) | set(e1.away_team))
+    top = clubdata.load(code, seasons=SEASONS)
+    fdr = clubdata.load(clubdata.FEEDER[code], seasons=SEASONS)
+    return (fixture_teams - set(top.home_team) - set(top.away_team)) \
+        & (set(fdr.home_team) | set(fdr.away_team))
 
 
 def resolve_promoted(name: str, promoted: set[str]):
@@ -138,35 +150,40 @@ def resolve_promoted(name: str, promoted: set[str]):
     return subs[0] if len(subs) == 1 else None
 
 
-def get_promoted_model(refresh: bool = False, verbose: bool = True) -> DixonColesModel:
-    """E0+E1（英冠降权 PROMOTED_E1_W）合训模型，仅供涉升班马场次。
+def get_promoted_model(code: str = "E0", refresh: bool = False,
+                       verbose: bool = True) -> DixonColesModel:
+    """顶级+feeder（feeder 权重 PROMOTED_FEEDER_W[code]）合训模型，仅供涉升班马场次。
 
-    缓存纪律同 get_club_model：schema/hl/权重精确匹配 + 不老于 E0、E1 任一 CSV。"""
+    缓存纪律同 get_club_model：schema/hl/权重精确匹配 + 不老于两联赛任一 CSV。
+    权重键用 **feeder 赛事名精确匹配**，不再依赖 comp_tier 关键词撞车（见文件头裁决表）。"""
     import pandas as pd
 
-    e0 = clubdata.load("E0", seasons=SEASONS, refresh=refresh)
-    e1 = clubdata.load("E1", seasons=SEASONS, refresh=refresh)
-    path = _cache_path("E0promo")
-    newest = max(_data_mtime("E0"), _data_mtime("E1"))
+    feeder = clubdata.FEEDER[code]
+    feeder_name = clubdata.LEAGUES[feeder]
+    w = PROMOTED_FEEDER_W[code]
+    top = clubdata.load(code, seasons=SEASONS, refresh=refresh)
+    fdr = clubdata.load(feeder, seasons=SEASONS, refresh=refresh)
+    path = _cache_path(f"{code}promo")
+    newest = max(_data_mtime(code), _data_mtime(feeder))
     if not refresh and os.path.exists(path):
         try:
             with open(path, "rb") as f:
                 m = pickle.load(f)
             if getattr(m, "schema_version", 0) == SCHEMA_VERSION \
                     and abs(getattr(m, "half_life_days", -1) - HL_CLUB) < 1e-6 \
-                    and (getattr(m, "comp_weights", None) or {}).get("major") == PROMOTED_E1_W \
+                    and (getattr(m, "comp_weights", None) or {}).get(feeder_name) == w \
                     and os.path.getmtime(path) >= newest:
                 if verbose:
-                    print(f"[cache] 升班马合训模型缓存命中（{len(m.teams)} 队）")
+                    print(f"[cache] {code} 升班马合训模型缓存命中（{len(m.teams)} 队）")
                 return m
         except Exception as e:  # noqa
             if verbose:
                 print(f"[cache] 缓存损坏（{e}），重建")
     if verbose:
-        print(f"[fit] 训练 E0+E1 升班马合训模型（英冠权重 {PROMOTED_E1_W}, hl={HL_CLUB:.0f}）…")
-    m = DixonColesModel(half_life_days=HL_CLUB,
-                        comp_weights={"major": PROMOTED_E1_W, "other": 1.0}).fit(
-        pd.concat([e0, e1], ignore_index=True), verbose=False)
+        print(f"[fit] 训练 {code}+{feeder} 升班马合训模型（{feeder_name} 权重 {w}, "
+              f"hl={HL_CLUB:.0f}）…")
+    m = DixonColesModel(half_life_days=HL_CLUB, comp_weights={feeder_name: w}).fit(
+        pd.concat([top, fdr], ignore_index=True), verbose=False)
     _atomic_dump(m, path)
     return m
 
@@ -282,14 +299,16 @@ def main():
         return
 
     pool = _league_teams((args.league,) if args.league else S5)
-    promoted = promoted_newcomers()
+    # 升班马新面孔按联赛各查一份（队名→联赛码），跨联赛对阵仍由下方同一条检查拦住
+    promoted = {c: promoted_newcomers(c) for c in ((args.league,) if args.league else S5)}
+    all_promo = {t: c for c, ts in promoted.items() for t in ts}
     sides, use_promoted = [], False
     for raw in (args.home, args.away):
         hit, sugg = resolve(raw, pool)
         if hit is None:
-            promo = resolve_promoted(raw, promoted)
+            promo = resolve_promoted(raw, set(all_promo))
             if promo is not None:
-                hit, use_promoted = (promo, "E0"), True
+                hit, use_promoted = (promo, all_promo[promo]), True
         if hit is None:
             print(f"\n  ✗ 未识别球队「{raw}」" + (f"，你是想找：{' / '.join(sugg)}？" if sugg else ""))
             print(f"    （范围=五大联赛近 {SEASONS} 季 + 当季升班马；欧冠等跨联赛对阵暂不支持）\n")
@@ -303,14 +322,16 @@ def main():
               "本 CLI 保持联赛内口径，跨联赛对阵仍拒绝。\n")
         sys.exit(1)
 
-    if use_promoted and ch == "E0":
-        m = get_promoted_model(refresh=args.refresh)
-        df = clubdata.load("E0", seasons=SEASONS)
-        print(f"  [data] {clubdata.LEAGUES['E0']} 近 {SEASONS} 季 {len(df)} 场 + 英冠样本"
-              f"（降权 {PROMOTED_E1_W}），截至 {df['date'].max().date()}")
-        print(f"  [口径] 升班马路径：该队近 7 季无英超样本，按英冠战绩降权评级"
-              f"（2026-08-03 专项回测采纳，涉升班马场次留出 RPS 0.192 vs 均匀 0.241）")
-        print_club_prediction(m, "E0", h, a, args.neutral)
+    if use_promoted and ch in PROMOTED_FEEDER_W:
+        feeder_name = clubdata.LEAGUES[clubdata.FEEDER[ch]]
+        w = PROMOTED_FEEDER_W[ch]
+        m = get_promoted_model(ch, refresh=args.refresh)
+        df = clubdata.load(ch, seasons=SEASONS)
+        print(f"  [data] {clubdata.LEAGUES[ch]} 近 {SEASONS} 季 {len(df)} 场 + {feeder_name} 样本"
+              f"（权重 {w}），截至 {df['date'].max().date()}")
+        print(f"  [口径] 升班马路径：该队近 {SEASONS} 季无本联赛样本，按次级联赛战绩加权评级"
+              f"（2026-08-03 专项回测逐联赛采纳，见 docs/backtest.md 第九节）")
+        print_club_prediction(m, ch, h, a, args.neutral)
         return
 
     m = get_club_model(ch, refresh=args.refresh)

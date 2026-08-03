@@ -189,7 +189,7 @@ def build_training_frame(
     min_matches: int = 12,           # 样本太少的球队拟合不稳，剔除
     as_of: dt.date | None = None,
     elo_map: dict | None = None,     # {df_index:(home_elo,away_elo)} 时加 elo_diff 外生特征列
-    comp_weights: dict | None = None,  # {tier:权重} 分级赛事权重；None 时沿用 友谊0.5/其余1.0
+    comp_weights: dict | None = None,  # {赛事名或tier:权重}；None 时沿用 友谊0.5/其余1.0
 ) -> pd.DataFrame:
     """
     把每场比赛拆成两行（主队视角 / 客队视角），构建长表用于 Poisson GLM。
@@ -216,9 +216,14 @@ def build_training_frame(
     if comp_weights is None:
         is_friendly = pl["tournament"].str.contains("Friendly", case=False, na=False)
         comp_w = np.where(is_friendly, FRIENDLY_WEIGHT, 1.0)
-    else:  # 分级赛事权重
+    else:
+        # 查表优先级：**赛事名精确匹配 > tier 分级 > 1.0**。
+        # 精确名这一级是给俱乐部升班马通道用的：只想把「Spanish Segunda Division」降权，
+        # 而 comp_tier 会把它和西甲一起判成 other——分级粒度天生做不到按联赛区分。
+        # （英格兰此前能分只因 "championship" 关键词撞车，是巧合不是机制，勿再依赖。）
+        # tier 键的既有行为逐字节不变：国家队赛事名不会等于 friendly/qualification/major/other。
         comp_w = pl["tournament"].map(
-            lambda t: comp_weights.get(comp_tier(t), 1.0)).to_numpy()
+            lambda t: comp_weights.get(t, comp_weights.get(comp_tier(t), 1.0))).to_numpy()
     pl["weight"] = time_w.to_numpy() * comp_w
 
     # 主场优势只给真正的主队：中立场 -> home=0
