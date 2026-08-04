@@ -2,7 +2,9 @@
 
 - 十联赛（五大 + feeder）最新一季 CSV 强刷（clubdata.fetch 已具 D1 韧性：
   刷新失败沿用缓存、新季空窗降级）；报告每联赛数据截止日与增量场次。
-- fixtures.csv 强刷（未来一轮赛程 + B365 赛前盘；休赛期可能为空，如实记录）。
+- fixtures.csv 强刷（football-data，只有未来一轮 + B365 赛前盘；休赛期可能为空，如实记录）。
+- **赛程主源 ESPN 强刷**（clubfixtures，整季已排期；看板/首页的赛程实际靠这份，
+  不能只依赖 Web 请求触发的 SWR——无人访问时缓存会一直过期）。
 - ESPN 五大联赛 scoreboard 当日完场计数（复用 live._fetch_json 的
   系统代理+直连回退；休赛期 0 场为正常状态）。
 - 模型/界面联动：club 模型缓存按数据 mtime 指纹自动失效（clubpredict.
@@ -47,7 +49,7 @@ def main() -> int:
             ok = False
             log(f"[csv][失败] {code}: {e}\n{traceback.format_exc()}")
 
-    # ② fixtures（未来一轮赛程+盘口）
+    # ② fixtures：football-data（未来一轮 + B365 赛前盘）
     try:
         fx = clubdata.load_fixtures(refresh=True)
         if len(fx):
@@ -57,6 +59,24 @@ def main() -> int:
     except Exception as e:  # noqa
         ok = False
         log(f"[fixtures][失败] {e}\n{traceback.format_exc()}")
+
+    # ②-b 赛程主源 ESPN（整季已排期）。football-data 只在盘口开出后才登记未来数天，
+    # 新季开赛前长期 0 行——看板/首页的赛程实际靠这一份，运维路径必须把它一起刷新，
+    # 不能只依赖 Web 请求触发的 SWR（无人访问时缓存会一直过期）。单联赛失败隔离。
+    try:
+        import clubfixtures
+        for code in clubfixtures.LEAGUE_SLUG:
+            try:
+                o = clubfixtures.harvest(code)
+                nxt = o["rows"][0]["utc"][:10] if o["rows"] else "—"
+                log(f"[fixtures-espn] {code}: {len(o['rows'])} 场未完赛，最近 {nxt}"
+                    + (f"（{len(o['errors'])} 窗失败）" if o["errors"] else ""))
+            except Exception as e:  # noqa  单联赛失败不影响其余，沿用旧缓存
+                ok = False
+                log(f"[fixtures-espn][失败] {code}: {e}")
+    except Exception as e:  # noqa
+        ok = False
+        log(f"[fixtures-espn][失败] {e}\n{traceback.format_exc()}")
 
     # ③ ESPN 五大联赛当日完场计数（赛季内为实时兜底预热；休赛期 0 场正常）
     try:
