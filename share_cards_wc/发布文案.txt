@@ -1,0 +1,61 @@
+========================================
+世界杯比分预测器 · 发布文案
+========================================
+
+
+【小红书 · 中文版】
+----------------------------------------
+
+世界杯开打了，分享个自己做的小东西
+
+看球这几天一直在用自己写的一个预测器，干脆开源出来了。
+
+起因很简单：每次看赛前分析，都是「我觉得这场谁谁能赢」，听完还是不知道到底多大概率。我想要的是一个数字，而且这个数字得能被验证对错，不是说完就算。
+
+所以做了这个：
+
+- 输入两支球队，给的是一整张比分概率分布，不只是「谁赢」——最可能的几个比分、胜平负、预期进球都有。
+- 点一下能把整届模拟一遍，算出每支队的夺冠概率，并且带一个区间，告诉你这个数到底有多不确定，而不是给个看着很精确其实没底的数字。
+- 比赛进行中，胜平负会跟着比分和剩余时间实时变。
+- 我自己最在意的一点：每场的赛前预测在开球前就锁住了，事后逐场对答案，命中没命中一目了然，没法回头改口。
+
+技术上没什么玄乎的，就是足球建模里比较经典的 Dixon-Coles 双泊松模型，数据用的是 1872 年到现在的国际比赛结果，做了样本外回测来确认它是真的准、不是事后看着准。中间也试过加身价、Elo、各种后处理这些「听起来更高级」的做法，但回测下来没用甚至更差的，我都关掉了——留下来的每一项都有数据支撑。
+
+纯统计工具，不预测「稳赢」，也不荐彩。概率不等于结果，这东西只是帮你把直觉换成一个能被检验的数字，是个人学习项目，不构成任何投注建议。
+
+代码、说明都在 GitHub，感兴趣可以看看、点个 star，也欢迎挑错：
+https://github.com/turingism/worldcup-predictor
+
+#世界杯 #2026世界杯 #数据分析 #程序员 #开源项目 #Python #足球 #机器学习 #数据可视化
+
+
+
+【X (Twitter) · English thread】
+----------------------------------------
+
+1/
+The World Cup's underway, so I'm finally open-sourcing something I've been using to watch it: a match predictor that gives you actual probabilities instead of "I think team X wins."
+
+The one rule I cared about: every number it spits out has to be checkable.
+
+2/
+What it does:
+– Enter two teams → a full scoreline probability distribution, not just a winner (most likely scores, win/draw/loss, expected goals)
+– Simulate the whole tournament → each team's title odds, with a credible interval so you know how uncertain that number actually is
+– While a match is live, win/draw/loss updates with the score and time remaining
+
+3/
+The part I care about most: every pre-match prediction is frozen before kickoff and scored afterward. No hindsight, no quietly editing the call once you know the result. You can see exactly what it got right and wrong.
+
+4/
+Nothing exotic under the hood — a Dixon-Coles double-Poisson model fit on international results going back to 1872, validated out-of-sample so I know it's actually calibrated and not just fitting the past.
+
+I also tried the "fancier" stuff (market-value priors, Elo, post-hoc calibration). Anything that didn't beat the backtest got switched off. What's left is there because the data backs it.
+
+5/
+It's a personal/educational project — a statistical tool, not a tipster. Probabilities aren't certainties, and it's not betting advice.
+
+Code, docs, and the methodology are all open. Feedback and bug reports welcome:
+https://github.com/turingism/worldcup-predictor
+
+#WorldCup2026 #dataviz #Python #machinelearning #footballanalytics
