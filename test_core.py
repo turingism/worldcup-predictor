@@ -1013,8 +1013,7 @@ def test_csl_dynamic_line_strong_vs_even(model):
 
 # ---------- 比赛解读文案层（2026-06-25 续六，文案/QA）----------
 def test_narrative_compliance_no_banned_words(model):
-    """QA 合规铁测：遍历多类对阵（强打弱/均势/弱打强/host）生成解读，断言**永不**含违规词，
-    且每条都带『非投注建议』尾注。这是把守『严禁涉赌』红线的自动化护栏。"""
+    """遍历多类对阵生成解读：行动词守卫仍生效，且不再输出免责声明尾注。"""
     import narrative, manager, teams_zh
     import numpy as np
     pairs = [("Brazil", "Haiti"), ("Germany", "Ecuador"), ("Argentina", "France"),
@@ -1032,12 +1031,11 @@ def test_narrative_compliance_no_banned_words(model):
                                       r["p_home"], r["p_draw"], r["p_away"], hc, tot)
         for w in narrative._BANNED:
             assert w not in s, f"{h} vs {a} 解读含违规词 {w}：{s}"
-        assert "非投注建议" in s and "理性观赛" in s          # 合规尾注必带
+        assert not any(x in s for x in ("非投注建议", "理性观赛", "量力而行", "研究/信息性质"))
 
 
 def test_narrative_compact_mode(model):
-    """看板逐行解读用 compact 模式：仍**永不**含违规词，但省去每行重复的尾注
-    （免责由解读区统一展示一次）。守住红线 + 不冗余。"""
+    """免责声明删除后 compact 保留为兼容参数，两种模式输出一致。"""
     import narrative, manager, teams_zh
     for h, a in [("Brazil", "Haiti"), ("Germany", "Ecuador"), ("Argentina", "France")]:
         r = model.predict(h, a, neutral=True)
@@ -1052,9 +1050,7 @@ def test_narrative_compact_mode(model):
                                          r["p_home"], r["p_draw"], r["p_away"], hc, tot, compact=True)
         for w in narrative._BANNED:
             assert w not in comp, f"{h} vs {a} compact 解读含违规词 {w}：{comp}"
-        assert narrative.TAIL not in comp           # compact 不带尾注（统一展示一次）
-        assert narrative.TAIL in full               # 默认仍带尾注，旧调用方不受影响
-        assert comp and full.startswith(comp)       # compact 是 full 去尾的前缀
+        assert comp and full == comp
 
 
 def test_devig_methods_normalize_and_correct_bias():
@@ -1112,6 +1108,10 @@ def test_market_research_line_movement():
     assert abs(dc["brier"] - (dc["reliability"] - dc["resolution"] + dc["uncertainty"])) < 0.01
     # 自动判语
     assert r["summary"]["text"] and isinstance(r["summary"]["flags"], dict)
+    import json as _json
+    raw = _json.dumps(r, ensure_ascii=False)
+    assert not any(x in raw for x in ("研究/信息性质", "非投注建议", "不是下注建议",
+                                      "不生成下注行动指令", "研究待数据积累"))
     # de-vig 敏感性：三口径都跑出同样本量的结论（口径不改样本，只改概率还原）
     sens = r["devig_sensitivity"]
     assert {a["method"] for a in sens} == {"proportional", "odds_ratio", "shin"}
@@ -1136,7 +1136,7 @@ def test_narrative_clean_guard_raises():
         narrative._clean("推荐主胜")           # explainer 并集词「推荐」也必拦（守卫词表升级反例）
     with pytest.raises(ValueError):
         narrative._clean("可以买入让球")        # explainer 并集词「买入/可以买」也必拦
-    assert narrative._clean("非投注建议，理性观赛") == "非投注建议，理性观赛"   # 合规串放行
+    assert narrative._clean("模型主胜概率 55%，平局概率 25%") == "模型主胜概率 55%，平局概率 25%"
 
 
 def test_narrative_nick_and_frame(model):
@@ -1154,7 +1154,8 @@ def test_narrative_nick_and_frame(model):
 
 def test_api_predict_has_narrative(client):
     d = client.get("/api/predict?home=Brazil&away=Scotland&neutral=1").get_json()
-    assert "narrative" in d and "非投注建议" in d["narrative"]
+    assert d.get("narrative")
+    assert not any(x in d["narrative"] for x in ("非投注建议", "理性观赛", "研究/信息性质"))
 
 
 # ---------- 市场机制解释器（explainer，A/C 信息性层；红线 = 只描述不指导下注） ----------
@@ -1165,12 +1166,14 @@ def test_explainer_redline_guard_is_functional():
     ok_texts = [
         "市场 Shin 去水真实隐含主胜 55%，模型 41%，KL 0.04，最大分歧在主胜，更可能是模型误差",
         "抽水 3.6%，水位偏低；赛前线移动客胜 +2.5%",
-        "非投注建议，不含买/跳指令；理性观赛、量力而行",
+        "模型与市场最大分歧在主胜，优先按市场更有效解释",
     ]
     for t in ok_texts:
         assert explainer._assert_clean(t) == t
     card = explainer.explain_match("A vs B", (0.41, 0.31, 0.28), (1.77, 4.20, 4.30),
                                    (1.80, 4.10, 4.20), (0.03, 0.07))
+    assert "disclaimer" not in card
+    assert "非投注建议" not in explainer.render(card)
     explainer._assert_clean(explainer.render(card))      # 真实卡渲染必过红线
     # 含让球段的真实卡渲染也必过红线（新增渲染分支 → 同步覆盖，见红线修改纪律）
     card_h = explainer.explain_match(
@@ -1205,6 +1208,19 @@ def test_template_handicap_copy_stays_descriptive():
     for action_copy in ("永远押", "跟模型背离方下注", "可下注样本", "下注那一刻",
                         "价值投注 / Kelly 注码", "押注 @赔率"):
         assert action_copy not in html
+
+
+def test_template_omits_disclaimer_and_no_action_copy():
+    """用户可见页面不再重复展示用途声明或“不生成行动指令”口径。"""
+    import pathlib
+    html = pathlib.Path("templates/index.html").read_text(encoding="utf-8")
+    for copy in (
+        "研究/信息性质", "非投注建议", "不是下注建议", "不构成投注建议",
+        "理性观赛", "量力而行", "不输出任何买/跳指令", "不做下注诱导",
+        "零下注指令", "切勿用于投注", "勿用于投注", "禁止衍生任何投注建议",
+        "历史比分模型研究", "信息性·描述性认知",
+    ):
+        assert copy not in html, copy
 
 
 def test_bracket_copy_distinguishes_projection_from_title_odds():
@@ -3362,6 +3378,15 @@ def test_home_css_declares_single_row_tabs_and_wrap_rules():
     # 不许用隐藏溢出掩盖问题。先剥掉 CSS 注释再查——注释里正写着这条禁令本身，裸 grep 会自伤。
     import re as _re
     assert "body{overflow-x:hidden}" not in _re.sub(r"/\*.*?\*/", "", src, flags=_re.S).replace(" ", "")
+
+
+def test_home_event_cards_use_wrapping_flex_rows():
+    """赛事卡行不得保留空轨；最后一行由 flex 项自动均分余宽。"""
+    src = open(_os.path.join(_os.path.dirname(__file__), "templates", "index.html"),
+               encoding="utf-8").read()
+    assert ".hm-grid{display:flex;flex-wrap:wrap" in src
+    assert ".hm-grid>.hm-card{flex:1 1 300px}" in src
+    assert 'class="hm-grid hm-event-grid"' in src
 
 
 def test_home_identity_uses_is_default_not_event_key():

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # Repository summary: World Cup prediction analytics module.
-"""市场研究层（只读、纯分析）——开盘→闭盘线移动的信息检验 + 分桶 + de-vig 敏感性。
+"""市场分析层（只读）——开盘→闭盘线移动的信息检验 + 分桶 + de-vig 敏感性。
 
-定位：研究**博彩市场如何运作**，不是参与下注。全部为概率/信息分析，非投注建议。
+用于比较开盘、闭盘与赛果之间的统计关系。
 零碰 GLM/账本；只读 data/odds.csv 的开/闭盘赔率 + 真实赛果。
 
 三个视图：
@@ -233,10 +233,10 @@ def devig_sensitivity(odds, played) -> list[dict]:
 
 
 def _summary(d) -> dict:
-    """从真实数字自动生成一句话研究判语（不硬编码，随数据更新；非投注建议）。"""
+    """从真实数字自动生成一句话判语（不硬编码，随数据更新）。"""
     lm, cal = d.get("line_movement", {}), d.get("calibration", {})
     if not lm.get("n"):
-        return {"text": "暂无开/闭盘 + 赛果可匹配的样本，研究待数据积累。", "flags": {}}
+        return {"text": "暂无开/闭盘 + 赛果可匹配的样本，等待数据积累。", "flags": {}}
     em = cal.get("ece_by_method", {})
     best = min(em, key=em.get) if em else None
     parts = [f"基于 {lm['n']} 场开/闭盘 + 赛果"]
@@ -247,7 +247,7 @@ def _summary(d) -> dict:
         parts.append(f"闭盘线校准 ECE={cal['ece']*100:.1f}%（{'良好' if cal['ece'] < 0.05 else '一般'}）")
     if best:
         parts.append(f"de-vig 以 **{best}** 读盘最准（ECE 最低）")
-    return {"text": "；".join(parts) + "。结论一致指向：市场高效、研究只为理解市场，非投注建议。",
+    return {"text": "；".join(parts) + "。结论一致指向：市场高效。",
             "flags": {"movement_informative": lm.get("movement_informative"),
                       "closing_sharper": lm.get("closing_sharper"),
                       "best_devig": best, "ece": cal.get("ece")}}
@@ -265,7 +265,7 @@ def build(df=None) -> dict:
         "calibration": calibration(odds, played),
         "devig_sensitivity": devig_sensitivity(odds, played),
         "source_note": "单一来源 ESPN/DraftKings 闭盘；开盘→闭盘=单书内 soft→sharp 代理。"
-                       "跨书 sharp/soft 背离需多书同场盘口，无免费源=数据死胡同。仅为研究、非投注建议。",
+                       "跨书 sharp/soft 背离需多书同场盘口，无免费源=数据死胡同。",
     }
     out["summary"] = _summary(out)
     return out

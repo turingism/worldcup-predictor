@@ -1,11 +1,8 @@
 # Repository summary: World Cup prediction analytics module.
-"""比赛解读文案层（只读展示）：把模型概率翻成「狂热但理性」的球迷语言。
+"""比赛解读文案层（只读展示）：把模型概率翻成球迷语言。
 
-合规铁律（个人/教育项目，**非投注建议**）：
-  ① **违规词守卫** `_clean`：禁"稳赚/必中/包赢/必胜/锁定/上车/跟单"等担保或诱导下注词——
-     生成器本就不产出，再加一道运行时守卫（违反即抛），并有单测遍历对阵断言永不命中。
-  ② 每条文案**附"非投注建议、理性观赛"**尾注。
-  ③ 只陈述**模型概率与事实**，不导购彩票、不给"出票/买入"建议、不暗示稳赢。
+生成内容只陈述模型概率与事实；`_clean` 继续拦截担保、诱导和行动词，
+但不再向用户输出重复的免责声明尾注。
 
 纯函数、无网络、无随机：同输入恒定输出，可安全缓存。
 """
@@ -24,9 +21,6 @@ NICK = {
 }
 
 # 违规/担保/诱导下注词（守卫黑名单）= explainer._BANNED 行动词全谱 ∪ 本层营销/诱导词。
-# 注意：不收"投注建议/下注建议"——它们是合规尾注"非投注建议"的子串，会误伤；
-# ⚠ 两表都**不得加入「投注建议」**——TAIL「非投注建议」会自伤（explainer 同约定）。
-# 担保/诱导语义已由下列更强的词覆盖。
 _BANNED = tuple(dict.fromkeys(list(explainer._BANNED) + [
     "稳赚", "必中", "包赢", "稳赢", "必胜", "包中", "百分百", "100%", "锁定胜局",
     "锁定胜利", "推荐下注", "跟单上车", "买它", "稳了", "无脑买", "闭眼买", "梭哈",
@@ -62,16 +56,12 @@ def _level(p: float) -> str:
     return "需爆冷"
 
 
-TAIL = "📌 仅为模型概率推演，非投注建议，理性观赛、量力而行。"
-
-
 def match_narrative(home_disp: str, away_disp: str, p_home: float, p_draw: float,
                     p_away: float, handicap: dict | None = None,
                     exp_total: float | None = None, compact: bool = False) -> str:
-    """生成单场解读（一句话球迷语言 + 让球倾向 + 进球氛围 + 合规尾注）。
+    """生成单场解读（一句话球迷语言 + 让球倾向 + 进球氛围）。
 
-    compact=True：看板逐行速览用——省去每行重复的免责尾注（由调用方在解读区
-    **统一展示一次** TAIL），但 `_clean` 违规词守卫照常逐行执行，红线不破。"""
+    ``compact`` 为既有调用兼容参数；免责声明删除后两种模式输出相同。"""
     fav_home = p_home >= p_away
     fav_disp, dog_disp = (home_disp, away_disp) if fav_home else (away_disp, home_disp)
     fav_p = p_home if fav_home else p_away
@@ -116,7 +106,7 @@ def match_narrative(home_disp: str, away_disp: str, p_home: float, p_draw: float
         tag = "进球大战可期" if exp_total >= 2.8 else ("闷战概率不低" if exp_total <= 2.0 else "进球数中规中矩")
         goals = f"预计总进球约 {exp_total:.1f} 球，{tag}。"
 
-    parts = (head, hc, goals) if compact else (head, hc, goals, TAIL)
+    parts = (head, hc, goals)
     return _clean(" ".join(x for x in parts if x))
 
 

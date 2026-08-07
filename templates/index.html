@@ -118,7 +118,7 @@ window.__HDR_DEF = {title: document.title};      // 世界杯页头原值：改�
   .sp-box{position:relative;background:var(--panel,#161b22);border:1px solid var(--line);border-radius:16px;
     padding:14px 14px 16px;max-width:560px;width:100%;text-align:center}
   .sp-x{position:absolute;top:8px;right:14px;font-size:24px;color:#fff;cursor:pointer;line-height:1;z-index:2;
-    text-shadow:0 1px 4px rgba(0,0,0,.5)}
+    width:44px;height:44px;border:0;background:transparent}
   .sp-img{width:100%;border-radius:12px;display:block}
   .sp-noqr{color:#888;font-size:13px;line-height:1.8;padding:70px 16px;background:#0d1117;border-radius:12px}
   .sp-noqr small{color:#aaa;font-size:11.5px}
@@ -182,7 +182,7 @@ window.__HDR_DEF = {title: document.title};      // 世界杯页头原值：改�
   .wdl{display:grid;grid-template-columns:90px 1fr 56px;gap:8px;align-items:center;margin:7px 0}
   .wdl .nm{font-size:13px;color:var(--mut);text-align:right;white-space:nowrap;overflow:hidden}
   .barwrap{background:var(--panel2);border-radius:6px;overflow:hidden;height:22px}
-  .bar{height:100%;border-radius:6px;transition:width .4s}
+  .bar{height:100%;border-radius:6px;transition:background-color .18s}
   .bar.h{background:var(--wdl-h)} .bar.d{background:var(--wdl-d)} .bar.a{background:var(--wdl-a)}
   .wdl .pct{font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
   h3{font-size:14px;color:var(--mut);margin:22px 0 10px;font-weight:600}
@@ -223,7 +223,7 @@ window.__HDR_DEF = {title: document.title};      // 世界杯页头原值：改�
   #mgledger .mgt th:first-child,#mgledger .mgt td:first-child{width:42%}
   .xxmt{table-layout:fixed}
   .xxmt th,.xxmt td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .mgnote{font-size:11.5px;color:var(--mut);background:#1c2230;border-left:3px solid #d29922;
+  .mgnote{font-size:11.5px;color:var(--mut);background:#1c2230;border-left:1px solid #d29922;
     border-radius:4px;padding:6px 10px;margin-top:10px;line-height:1.6}
   .mgconc{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:8px;
     text-align:center;font-size:15px;background:var(--panel2)}
@@ -235,11 +235,11 @@ window.__HDR_DEF = {title: document.title};      // 世界杯页头原值：改�
   .hcl-h{font-size:12.5px;font-weight:700;color:var(--mut2);margin-bottom:6px}
   .hcl-big{font-size:26px;font-weight:800}
   .hcl-big small{font-size:13px;font-weight:400}
-  .hcpop{margin:10px 0 2px;padding:9px 12px;border:1px solid var(--line);border-left:3px solid var(--gold);
+  .hcpop{margin:10px 0 2px;padding:9px 12px;border:1px solid var(--line);border-left-color:var(--gold);
          border-radius:8px;background:#0f141b;font-size:12.5px;line-height:1.5}
-  .hcmkt{margin:6px 0;padding:8px 12px;border:1px solid var(--line);border-left:3px solid var(--blue);
+  .hcmkt{margin:6px 0;padding:8px 12px;border:1px solid var(--line);border-left-color:var(--blue);
          border-radius:8px;background:#0e1620;font-size:12px;line-height:1.5}
-  .nar{margin:10px 0;padding:11px 14px;border:1px solid #2ea04333;border-left:3px solid var(--grn2);
+  .nar{margin:10px 0;padding:11px 14px;border:1px solid #2ea04333;border-left-color:var(--grn2);
        border-radius:10px;background:linear-gradient(90deg,#0e1c14,#0d1117);font-size:13px;line-height:1.7;color:var(--txt)}
   /* 晋级树 */
   .champ-banner{text-align:center;padding:18px;border:1px solid var(--grn);border-radius:12px;
@@ -291,7 +291,7 @@ window.__HDR_DEF = {title: document.title};      // 世界杯页头原值：改�
   .gstand{margin-top:8px;padding-top:7px;border-top:1px solid var(--line);font-size:11.5px;
     display:flex;flex-wrap:wrap;gap:8px;color:var(--mut)}
   .gstand .q{color:var(--grn2);font-weight:600}
-  .tie.clickable{cursor:pointer}
+  .tie.clickable{cursor:pointer;min-height:88px}
   .tie.clickable:hover{border-color:var(--acc)}
   .tie.set{border-color:var(--warn)}
   .modal{position:fixed;inset:0;background:#000a;display:flex;align-items:center;
@@ -428,7 +428,7 @@ window.__HDR_DEF = {title: document.title};      // 世界杯页头原值：改�
   .upnar-btn.on{border-color:#2ea04366;color:var(--grn2)}
   .upnar-tip{font-size:11px;color:var(--mut)}
   .up-nar{grid-column:1/-1;font-size:11.5px;color:var(--mut);line-height:1.55;
-    background:#0d1117;border-left:2px solid #2ea04344;border-radius:0 6px 6px 0;
+    background:#0d1117;border-left:1px solid #2ea04344;border-radius:0 6px 6px 0;
     padding:6px 10px;margin:3px 0 1px;display:none}
   #upwrap.upnar-on .up-nar{display:block}
   .up-read{grid-column:1/-1;font-size:12px;color:var(--txt);line-height:1.6;
@@ -446,8 +446,8 @@ window.__HDR_DEF = {title: document.title};      // 世界杯页头原值：改�
   .up-read .rd-tbl{margin:6px 0;border-collapse:collapse;width:100%;font-size:11.5px}
   .up-read .rd-tbl td{padding:3px 8px;border-bottom:1px solid #21262d}
   .up-read .rd-tbl td:last-child{font-weight:600;white-space:nowrap}
-  .up-read .rd-warn{padding:7px 10px;border-left:3px solid #d29922;background:#1c1606;border-radius:6px;color:#e3b341;margin:4px 0}
-  .up-read .rd-prior{padding:6px 10px;border-left:3px solid #d29922;background:#1c1606;border-radius:6px;color:#e3b341;font-size:11px;margin:4px 0}
+  .up-read .rd-warn{padding:7px 10px;border:1px solid #d2992244;background:#1c1606;border-radius:6px;color:#e3b341;margin:4px 0}
+  .up-read .rd-prior{padding:6px 10px;border:1px solid #d2992244;background:#1c1606;border-radius:6px;color:#e3b341;font-size:11px;margin:4px 0}
   .up-day{display:flex;align-items:center;gap:8px;margin:14px 2px 4px;padding-bottom:5px;
     border-bottom:1px dashed var(--line);font-size:12.5px;font-weight:700;color:#8b949e}
   .up-day:first-child{margin-top:2px}
@@ -460,7 +460,7 @@ window.__HDR_DEF = {title: document.title};      // 世界杯页头原值：改�
     padding:4px 9px;cursor:pointer;font-size:11.5px;white-space:nowrap}
   .seebtn:hover{border-color:#1f6feb;background:#1f6feb1a}
   .lc-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:7px}
-  .vnote{font-size:12px;color:#c9d1d9;border-left:3px solid #1f6feb;background:#1f6feb12}
+  .vnote{font-size:12px;color:#c9d1d9;border-left:1px solid #1f6feb;background:#1f6feb12}
   .vnote b{color:#e6edf3}
   /* 看预测弹窗 */
   .pmodal{display:none;position:fixed;inset:0;background:#010409cc;z-index:50;
@@ -470,7 +470,7 @@ window.__HDR_DEF = {title: document.title};      // 世界杯页头原值：改�
   .pmodal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
     font-size:15px;color:#e6edf3}
   .pmodal-x{background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;
-    width:28px;height:28px;cursor:pointer;font-size:13px}
+    width:44px;height:44px;cursor:pointer;font-size:13px}
   .pmodal-x:hover{color:#f85149;border-color:#f85149}
   /* 市场对标 / CLV */
   .mkt-guard{background:#3a1d1d33;border:1px solid #bb280055}
@@ -500,11 +500,11 @@ window.__HDR_DEF = {title: document.title};      // 世界杯页头原值：改�
   .gaterow.g-no{background:#2a1410} .gaterow.g-no .gi{color:#f85149} .gaterow.g-no .gv{color:#ff7b72}
   .gaterow.g-info{background:#1a1f27} .gaterow.g-info .gi{color:#8b949e} .gaterow.g-info .gv{color:#c9d1d9}
   /* 可复用醒目金句卡片 */
-  .callout{margin:13px 0 4px;padding:15px 17px;border-radius:11px;border:1px solid;border-left-width:4px}
+  .callout{margin:13px 0 4px;padding:15px 17px;border-radius:11px;border:1px solid}
   .callout .c-hl{font-size:16.5px;font-weight:800;line-height:1.55;letter-spacing:.2px}
   .callout .c-sub{font-size:12px;color:#b9c2cc;margin-top:9px;line-height:1.65}
   .c-gold{background:linear-gradient(135deg,#2a1d10,#1c1408);border-color:#9e6a0066;border-left-color:#e3b341}
-  .c-gold .c-hl{color:#ffd35c;text-shadow:0 0 12px #e3b34133}
+  .c-gold .c-hl{color:#ffd35c}
   .c-blue{background:linear-gradient(135deg,#0f1d2e,#0b141f);border-color:#1f6feb55;border-left-color:#58a6ff}
   .c-blue .c-hl{color:#79c0ff}
   .c-pop{color:#ffae3b;border-bottom:2px solid #ffae3b66;padding-bottom:1px}
@@ -656,7 +656,8 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
   background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:12px;line-height:18px}
 .hm-fresh div{color:var(--mut)}
 .hm-fresh b{color:var(--mut2);font-weight:600;font-family:var(--num-font);font-variant-numeric:tabular-nums}
-.hm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--sp4)}
+.hm-grid{display:flex;flex-wrap:wrap;gap:var(--sp4)}
+.hm-grid>.hm-card{flex:1 1 300px}
 .hm-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;
   cursor:pointer;transition:.15s;min-width:0}
 .hm-card:hover{border-color:var(--line2);transform:translateY(-1px)}
@@ -729,17 +730,258 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
   .tab.grp-aux{margin-left:var(--sp3)}
   .evbar .ev{min-height:44px}
 }
+
+/* ========================================================================== */
+/* 2026 全站视觉重构 · Matchday Control Room                                 */
+/* UI UX Pro Max: real-time monitoring / density 8 / motion 3                */
+/* ========================================================================== */
+:root{
+  color-scheme:dark;
+  --bg:#050912;--bg-raised:#080e19;--panel:#0d1522;--panel2:#121d2d;
+  --panel3:#172438;--line:#223149;--line2:#334766;
+  --txt:#f7fafc;--mut:#9aa9bd;--mut2:#d5deea;--dim:#6f8198;
+  --grn:#22c55e;--grn2:#4ade80;--acc:#60a5fa;--blue:#3b82f6;
+  --blue-lt:#93c5fd;--warn:#f59e0b;--gold:#f6c453;--red:#fb7185;
+  --chip:#162235;--coral:#fb7185;--purple:#a78bfa;
+  --wdl-h:#39d98a;--wdl-d:#a8b3c4;--wdl-a:#60a5fa;
+  --font-ui:"Fira Sans","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --font-display:"Fira Code","SFMono-Regular",Consolas,"PingFang SC",monospace;
+  --num-font:"Fira Code","SFMono-Regular",Consolas,monospace;
+  --radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-xl:20px;
+  --shadow-card:0 18px 48px rgba(0,0,0,.18);
+  --focus:0 0 0 3px rgba(96,165,250,.3);
+}
+html{background:var(--bg);scroll-behavior:smooth}
+body{min-height:100vh;background:
+  radial-gradient(circle at 12% -8%,rgba(34,197,94,.10),transparent 30rem),
+  radial-gradient(circle at 88% 2%,rgba(59,130,246,.08),transparent 34rem),
+  var(--bg);font-family:var(--font-ui);font-size:14px;line-height:1.55;
+  text-rendering:optimizeLegibility;overscroll-behavior-y:contain}
+button,input,select,textarea{font:inherit}
+button,.tab,.ev,.hm-card,.seebtn,.xlink a,.sponsor-link{touch-action:manipulation}
+:where(button,input,select,a,[tabindex]):focus-visible{outline:none;box-shadow:var(--focus)!important}
+::selection{background:rgba(34,197,94,.28);color:var(--txt)}
+
+/* 应用身份栏：固定产品身份与数据状态，不再充当大面积装饰横幅 */
+header.app-header{min-height:84px;padding:14px clamp(18px,3vw,42px);border-bottom:1px solid rgba(96,165,250,.16);
+  background:rgba(5,9,18,.96);display:flex;align-items:center;
+  position:relative;isolation:isolate}
+header.app-header::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,var(--grn),rgba(34,197,94,0) 34%,rgba(96,165,250,.45) 72%,transparent)}
+.brand-block{display:flex;align-items:center;gap:13px;min-width:0}
+.brand-mark{width:42px;height:42px;display:grid;place-items:center;flex:0 0 auto;color:var(--grn2);
+  border:1px solid rgba(74,222,128,.34);border-radius:12px;background:rgba(34,197,94,.08)}
+.brand-mark svg{width:25px;height:25px;display:block}
+.brand-copy{min-width:0}
+header.app-header h1{font-size:20px;line-height:26px;font-weight:720;letter-spacing:-.02em}
+header.app-header p{margin:2px 0 0;font-size:12px;line-height:18px;color:var(--mut);white-space:normal}
+.hdr-right{gap:5px}.verchk{font-family:var(--font-display);font-size:11px}
+.sponsor-link{min-height:32px;display:inline-flex;align-items:center;padding:5px 10px;border-color:var(--line);
+  border-radius:var(--radius-sm);text-decoration:none;background:rgba(18,29,45,.72)}
+.sponsor-link:hover{color:var(--txt);border-color:var(--line2);background:var(--panel2)}
+
+/* 全局壳层与赛事导航 */
+.wrap{max-width:1540px;margin:0 auto;padding:28px clamp(18px,2.5vw,36px) 72px;
+  grid-template-columns:220px minmax(0,1fr);column-gap:28px}
+.evbar{top:20px;gap:2px;padding:9px;background:rgba(13,21,34,.72);border:1px solid var(--line);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-card)}
+@media(min-width:901px){
+  .evbar{grid-row:1/span 80}
+  .ev-gl{padding:14px 10px 5px;font-size:9px;letter-spacing:.18em;color:var(--dim)}
+  .ev{width:100%;grid-template-columns:7px minmax(0,1fr) auto;min-height:42px;padding:9px 10px;
+    border-radius:8px;color:var(--mut);text-align:left;background:transparent;border:1px solid transparent}
+  .ev:hover{background:rgba(96,165,250,.06);color:var(--txt);border-color:rgba(96,165,250,.12)}
+  .ev.on{background:linear-gradient(90deg,rgba(34,197,94,.14),rgba(34,197,94,.03));
+    border-color:rgba(74,222,128,.25);box-shadow:inset 1px 0 0 var(--grn2);color:var(--txt)}
+  .ev-home{padding-bottom:10px;margin-bottom:4px;border-bottom-color:var(--line)}
+}
+.ev .ev-dot{width:7px;height:7px}.ev .ev-nm{font-weight:580}
+.ev .ev-x{font-size:10px;color:var(--mut)}
+.ev.d-soon .ev-dot{background:var(--warn);box-shadow:0 0 0 3px rgba(245,158,11,.10)}
+.ev.d-live .ev-dot{background:var(--grn2);box-shadow:0 0 0 3px rgba(74,222,128,.12)}
+
+/* 页签：一条清晰的任务导航，不再模拟八张小卡 */
+.tabs{gap:4px;margin:0 0 18px;padding:5px;background:rgba(13,21,34,.82);border:1px solid var(--line);
+  border-radius:var(--radius-md);position:relative}
+.tab{min-height:40px;padding:8px 13px;border:1px solid transparent;background:transparent;color:var(--mut);
+  border-radius:7px;font-size:13px;font-weight:560;white-space:nowrap;transition:background .18s,color .18s,border-color .18s}
+.tab:hover{color:var(--txt);border-color:rgba(96,165,250,.18);background:rgba(96,165,250,.06)}
+.tab.on{background:var(--panel3);border-color:rgba(96,165,250,.24);color:var(--txt);
+  box-shadow:inset 0 -2px 0 var(--grn2);font-weight:680}
+.tab.grp-aux{margin-left:10px}.tab.grp-aux::before{left:-6px;top:8px;bottom:8px;background:var(--line)}
+
+/* 通用内容表面 */
+.card{position:relative;background:linear-gradient(155deg,rgba(18,29,45,.96),rgba(10,17,28,.98));
+  border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;margin-bottom:14px;
+  box-shadow:0 1px 0 rgba(255,255,255,.02);overflow:hidden}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1px;background:transparent}
+.card:hover{border-color:#2b3e59}
+.card h2,.card h3,.card h4{color:var(--txt)}
+h2{letter-spacing:-.02em}h3{font-size:14px;line-height:21px;margin:18px 0 8px;color:var(--mut2)}
+.mgh{color:var(--txt);font-size:15px;border-bottom-color:var(--line);padding-bottom:9px}
+.muted{color:var(--mut);font-size:12px;line-height:1.65}
+.mgnote,.mgconc,.hcpop,.hcmkt,.nar{background:rgba(5,9,18,.42);border-color:var(--line)}
+.nar{border-left-color:var(--grn2);background:linear-gradient(90deg,rgba(34,197,94,.08),rgba(5,9,18,.24))}
+
+/* 表单与操作 */
+.row{gap:10px;align-items:flex-end}.fld{min-width:210px}
+label{font-size:11px;line-height:16px;color:var(--mut);font-weight:650;letter-spacing:.02em}
+input,select,textarea{min-height:44px;padding:10px 12px;background:#09111d;border:1px solid var(--line);
+  border-radius:8px;color:var(--txt);font-size:14px;transition:border-color .18s,box-shadow .18s,background .18s}
+input:hover,select:hover,textarea:hover{border-color:var(--line2)}
+input:focus,select:focus,textarea:focus{border-color:var(--acc);background:#0b1523;box-shadow:var(--focus)}
+button.go{min-height:44px;padding:10px 18px;border-radius:8px;background:var(--grn);color:#041109;
+  font-size:13px;font-weight:760;letter-spacing:.01em;transition:background .18s,transform .18s,box-shadow .18s}
+button.go:hover{background:var(--grn2);box-shadow:0 8px 24px rgba(34,197,94,.16)}
+button.go:active{transform:translateY(1px)}
+button.go[style*="background:"]{color:var(--txt)}
+button.go.writebtn[style*="var(--blue)"]{background:#1d4ed8!important;color:#fff}
+.swap{width:44px;height:44px;margin:0;border-color:var(--line2);background:#0a1422;color:var(--acc)}
+.swap:hover{background:var(--panel3);color:var(--txt);transform:none}
+.seebtn,.tzbtn{min-height:32px;padding:5px 10px;border-radius:6px;background:var(--chip);border:1px solid var(--line2);
+  color:var(--mut2);transition:background .18s,border-color .18s,color .18s}
+.seebtn:hover,.tzbtn:hover{background:var(--panel3);border-color:var(--acc);color:var(--txt)}
+.chk{min-height:36px}.chk input{min-height:auto;accent-color:var(--grn)}
+
+/* 表格、概率与图表 */
+.hscroll{border:1px solid rgba(51,71,102,.55);border-radius:10px;background:#08101b;
+  scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.mgt{font-size:12.5px}.mgt th{height:38px;padding:8px 10px;background:#101b2b;color:#9fb0c5;
+  border-bottom-color:var(--line);font-size:10.5px;letter-spacing:.04em;text-transform:none;white-space:nowrap}
+.mgt td{padding:9px 10px;border-bottom-color:rgba(34,49,73,.72);font-variant-numeric:tabular-nums}
+.mgt tr:last-child td{border-bottom:none}.mgt tr.ev-clk:hover td,.mgt tbody tr:hover td{background:rgba(96,165,250,.045)}
+.scoreline{font-family:var(--font-display);font-size:34px;letter-spacing:-.04em}
+.mgwdl,.hcl-big,.mkv,.vnum,.rrp,.hm-big,.hm-vnum,.hm-cov .c-v{font-family:var(--num-font);font-variant-numeric:tabular-nums}
+.tie .side .slot,.tie .tdate{color:var(--mut);font-size:9px}
+.gmeta{color:var(--mut)}
+.b.b-up,.b.b-tbd{color:var(--mut2)}
+.vbin small{color:var(--mut)}
+.barwrap,.jcbarwrap{background:#07101b}.bar,.jcbar{border-radius:4px}
+.wdl{grid-template-columns:minmax(90px,140px) 1fr 58px}.wdl .nm{color:var(--mut2)}
+.evchart{background:#08101b;padding:10px}.cal-svg svg,.evchart svg{filter:saturate(.9)}
+table.mtx td,table.mtx th{border-color:#07101b}
+
+/* 首页：明确的总览标题、比赛焦点和赛事目录 */
+.hm-hero{padding:2px 0 18px;border-bottom:1px solid var(--line);margin-bottom:2px}
+.hm-hero h1{font-size:clamp(28px,3vw,40px);line-height:1.12;font-weight:760;letter-spacing:-.045em;margin:0 0 7px}
+.hm-hero p{max-width:720px;font-size:13px;line-height:21px;color:var(--mut)}
+.hm-next{display:inline-flex;align-items:baseline;gap:6px;margin-top:12px;padding:7px 10px;
+  border:1px solid rgba(245,158,11,.28);border-radius:7px;background:rgba(245,158,11,.07);color:var(--mut2)}
+.hm-next b{font-size:14px;color:var(--gold)}
+.hm-sec{margin-top:26px}.hm-sec>h2{display:flex;align-items:baseline;gap:8px;font-size:17px;line-height:24px;margin-bottom:10px}
+.hm-sec>h2::before{content:"";width:12px;height:2px;background:var(--grn2);border-radius:2px;flex:0 0 auto}
+.hm-sec>h2 small{margin-left:0;color:var(--dim);font-size:10.5px;letter-spacing:.03em}
+.hm-fresh{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:0;padding:0;
+  background:rgba(13,21,34,.68);border-radius:var(--radius-md);overflow:hidden}
+.hm-fresh div{padding:10px 12px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+  min-width:0}.hm-fresh b{display:block;color:var(--mut2);margin-top:2px}
+.hm-main{padding:0;background:linear-gradient(145deg,#111c2d,#0b1421);border-radius:var(--radius-lg)}
+.hm-main>h2{padding:18px 20px 10px;margin:0!important;font-size:18px!important}
+.hm-main>.hm-meta:first-of-type{padding:0 20px}
+.hm-main>.hm-mrow,.hm-main>.hm-run,.hm-main>.hm-meta:last-child{margin-left:20px;margin-right:20px}
+.hm-mrow{grid-template-columns:126px minmax(0,1fr) 190px;padding:13px 0;border-bottom-color:var(--line);cursor:pointer}
+.hm-mrow:hover{background:rgba(96,165,250,.045);box-shadow:0 0 0 10px rgba(96,165,250,.045)}
+.hm-mrow .m-ko{color:var(--mut2);font-size:11px}.hm-mrow .m-p{color:var(--txt);font-size:13px;font-weight:650}
+.hm-grid{display:flex;flex-wrap:wrap;gap:12px}
+.hm-grid>.hm-card{flex:1 1 250px;min-width:0}.hm-card{padding:16px;background:rgba(13,21,34,.86);border-radius:var(--radius-md);
+  box-shadow:none;transition:border-color .18s,background .18s,transform .18s}
+.hm-card:hover{background:var(--panel2);border-color:var(--line2);transform:translateY(-1px)}
+.hm-card.national{border-top:1px solid var(--line);border-left-color:var(--acc)}
+.hm-card.club{border-top:1px solid var(--line);border-left-color:var(--warn)}
+.hm-card h3{font-size:14px;margin-bottom:9px}.hm-card h3>.hm-meta{font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.hm-big{font-size:27px;line-height:32px}.hm-meta{color:var(--mut);line-height:18px}
+.hm-ready span{border:1px solid var(--line);background:var(--chip);color:var(--mut);font-size:10px}
+.hm-ready span.wait{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.22);color:#f6c453}
+.hm-ready span.done{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.22);color:#6ee7a8}
+.hm-cov{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.hm-cov div{background:rgba(13,21,34,.7);border-color:var(--line);border-radius:8px;padding:13px}
+.hm-cov .c-v{font-size:21px}.hm-cov .c-l{color:var(--mut2)}
+
+/* 赛事页面身份卡 */
+#eventview>.card:first-child{padding:18px 20px;background:linear-gradient(105deg,rgba(34,197,94,.10),rgba(13,21,34,.96) 38%);
+  border-color:rgba(74,222,128,.22)}
+#eventview>.card:first-child::before{background:var(--grn2)}
+#eventview>.card:first-child h3{font-family:var(--font-display);font-size:18px;letter-spacing:-.025em}
+.champ-banner{background:linear-gradient(135deg,rgba(34,197,94,.16),rgba(18,29,45,.9));border-color:rgba(74,222,128,.35)}
+.tie,.mkcell,.hcl-box{background:#0a1320;border-color:var(--line)}
+
+/* 模态层 */
+.sp-mask,.modal-mask{backdrop-filter:blur(10px)}
+.sp-box,.modal-box{background:var(--panel2);border-color:var(--line2);box-shadow:0 30px 90px rgba(0,0,0,.5)}
+
+/* 响应式：900px 起取消侧栏，赛事导航改成单行横滚 */
+@media(max-width:1100px) and (min-width:901px){
+  .wrap{grid-template-columns:190px minmax(0,1fr);column-gap:20px;padding-left:20px;padding-right:20px}
+  .hm-mrow{grid-template-columns:108px minmax(0,1fr) 150px}
+}
+@media(max-width:900px){
+  header.app-header{padding:12px 18px}
+  .wrap{display:block;padding:18px 16px 56px}
+  .evbar{position:sticky;top:0;z-index:30;display:flex;flex-direction:row;flex-wrap:nowrap;overflow-x:auto;
+    margin:0 0 14px;padding:6px;scroll-padding-left:104px;border-radius:10px;box-shadow:0 12px 28px rgba(0,0,0,.28)}
+  .ev{display:inline-flex;flex:0 0 auto;align-items:center;gap:7px;width:auto;min-height:44px;padding:8px 12px;
+    border-radius:7px;white-space:nowrap;color:var(--mut);background:transparent;border:1px solid transparent}
+  .ev.on{background:var(--panel3);border-color:var(--line2);box-shadow:inset 0 -2px 0 var(--grn2);color:var(--txt)}
+  .ev-home{position:sticky;left:6px;z-index:5;background:var(--panel2);
+    box-shadow:-12px 0 0 var(--panel2),10px 0 14px var(--panel)}
+  .ev-gl{display:none}.ev .ev-x{font-size:10px}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x proximity;padding:5px;margin-bottom:14px}
+  .tabs .tab{flex:0 0 auto;min-height:44px;scroll-snap-align:start}
+  .tab.grp-aux{margin-left:6px}
+  #ev_content .ev-fixtures{min-width:760px}
+  #ev_content .ev-standings{min-width:620px}
+}
+@media(max-width:620px){
+  header.app-header{min-height:72px;align-items:flex-start;gap:10px}
+  .brand-mark{width:36px;height:36px;border-radius:10px}.brand-mark svg{width:21px;height:21px}
+  header.app-header h1{font-size:17px;line-height:22px}
+  header.app-header p{font-size:10.5px;line-height:15px;max-width:245px}
+  .hdr-right{margin-left:auto;flex:0 0 auto}.verchk{font-size:10px}.verchk .vc-refresh{display:none}
+  .sponsor-link{font-size:10.5px;padding:4px 7px;min-width:58px;min-height:44px;justify-content:center}
+  .seebtn,.tzbtn{min-height:44px}
+  .xlink a{display:inline-flex;align-items:center;min-height:44px}
+  .wrap{padding:12px 10px 44px}.evbar{margin-bottom:10px}
+  .card{padding:15px;border-radius:11px;margin-bottom:10px}
+  .hm-hero{padding-top:5px}.hm-hero h1{font-size:27px}.hm-sec{margin-top:20px}
+  .hm-sec>h2{font-size:16px;flex-wrap:wrap}.hm-sec>h2 small{flex-basis:100%;margin-left:20px;margin-top:-5px}
+  .hm-fresh{grid-template-columns:repeat(2,minmax(0,1fr))}.hm-fresh div{padding:9px 10px}
+  .hm-grid>.hm-card{flex-basis:100%}.hm-cov{grid-template-columns:1fr}.hm-card{padding:14px}
+  .hm-main>h2{padding:15px 14px 8px}.hm-main>.hm-mrow,.hm-main>.hm-run,.hm-main>.hm-meta:last-child{margin-left:14px;margin-right:14px}
+  .hm-mrow{grid-template-columns:minmax(0,1fr);gap:2px;padding:11px 0}
+  .hm-mrow .m-p{text-align:left;display:flex;gap:7px;align-items:baseline;flex-wrap:wrap}
+  .hm-mrow:hover{box-shadow:none}.hm-run{grid-template-columns:minmax(0,1fr) auto}
+  .row{display:grid;grid-template-columns:1fr}.fld{min-width:0}.swap{justify-self:center;transform:rotate(90deg)}
+  .swap:hover{transform:rotate(90deg)}button.go{width:100%}
+  .wdl{grid-template-columns:80px 1fr 48px;gap:6px}.wdl .nm{font-size:11.5px}
+  .scoreline{font-size:27px}.mgt{font-size:12px}.mgt th,.mgt td{padding:8px}
+}
+@media(max-width:390px){
+  .hm-fresh{grid-template-columns:1fr}.hm-next{display:flex;flex-wrap:wrap}
+  .brand-mark{display:none}header.app-header p{max-width:220px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
 </style>
 </head>
 <body>
-<header>
-  <div>
-    <h1>⚽ 世界杯比分预测器</h1>
-    <p>Dixon-Coles 双泊松模型 · 1872–2026 真实国际赛数据 · 含东道主主场修正</p>
+<header class="app-header">
+  <div class="brand-block">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2.5" y="3.5" width="19" height="17" rx="2"/><path d="M12 3.5v17"/>
+        <circle cx="12" cy="12" r="3"/><path d="M2.5 8h3v8h-3M21.5 8h-3v8h3"/>
+      </svg>
+    </span>
+    <div class="brand-copy">
+      <h1>世界杯比分预测器</h1>
+      <p>Dixon-Coles 双泊松模型 · 1872–2026 真实国际赛数据 · 含东道主主场修正</p>
+    </div>
   </div>
   <div class="hdr-right">
     <div class="verchk" id="verchk"></div>
-    <a class="sponsor-link" onclick="openSponsor()" title="开源免费项目，赞赏纯自愿，不解锁任何功能">♥ 赞赏支持</a>
+    <a class="sponsor-link" tabindex="0" onclick="openSponsor()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSponsor()}" title="支持开源项目">支持项目</a>
   </div>
 </header>
 <script>
@@ -752,7 +994,7 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
   D.h1 = h1 ? h1.innerHTML : ''; D.sub = sub ? sub.innerHTML : '';
   if (window.__BOOT_MODE === 'home') {
     if (h1) h1.textContent = '足球赛事预测器';
-    if (sub) sub.textContent = '国家队与五大联赛 · 历史比分模型研究与赛事数据看板';
+    if (sub) sub.textContent = '国家队与五大联赛 · 历史比分模型与赛事数据看板';
   } else if (window.__BOOT_MODE === 'event') {   // 非默认赛事深链：中性占位，等元数据回来再写准确名称
     if (h1) h1.textContent = '足球赛事预测器';
     if (sub) sub.textContent = '正在加载赛事信息…';
@@ -761,8 +1003,8 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
 </script>
 
 <div id="sponsor-modal" class="sp-mask" onclick="if(event.target===this)closeSponsor()">
-  <div class="sp-box">
-    <div class="sp-x" onclick="closeSponsor()">×</div>
+  <div class="sp-box" role="dialog" aria-modal="true" aria-label="支持项目">
+    <button type="button" class="sp-x" onclick="closeSponsor()" aria-label="关闭支持项目弹窗">×</button>
     <img class="sp-img" src="/sponsor-qr" alt="赞赏码" onerror="this.outerHTML='&lt;div class=sp-noqr&gt;赞赏码待添加&lt;br&gt;&lt;small&gt;把收款码图片保存为 data/sponsor.png 即可显示。赞赏纯自愿、不解锁任何功能、不构成购买预测服务。&lt;/small&gt;&lt;/div&gt;'">
     <div class="sp-note">赞赏<b>纯属自愿</b>，<b>不解锁任何功能、不构成购买预测服务</b>——就当鼓励作者继续折腾。</div>
   </div>
@@ -772,15 +1014,15 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
   <div class="evbar" id="evbar"></div>
   <section id="homeview"></section>
   <section id="eventview" style="display:none"></section>
-  <div class="tabs">
-    <div class="tab on" data-t="verify">📋 赛事看板</div>
-    <div class="tab" data-t="manager">⚽ 对阵分析</div>
-    <div class="tab" data-t="bracket">🗺️ 晋级树状图</div>
-    <div class="tab" data-t="champ">🏆 夺冠概率</div>
-    <div class="tab grp-aux" data-t="market">💹 市场对标</div>
-    <div class="tab" data-t="explainer">🔍 机制解读</div>
-    <div class="tab" data-t="jcreview">📒 竞彩复盘</div>
-    <div class="tab" data-t="xuanxue">🔮 玄学占卜</div>
+  <div class="tabs" role="tablist" aria-label="赛事功能">
+    <button type="button" class="tab on" data-t="verify">赛事看板</button>
+    <button type="button" class="tab" data-t="manager">对阵分析</button>
+    <button type="button" class="tab" data-t="bracket">晋级树状图</button>
+    <button type="button" class="tab" data-t="champ">夺冠概率</button>
+    <button type="button" class="tab grp-aux" data-t="market">市场对标</button>
+    <button type="button" class="tab" data-t="explainer">机制解读</button>
+    <button type="button" class="tab" data-t="jcreview">竞彩复盘</button>
+    <button type="button" class="tab" data-t="xuanxue">玄学占卜</button>
   </div>
 
   <!-- 对阵分析（原「足球经理人」深度报告，已并入「单场预测」的比分矩阵热力图）-->
@@ -791,18 +1033,18 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
     <div class="card">
       <div class="row">
         <div class="fld">
-          <label>主队 / 第一支</label>
+          <label for="mg_home">主队 / 第一支</label>
           <input id="mg_home" list="teams" placeholder="点此选择/搜索国家" value="🇦🇷 阿根廷"
             onfocus="teamFocus(this)" onblur="teamBlur(this)">
         </div>
         <button class="swap" type="button" onclick="mgSwap()" title="交换主客">⇄</button>
         <div class="fld">
-          <label>客队 / 第二支</label>
+          <label for="mg_away">客队 / 第二支</label>
           <input id="mg_away" list="teams" placeholder="点此选择/搜索国家" value="🇫🇷 法国"
             onfocus="teamFocus(this)" onblur="teamBlur(this)">
         </div>
         <button class="go" onclick="loadManager()">生成报告</button>
-        <button type="button" onclick="loadManager(1)" title="拉取真实首发（约赛前 1 小时公布）并按确认阵容重算，对比球员数据加入前后变化" style="padding:9px 14px;border:1px solid #1f6feb66;background:#0d1b2e;color:#58a6ff;border-radius:8px;cursor:pointer;font-weight:600">⚡ 拉首发重算</button>
+        <button type="button" class="seebtn" onclick="loadManager(1)" title="拉取真实首发（约赛前 1 小时公布）并按确认阵容重算，对比球员数据加入前后变化" style="padding:9px 14px;border:1px solid #1f6feb66;background:#0d1b2e;color:#58a6ff;border-radius:8px;cursor:pointer;font-weight:600">拉首发重算</button>
       </div>
       <label class="chk"><input type="checkbox" id="mg_neutral" checked> 中立场（世界杯默认勾选；取消则第一支为主队）</label>
       <div class="muted" style="margin-top:6px">
@@ -814,27 +1056,27 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
     <div id="mgres"></div>
   </section>
 
-  <!-- 市场机制解读（信息性 A/C 卡：A 水位拆解 + C 模型vs市场分歧，强制 CLV 先验；B/D 闸门冻结不渲染）-->
+  <!-- 市场机制解读（A/C 卡：A 水位拆解 + C 模型vs市场分歧，强制 CLV 先验；B/D 闸门冻结不渲染）-->
   <section id="explainer" style="display:none">
     <div class="card">
       <div class="row">
         <div class="fld">
-          <label>主队 / 第一支</label>
+          <label for="ex_home">主队 / 第一支</label>
           <input id="ex_home" list="teams" placeholder="点此选择/搜索国家" value="🇩🇪 德国"
             onfocus="teamFocus(this)" onblur="teamBlur(this)">
         </div>
         <button class="swap" type="button" onclick="exSwap()" title="交换主客">⇄</button>
         <div class="fld">
-          <label>客队 / 第二支</label>
+          <label for="ex_away">客队 / 第二支</label>
           <input id="ex_away" list="teams" placeholder="点此选择/搜索国家" value="🇪🇨 厄瓜多尔"
             onfocus="teamFocus(this)" onblur="teamBlur(this)">
         </div>
         <button class="go" onclick="loadExplainer()">解读市场机制</button>
       </div>
       <div class="muted" style="margin-top:6px">
-        <b>信息性·描述性认知，非投注建议</b>：A 水位结构（Shin 去水真实隐含概率 + 抽水 + 异常标注）·
+        A 水位结构（Shin 去水真实隐含概率 + 抽水 + 异常标注）·
         C 模型 vs 市场分歧地图（每条分歧强制挂「本模型 CLV&lt;0、让球 MAE 打不赢市场 → 分歧更可能是模型误差」先验）·
-        赛前线移动 · 1X2 + 让球。<b>不输出任何买/跳指令</b>；诱惑形态（FLB/大热必死）样本不足、闸门冻结、不渲染。
+        赛前线移动 · 1X2 + 让球。诱惑形态（FLB/大热必死）样本不足、闸门冻结、不渲染。
         仅覆盖 odds.csv 有赔率的场次。
       </div>
     </div>
@@ -846,17 +1088,17 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
     <div class="card">
       <div class="muted" style="margin-bottom:10px;line-height:1.6">
         <b>竞彩让球长期复盘</b>：手动录入竞彩让球线 + 你的判断，赛后手填 90 分钟比分，做<b>单场三方（你 / 模型 / 市场）对账</b>。
-        竞彩按 <b>90 分钟（含补时、不含加时点球）</b>结算。<b>这是认清你和市场差距、看懂盘怎么动的复盘工具，不是下注建议</b>；
+        竞彩按 <b>90 分钟（含补时、不含加时点球）</b>结算。这是认清你和市场差距、看懂盘怎么动的复盘工具；
         本模型让球长期打不赢市场，攒数据不改变这点。只读旁路，不碰引擎/账本。
       </div>
       <div class="row">
-        <div class="fld"><label>主队 / 第一支</label>
+        <div class="fld"><label for="jc_home">主队 / 第一支</label>
           <input id="jc_home" list="teams" placeholder="点此选择/搜索国家" value="🇿🇦 南非"
             onfocus="teamFocus(this)" onblur="teamBlur(this)"></div>
-        <div class="fld"><label>客队 / 第二支</label>
+        <div class="fld"><label for="jc_away">客队 / 第二支</label>
           <input id="jc_away" list="teams" placeholder="点此选择/搜索国家" value="🇨🇦 加拿大"
             onfocus="teamFocus(this)" onblur="teamBlur(this)"></div>
-        <div class="fld" style="max-width:150px"><label>比赛日期</label>
+        <div class="fld" style="max-width:150px"><label for="jc_date">比赛日期</label>
           <input id="jc_date" placeholder="YYYY-MM-DD" value="2026-06-29"
             style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt)"></div>
         <button class="go" onclick="jcLoad()">读取本场</button>
@@ -871,12 +1113,12 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
       <div class="row" style="align-items:center">
         <div style="flex:1"><b style="color:#bc8cff">🔮 七法占卜擂台</b>
           <span class="muted">自动抓取近三天即将开赛的本届场次，为每场起 <b>7 套传统术数</b>占卜，完赛后逐体系累计命中率，看谁猜得最准。</span></div>
-        <button class="go" style="background:var(--purple)" onclick="loadXuanxue(true)">🔄 刷新</button>
+        <button class="go" style="background:var(--purple)" onclick="loadXuanxue(true)">刷新</button>
       </div>
       <div class="muted" style="margin-top:8px">
         7 套术数：梅花易数 / 射覆 / 周易六十四卦 / 六爻纳甲 / 奇门遁甲 / 大六壬 / 紫微斗数。占卜结果由队名+赛期<b>确定性生成且完全不读取赛果</b>，
         故本届<b>已完赛</b>场次也一并补入擂台（补算=赛前本就会给的结果，不算偷看）。
-        <b style="color:#f0883e">纯文化/趣味实验，术数无任何科学预测力，切勿用于投注或任何决策。</b>
+        <b style="color:#f0883e">纯文化/趣味实验，术数无任何科学预测力。</b>
       </div>
     </div>
     <div id="xxres"></div>
@@ -887,19 +1129,19 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
     <div class="card">
       <div class="row" style="align-items:center">
         {% if not readonly %}
-        <button class="go writebtn" onclick="refreshFacts(this)" title="从公开数据源拉取全部历史国际赛战绩并重训模型">🔄 更新历史数据</button>
-        <button class="go writebtn" style="background:var(--blue)" onclick="liveFacts(this)" title="秒级查询 ESPN 最新完场赛果（有新赛果自动重训）">⚡ 实时比分</button>
-        <button class="go writebtn" style="background:var(--line2)" onclick="resetOverrides()" title="清空所有手动录入/假设，恢复纯模型预测">↺ 清除试算</button>
+        <button class="go writebtn" onclick="refreshFacts(this)" title="从公开数据源拉取全部历史国际赛战绩并重训模型">更新历史数据</button>
+        <button class="go writebtn" style="background:var(--blue)" onclick="liveFacts(this)" title="秒级查询 ESPN 最新完场赛果（有新赛果自动重训）">实时比分</button>
+        <button class="go writebtn" style="background:var(--line2)" onclick="resetOverrides()" title="清空所有手动录入/假设，恢复纯模型预测">清除试算</button>
         {% endif %}
         <span class="muted" id="livestat" style="font-size:12px"></span>
-        <div class="tzswitch">🕐
+        <div class="tzswitch" aria-label="时区切换">
           <button class="tzbtn on" data-tz="bj" onclick="setTZ('bj')" title="中国标准时间 UTC+8">北京</button>
           <button class="tzbtn" data-tz="local" onclick="setTZ('local')" title="比赛场馆所在城市的当地时间">当地</button>
         </div>
       </div>
       <div class="muted" style="margin-top:12px;line-height:1.7">
         <div><b>本次世界杯实时预测</b>（2026 官方赛制）：已踢的真实比赛=事实（蓝色锁定），其余按模型预测，投影出最可能的官方晋级树与冠军。</div>
-        <div style="margin-top:4px">「⚡实时比分」秒级拉取 ESPN 最新完场赛果（开页后每 5 分钟自动同步）；「🔄更新历史数据」拉取全部历史国际赛战绩。有新赛果时模型自动重新训练。</div>
+        <div style="margin-top:4px">「实时比分」秒级拉取 ESPN 最新完场赛果（开页后每 5 分钟自动同步）；「更新历史数据」拉取全部历史国际赛战绩。有新赛果时模型自动重新训练。</div>
         <div style="margin-top:4px">你也可以在下方改小组赛比分，或<b>点击括号里任意淘汰赛</b>录入结果/做假设（黄色边框为试算）；「清除试算」恢复纯预测。</div>
       </div>
       <div class="muted xlink" style="margin-top:8px"><a onclick="document.querySelector('.tab[data-t=&quot;champ&quot;]').click()">→ 看完整夺冠概率分布（蒙特卡洛 + 区间带）</a>　·　此处是<b>单一路径投影</b>：逐场取最可能胜者串成一棵树，可能不同于夺冠概率榜首</div>
@@ -964,7 +1206,7 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
     <div class="card dashhead">
       <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap">
         {% if not readonly %}
-        <button class="go writebtn" style="background:#1f6feb" onclick="loadDashboard(this)">🔄 刷新事实数据</button>
+        <button class="go writebtn" style="background:#1f6feb" onclick="loadDashboard(this)">刷新事实数据</button>
         {% else %}
         <span class="b b-fin" style="font-size:12px">🔒 只读分享模式</span>
         {% endif %}
@@ -976,7 +1218,7 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
     <div id="dashres"><div class="card spin">加载赛事看板…</div></div>
   </section>
 
-  <!-- 市场对标 / CLV 诚实检验（做检验，不做下注诱导）-->
+  <!-- 市场对标 / CLV 诚实检验 -->
   <section id="market" style="display:none">
     <div id="marketres"></div>
   </section>
@@ -984,7 +1226,7 @@ html.boot-home #verify, html.boot-event #verify{display:none !important}
 
 <!-- 看预测弹窗（看板「看预测」复用单场比分矩阵）-->
 <div id="pmodal" class="pmodal" onclick="if(event.target===this)closeModal()">
-  <div class="pmodal-box">
+  <div class="pmodal-box" role="dialog" aria-modal="true" aria-labelledby="pmodal-title">
     <div class="pmodal-head"><b id="pmodal-title"></b><button class="pmodal-x" onclick="closeModal()">✕</button></div>
     <div id="pmodal-body"></div>
   </div>
@@ -1010,6 +1252,8 @@ function toggleMotivAdj(cb){ mgMotivAdj=cb.checked; loadManager(); }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');
+  if(window.innerWidth<=900 && t.scrollIntoView)
+    t.scrollIntoView({inline:'nearest',block:'nearest'});
   // P1-④：wc2026 内切 tab 时把 hash 规范为双段形式（replaceState 无跳转、不触发 hashchange；
   // 所有 click 路径均在脚本整体解析完成后触发，CUR_EVENT 必已初始化）
   if(CUR_EVENT==='wc2026') history.replaceState(null,'','#wc2026/'+t.dataset.t);
@@ -1068,11 +1312,10 @@ function renderReadCard(rd, match){
   h+=`</table>`;
   h+=`<div style="margin:4px 0">${rd.fav_label} cover 概率：模型 ${_exPP(rd.model_fav_cover)} vs 市场 ${_exPP(rd.market_fav_cover)}（${rd.is_knockout?'淘汰赛：加时点球不影响本盘、口径基本一致':'小组赛：口径基本一致'}）</div>`;
   h+=`<div class="rd-prior">⚠ ${rd.prior_note}</div>`;
-  h+=`<div class="muted" style="font-size:10.5px;margin-top:4px">描述性认知，非投注建议，不含买/跳指令。</div>`;
   return h;
 }
 
-// ===== 机制解读 tab（信息性 A/C，复用 /api/explainer）=====
+// ===== 机制解读 tab（A/C，复用 /api/explainer）=====
 function exSwap(){ const h=$('#ex_home'),a=$('#ex_away'); const t=h.value; h.value=a.value; a.value=t; loadExplainer(); }
 function _exPP(v){ return (v*100).toFixed(1)+'%'; }
 function _exSP(v){ return (v>=0?'+':'')+(v*100).toFixed(1)+'pp'; }
@@ -1085,13 +1328,12 @@ async function loadExplainer(){
     box.innerHTML=renderExplainer(d);
   }catch(e){ box.innerHTML=`<div class="card muted">解读失败：${e}</div>`; }
 }
-function _exPrior(note){   // 红线#3 先验注脚，琥珀框醒目
-  return `<div style="margin:6px 0;padding:7px 10px;border-left:3px solid #d29922;background:#1c1606;border-radius:6px;color:#e3b341;font-size:12px">⚠ ${note}</div>`;
+function _exPrior(note){   // 先验注脚，琥珀框醒目
+  return `<div style="margin:6px 0;padding:7px 10px;border:1px solid #d2992244;background:#1c1606;border-radius:6px;color:#e3b341;font-size:12px">${note}</div>`;
 }
 function renderExplainer(d){
   const A=d.A_water_structure, C=d.C_divergence, mv=d.line_movement, hA=d.A_handicap, hC=d.C_handicap_divergence;
-  let h=`<div class="card"><h3 style="margin:0 0 2px">🔍 ${d.match} · 市场机制解读</h3>`;
-  h+=`<div class="muted" style="margin-bottom:10px">描述性认知，非投注建议</div>`;
+  let h=`<div class="card"><h3 style="margin:0 0 10px">🔍 ${d.match} · 市场机制解读</h3>`;
   // A 水位结构
   h+=`<div style="font-weight:700;margin:4px 0">【A 水位结构】</div>`;
   h+=`<div style="font-size:13px;line-height:1.7">毛赔率　主 ${A.raw_odds.home.toFixed(2)} / 平 ${A.raw_odds.draw.toFixed(2)} / 客 ${A.raw_odds.away.toFixed(2)}<br>`;
@@ -1119,7 +1361,7 @@ function renderExplainer(d){
   }
   // B/D 冻结说明
   h+=`<div class="muted" style="margin-top:12px;font-size:11.5px;border-top:1px solid var(--line);padding-top:8px">`;
-  h+=`诱惑形态（FLB/大热必死）按盘种分桶的转正闸门<b>当前全锁</b>（样本不足、CI 跨 0）→ 不渲染。${d.disclaimer}</div></div>`;
+  h+=`诱惑形态（FLB/大热必死）按盘种分桶的转正闸门<b>当前全锁</b>（样本不足、CI 跨 0）→ 不渲染。</div></div>`;
   return h;
 }
 
@@ -1777,7 +2019,7 @@ function renderHandicapLedger(b){
     <td>${r.cover_result==='cover'?'打出':(r.cover_result==='push'?'走水':'未打出')}</td></tr>`).join('');
   return `<div class="card" style="margin-top:14px">
     <h3 class="mgh">🎯 让球预测命中率擂台 <span class="muted" style="font-weight:400;font-size:12px">（${b.n} 场已结算）</span></h3>
-    <div class="muted" style="margin:-2px 0 10px;font-size:12px">让球预测取自<b>赛前冻结的比分矩阵</b>（开球前存盘、不偷看赛果），用真实赛果检验。<b>样本小、命中率波动大</b>，仅作诚实自检，非投注建议。</div>
+    <div class="muted" style="margin:-2px 0 10px;font-size:12px">让球预测取自<b>赛前冻结的比分矩阵</b>（开球前存盘、不偷看赛果），用真实赛果检验。<b>样本小、命中率波动大</b>。</div>
     <div class="hcl-grid">
       <div class="hcl-box">
         <div class="hcl-h">竞彩让球（每场按期望净胜定线）命中率</div>
@@ -1805,9 +2047,9 @@ function hclVsMarket(vm){
   if(!vm||!vm.n) return `<div class="hcmkt muted" style="margin-top:10px">📡 模型 vs 市场：市场闭盘让球线后台补全中（每场一次 ESPN 抓取），稍后刷新即见对比。</div>`;
   const P=x=>x==null?'—':(x*100).toFixed(0)+'%';
   const maeWin=vm.model_closer;
-  const edge=vm.edge_decided?`模型分歧方向 vs 市场闭线 <b style="color:${vm.beats_market?'var(--grn2)':'#e3b341'}">${P(vm.edge_rate)}</b> <span class="muted">(${vm.edge_wins}/${vm.edge_decided}, CI ${P(vm.edge_ci[0])}–${P(vm.edge_ci[1])})</span> ${vm.beats_market?'<b style="color:var(--grn2)">→ 打赢闭线(存在信息性)</b>':'<span class="muted">→ 未打赢闭线</span>'}`
+  const edge=vm.edge_decided?`模型分歧方向 vs 市场闭线 <b style="color:${vm.beats_market?'var(--grn2)':'#e3b341'}">${P(vm.edge_rate)}</b> <span class="muted">(${vm.edge_wins}/${vm.edge_decided}, CI ${P(vm.edge_ci[0])}–${P(vm.edge_ci[1])})</span> ${vm.beats_market?'<b style="color:var(--grn2)">→ 打赢闭线</b>':'<span class="muted">→ 未打赢闭线</span>'}`
     : `暂无与市场的「真分歧(>0.25球)」检验样本（${vm.agree} 场模型≈市场）`;
-  return `<div class="card" style="margin-top:12px;border-left:3px solid var(--blue)">
+  return `<div class="card" style="margin-top:12px;border-color:rgba(96,165,250,.32)">
     <div class="hcl-h" style="font-size:13px;color:var(--txt)">📡 模型 vs 市场闭盘线 <span class="muted" style="font-weight:400">（${vm.n} 场有 DraftKings 让球盘）</span></div>
     <div style="margin-top:8px;font-size:12.5px;line-height:1.7">
       <div>让球线对实际净胜的 <b>MAE</b>：模型 <b>${vm.mae_model}</b> vs 市场 <b>${vm.mae_market}</b> →
@@ -1820,7 +2062,7 @@ function hclVsMarket(vm){
       ${vm.clv&&vm.clv.n?`<div style="margin-top:4px">让球 <b>CLV</b>（开盘→闭盘朝模型移动）：${vm.clv.n} 场 · 均值 <b style="color:${vm.clv.avg>0?'var(--grn2)':'#e3b341'}">${vm.clv.avg>0?'+':''}${vm.clv.avg} 球</b> · 正 CLV ${(vm.clv.pos_rate*100).toFixed(0)}%</div>`
         :`<div class="muted" style="margin-top:4px">让球 CLV：暂无开盘线样本（今起多次快照，淘汰赛阶段起累积开盘→闭盘移动）。</div>`}
     </div>
-    <div class="muted" style="font-size:11px;margin-top:6px">市场闭盘线≈最强效率基准；模型能在分歧场打赢闭线 / 闭线朝模型移动(正CLV) 才算真有边际价值。样本小，仅看信号、非投注建议。</div>
+    <div class="muted" style="font-size:11px;margin-top:6px">市场闭盘线≈最强效率基准；模型能在分歧场打赢闭线 / 闭线朝模型移动(正CLV) 才算真有边际价值。样本小。</div>
   </div>`;
 }
 
@@ -1837,7 +2079,7 @@ function gotoManager(h, a, withLineup, neutral){
 // 东道主恰为主队槽位时深度报告走非中立口径（manager 的主场加成只作用于主队槽；host==客队在官方赛程不出现，保底走中立）
 const _mgNeutral=r=>(r.host&&r.host===r.home_en)?'0':'1';
 const reportBtn=r=>`<button class="seebtn" data-h="${r.home||''}" data-a="${r.away||''}" data-n="${_mgNeutral(r)}" onclick="gotoManager(this.dataset.h,this.dataset.a,false,this.dataset.n)" title="到对阵分析看这场的完整深度报告（过程数据/算法模型/全盘口结论）">深度报告</button>`;
-const lineupBtn=r=>`<button class="seebtn" style="border-color:#1f6feb55;color:#58a6ff" data-h="${r.home||''}" data-a="${r.away||''}" data-n="${_mgNeutral(r)}" onclick="gotoManager(this.dataset.h,this.dataset.a,true,this.dataset.n)" title="到对阵分析、拉取真实首发并重算（约赛前 1 小时公布；未公布则降级为赛前估计）">⚡首发分析</button>`;
+const lineupBtn=r=>`<button class="seebtn" style="border-color:#1f6feb55;color:#58a6ff" data-h="${r.home||''}" data-a="${r.away||''}" data-n="${_mgNeutral(r)}" onclick="gotoManager(this.dataset.h,this.dataset.a,true,this.dataset.n)" title="到对阵分析、拉取真实首发并重算（约赛前 1 小时公布；未公布则降级为赛前估计）">首发分析</button>`;
 // 一键直达「机制解读」：切 tab → 填两队（显示名，API 可 resolve，与手输同码路）→ 解读
 function gotoExplainer(h, a){
   const tab=document.querySelector('.tab[data-t="explainer"]'); if(tab) tab.click();
@@ -1851,8 +2093,8 @@ function gotoJcReview(h, a, date){
   setTimeout(()=>{ if($('#jc_home'))$('#jc_home').value=h; if($('#jc_away'))$('#jc_away').value=a;
     if(date&&$('#jc_date'))$('#jc_date').value=date; jcLoad(); }, 180);
 }
-const explBtn=r=>`<button class="seebtn" data-h="${r.home||''}" data-a="${r.away||''}" onclick="gotoExplainer(this.dataset.h,this.dataset.a)" title="到机制解读看本场水位结构与模型vs市场分歧（描述性认知，非投注建议）">🔍 解读</button>`;
-const jcRevBtn=r=>`<button class="seebtn" data-h="${r.home||''}" data-a="${r.away||''}" data-d="${r.date||''}" onclick="gotoJcReview(this.dataset.h,this.dataset.a,this.dataset.d)" title="到竞彩复盘录入/回看本场（手动录竞彩让球线+你的判断，赛后手填90分钟比分做三方对账）">📒 复盘</button>`;
+const explBtn=r=>`<button class="seebtn" data-h="${r.home||''}" data-a="${r.away||''}" onclick="gotoExplainer(this.dataset.h,this.dataset.a)" title="到机制解读看本场水位结构与模型vs市场分歧">解读</button>`;
+const jcRevBtn=r=>`<button class="seebtn" data-h="${r.home||''}" data-a="${r.away||''}" data-d="${r.date||''}" onclick="gotoJcReview(this.dataset.h,this.dataset.a,this.dataset.d)" title="到竞彩复盘录入/回看本场（手动录竞彩让球线+你的判断，赛后手填90分钟比分做三方对账）">复盘</button>`;
 
 function liveCard(r){
   const pred = r.pred_gh!=null?`赛前 ${r.pred_gh}–${r.pred_ga}`:'';
@@ -1881,7 +2123,7 @@ function dayLabel(date){
 function upRow(u){
   const hm=(u.kickoff||'').slice(11);
   const slug=((u.home_en||'')+'_'+(u.away_en||'')).replace(/[^a-zA-Z0-9]/g,'');
-  const readBtn=u.handicap?`<button class="seebtn" onclick="exReadCard(this,'${(u.home_en||'').replace(/'/g,"")}','${(u.away_en||'').replace(/'/g,"")}','${slug}')" title="读盘卡：本场让球盘按 90 分钟（含补时、不含加时点球）结算的规则对照（描述性、非投注建议）">📖 读盘</button>`:'';
+  const readBtn=u.handicap?`<button class="seebtn" onclick="exReadCard(this,'${(u.home_en||'').replace(/'/g,"")}','${(u.away_en||'').replace(/'/g,"")}','${slug}')" title="读盘卡：本场让球盘按 90 分钟（含补时、不含加时点球）结算的规则对照">读盘</button>`:'';
   return `<div class="uprow">
     <div class="up-t">${hm?`<b>${hm}</b><small>北京</small>`:'<b>待定</b>'}</div>
     <div class="up-vs"><span>${u.home}</span><span class="up-x">vs</span><span>${u.away}</span>${stageTag(u.stage)?`<span class="muted" style="font-size:10.5px">${stageTag(u.stage)}</span>`:''}</div>
@@ -1913,8 +2155,8 @@ function renderUpcoming(list){
   const head=list.filter(u=>headDays.has(u.date)), rest=list.filter(u=>!headDays.has(u.date));
   const more=rest.length?`<div id="upmore" style="display:none">${dayBlocks(rest)}</div>
     <button class="go upmore-btn" data-lab="展开后续 ${rest.length} 场（共 ${list.length}）" onclick="toggleUpMore(this)">展开后续 ${rest.length} 场（共 ${list.length}）▾</button>`:'';
-  // 球迷解读：默认收起（保持看板密度），点开后逐行显示一句解读 + 顶部统一一次免责声明
-  const bar=list.some(u=>u.narrative)?`<div class="upnar-bar"><button class="seebtn upnar-btn" onclick="toggleUpNar(this)" title="把胜率翻译成一句球迷语言（含让球倾向与进球氛围）">💬 球迷解读</button><span class="upnar-tip"></span></div>`:'';
+  // 球迷解读：默认收起（保持看板密度），点开后逐行显示一句解读
+  const bar=list.some(u=>u.narrative)?`<div class="upnar-bar"><button class="seebtn upnar-btn" onclick="toggleUpNar(this)" title="把胜率翻译成一句球迷语言（含让球倾向与进球氛围）">球迷解读</button><span class="upnar-tip"></span></div>`:'';
   // 淘汰赛阶段交叉链：与晋级树互相导流（同 L648/694 既有 xlink 套路）
   const blink=`<div class="muted xlink" style="margin:0 0 8px"><a onclick="document.querySelector('.tab[data-t=&quot;bracket&quot;]').click()">→ 晋级树看各场胜者去向与对位</a></div>`;
   return `<div class="card" id="upwrap">${blink}${bar}${dayBlocks(head)}${more}</div>`;
@@ -1923,8 +2165,7 @@ function toggleUpMore(btn){ const m=$('#upmore'); const show=m.style.display==='
   m.style.display=show?'block':'none'; btn.textContent=show?'收起 ▴':btn.dataset.lab+' ▾'; }
 function toggleUpNar(btn){ const w=$('#upwrap'); if(!w) return;
   const on=w.classList.toggle('upnar-on'); btn.classList.toggle('on',on);
-  const tip=w.querySelector('.upnar-tip');
-  if(tip) tip.textContent=on?'📌 仅为模型概率推演，非投注建议，理性观赛、量力而行。':''; }
+  const tip=w.querySelector('.upnar-tip'); if(tip) tip.textContent=''; }
 
 // —— 看预测弹窗：复用 /api/predict 的比分矩阵 ——
 function openModal(title,body){ $('#pmodal-title').innerHTML=title; $('#pmodal-body').innerHTML=body;
@@ -2094,7 +2335,7 @@ async function loadRatings(){
   </div>`;
 }
 
-// —— 💹 市场对标 / CLV：模型 vs 闭盘线，做诚实检验、不做下注诱导 ——
+// —— 💹 市场对标 / CLV：模型 vs 闭盘线 ——
 async function loadMarket(mode){
   // mode: undefined=普通(命中缓存) / 'fresh'=用现有快照重建对标 / 'snap'=触发新盘口快照+重建
   const host=$('#marketres');
@@ -2103,7 +2344,7 @@ async function loadMarket(mode){
   try{
     const d=await getJSON('/api/market'+q);
     host.innerHTML = renderMarket(d);
-    if(!d.demo) loadMarketResearch(mode==='fresh'||mode==='snap');   // 线移动信息研究（只读）
+    if(!d.demo) loadMarketResearch(mode==='fresh'||mode==='snap');   // 线移动信息检验（只读）
   }catch(e){ if(!mode) host.innerHTML=errCard(e); }   // 后台静默刷新(mode)失败不打断已显示内容
 }
 async function loadMarketResearch(fresh){
@@ -2111,9 +2352,9 @@ async function loadMarketResearch(fresh){
   try{
     const d=await getJSON('/api/market_research'+(fresh?'?fresh=1':''));
     box.innerHTML=renderMarketResearch(d);
-  }catch(e){ /* 研究面板失败不影响主对标 */ }
+  }catch(e){ /* 信息检验面板失败不影响主对标 */ }
 }
-// 开盘→闭盘 线移动信息检验（纯研究、非投注建议）。CI 不含 0/0.5 才判"显著"。
+// 开盘→闭盘线移动信息检验。CI 不含 0/0.5 才判"显著"。
 function renderMarketResearch(d){
   const m=(d&&d.line_movement)||{};
   if(!m.n) return '';
@@ -2125,7 +2366,7 @@ function renderMarketResearch(d){
   return `<div class="card">
     <h3 style="margin-top:0">🔬 开盘 → 闭盘 线移动 · 信息检验 <small class="muted" style="font-weight:400">(${m.n} 场 · de-vig=${m.method})</small></h3>
     ${summary}
-    <div class="muted" style="font-size:12px;margin-bottom:10px">研究<b>市场如何运作</b>：开盘线偏"软"、闭盘线偏"锐"。检验①闭盘是否更准 ②线移动是否朝最终结果（含信息）。带 bootstrap/Wilson 95% CI——<b>CI 不含 0 才算显著</b>。纯研究、非投注建议。</div>
+    <div class="muted" style="font-size:12px;margin-bottom:10px">开盘线偏"软"、闭盘线偏"锐"。检验①闭盘是否更准 ②线移动是否朝最终结果（含信息）。带 bootstrap/Wilson 95% CI——<b>CI 不含 0 才算显著</b>。</div>
     ${row('闭盘 vs 开盘 LogLoss（负=闭盘更准）',`${m.logloss_diff>0?'+':''}${m.logloss_diff}`,`CI ${m.logloss_diff_ci.join(' ~ ')} · 闭盘更锐利 ${sg(m.closing_sharper)}`)}
     ${row('线移动朝【实际结果】mean',pp(m.move_toward_actual),`CI ${ci(m.move_toward_actual_ci)} · 移动含信息 ${sg(m.movement_informative)}`)}
     ${row('移动方向正确率',(m.right_dir_rate*100).toFixed(0)+'%',`Wilson CI [${(m.right_dir_ci[0]*100).toFixed(0)}, ${(m.right_dir_ci[1]*100).toFixed(0)}]% · 显著 ${sg(m.right_dir_ci[0]>0.5)}`)}
@@ -2169,17 +2410,17 @@ function sensBlock(arr){
 function renderMarket(d){
   const c=d.clv||{};
   const guard=`<div class="card mkt-guard">
-    <div class="mkt-guard-h">⚠️ 理性博彩护栏 · 本页是「检验」，不是下注建议</div>
+    <div class="mkt-guard-h">市场对标口径</div>
     <ul class="mkt-guard-l">
       <li>庄家长期抽水（margin）使<b>多数人长期 EV 为负</b>；本模型<b>未被证明能持续赢过市场</b>，闭盘线才是金标准。</li>
-      <li>概率 ≠ 确定：70% 也会输 3/10。只用<b>可承受损失</b>的钱，设预算上限、不追损。</li>
-      <li>无显著正 CLV 证据时，本页<b>不显示任何"价值/注码"</b>——分歧(edge)永远算得出，但多是抽水＋估计误差的噪声。</li>
+      <li>概率 ≠ 确定：70% 对应的事件仍有约 30% 不会发生。</li>
+      <li>无显著正 CLV 证据时，分歧（edge）多来自抽水与估计误差。</li>
     </ul></div>`;
   let verdict;
   if(!c.available) verdict=`<div class="mkt-verdict v-mut">🧪 CLV 待数据：odds.csv 暂无<b>开盘赔率</b>列（odds_*_open），无法计算闭盘线价值。补齐<b>开盘+闭盘</b>两套赔率即可启用此检验。</div>`;
   else if(!c.enough_n) verdict=`<div class="mkt-verdict v-mut">🧪 样本不足：CLV 仅 ${c.n} 场（需 ≥30）——<b>不下结论</b>。</div>`;
   else if(c.proven_edge) verdict=`<div class="mkt-verdict v-ok">✅ 有信息优势证据：平均 CLV ${(c.avg_clv*100).toFixed(1)}% · 跑赢闭盘 ${(c.beat_rate*100).toFixed(0)}% · t=${c.t_stat}</div>`;
-  else verdict=`<div class="mkt-verdict v-no">❌ 未证明信息优势：平均 CLV ${(c.avg_clv*100).toFixed(1)}% · t=${c.t_stat}（未达显著）——edge 视为噪声，不显示注码。</div>`;
+  else verdict=`<div class="mkt-verdict v-no">❌ 未证明信息优势：平均 CLV ${(c.avg_clv*100).toFixed(1)}% · t=${c.t_stat}（未达显著）——edge 视为噪声。</div>`;
   const stat=(n,l)=>`<div class="vstat"><div class="vnum">${n}</div><div class="vlab">${l}</div></div>`;
   const cards='<div class="vstats">'
     +stat(d.n,'对标场次')
@@ -2193,13 +2434,13 @@ function renderMarket(d){
     <div>${x.home} <span class="muted">vs</span> ${x.away}<br><small class="muted">${x.date} · 实际 ${x.outcome_lab}</small></div>
     <div class="muted" title="模型 主/平/客%">${f3(x.model,x.outcome)}<small>%</small></div>
     <div class="muted" title="闭盘隐含 主/平/客%（已去 margin）">${f3(x.line,x.outcome)}<small>%</small></div>
-    <div title="模型 − 闭盘 最大分歧档（仅供观察，非推荐）"><span class="scpill">${x.value_side_lab} ${x.value_edge>0?'+':''}${(x.value_edge*100).toFixed(0)}%</span></div>
+    <div title="模型 − 闭盘最大分歧档"><span class="scpill">${x.value_side_lab} ${x.value_edge>0?'+':''}${(x.value_edge*100).toFixed(0)}%</span></div>
   </div>`).join('');
   const table=`<div class="card">
     <h3 style="margin-top:0">模型 vs 闭盘线（逐场 · 加粗=实际结果那档）</h3>
     <div class="mkt-row mkt-head"><div>对阵 · 实际</div><div>模型%</div><div>闭盘%</div><div>最大分歧</div></div>
     ${rows||'<div class="muted" style="padding:10px 0">odds.csv 无可对标样本。</div>'}
-    <div class="muted" style="margin-top:10px">「最大分歧」＝模型概率 − 闭盘隐含概率最大的一档，<b>仅供观察，不是投注建议</b>；
+    <div class="muted" style="margin-top:10px">「最大分歧」＝模型概率 − 闭盘隐含概率最大的一档；
     它要成为"价值"必须由 CLV 证明，否则只是噪声。评级冻结于 ${d.cutoff} 之前（无泄漏）。</div>
   </div>`;
   // —— 解锁门槛逐条清单：把真实 CLV 数字摆出来，让"为什么锁着"有据可查 ——
@@ -2219,17 +2460,17 @@ function renderMarket(d){
       ${gateList}
       <div style="margin-top:9px;font-size:12px">当前结论：${c.proven_edge?'已达标。':`<b style="color:#ff7b72">未达标</b>——${c.enough_n?(c.avg_clv>0?'平均 CLV 虽正但显著性不足':'平均 CLV 为负、且 t 值显著为负，说明模型在这批盘口上<b>没有信息优势、甚至为负</b>'):'样本量还不够'}。`}这是<b>刻意的诚实门槛</b>——没有证据就不给"稳赢"暗示。</div>
       <div class="callout c-gold"><div class="c-hl">它可能永远不会打开——<br>而这正是它最值钱的地方：<span class="c-pop">不骗你</span>。</div><div class="c-sub">跑赢闭盘线极难，若模型没有真优势，它会诚实地一直锁着，而不是给你一个看着唬人、其实是噪声的数字。</div></div>
-      <div style="margin-top:11px"><button class="seebtn" onclick="loadMarketDemo()">🧪 看演示：CLV 证明后长这样（合成数据）</button></div></div>`;
+      <div style="margin-top:11px"><button class="seebtn" onclick="loadMarketDemo()">查看 CLV 演示（合成数据）</button></div></div>`;
   const src = d.odds_source?`<b>${d.odds_source}</b>`:'<code>data/odds.csv</code>';
   const upd = d.odds_updated?` · 上次快照 ${d.odds_updated.slice(5,16)}`:'';
   const cap = d.odds_capturing?' · <span style="color:#79c0ff">⟳ 抓取中</span>':'';
-  const refreshBtn = d.demo ? '' : `<button class="seebtn" ${d.odds_capturing?'disabled':''} onclick="loadMarket('snap')" title="立即抓一次 ESPN 最新盘口并重新对标（后台约数分钟，完成后自动反映）">${d.odds_capturing?'⟳ 抓取中…':'🔄 刷新盘口'}</button>`;
+  const refreshBtn = d.demo ? '' : `<button class="seebtn" ${d.odds_capturing?'disabled':''} onclick="loadMarket('snap')" title="立即抓一次 ESPN 最新盘口并重新对标（后台约数分钟，完成后自动反映）">${d.odds_capturing?'抓取中…':'刷新盘口'}</button>`;
   const intro=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
     <div class="muted" style="font-size:12.5px"><b>这是什么</b>：把模型概率与<b>博彩闭盘线</b>（市场吸收全部信息后的金标准）在同一批比赛上对标。
     博彩里真正能证明"有信息优势"的指标是 <b>CLV（闭盘线价值）</b>：赛前记录那一刻的赔率，是否长期好于临场前最后一刻（闭盘）的赔率。CLV 长期为正，才说明判断领先市场。
     <br>赔率源：${src}${upd}${cap}（复用 ESPN 公开 API 的 DraftKings 盘口，<b>非抓取博彩站</b>）。<b>开盘/闭盘线随赛事多次快照逐步积累</b>，已完赛且有跨时段快照的场次才进入 CLV 统计——所以开赛初期多为"样本不足"，这是诚实的。页面打开时每 60s 自动用最新快照重新对标。</div>
     <div style="white-space:nowrap">${refreshBtn}</div></div></div>`;
-  const demoBanner = d.demo ? `<div class="card val-demo">🧪 <b>合成演示数据</b>（非真实赔率、非投注建议）：展示「CLV 证明信息优势后」价值/Kelly 面板的样子。真实数据仍受诚实门槛约束、保持锁定。
+  const demoBanner = d.demo ? `<div class="card val-demo"><b>合成演示数据</b>（非真实赔率）：展示「CLV 证明信息优势后」价值/Kelly 面板的样子。真实数据仍受诚实门槛约束、保持锁定。
     <button class="seebtn" style="margin-left:8px" onclick="loadMarket()">← 返回真实数据</button></div>` : '';
   return demoBanner+guard+intro+verdict+cards+table+calCmpHTML(d.calibration_compare)+value+'<div id="mrpanel"></div>';
 }
@@ -2253,7 +2494,7 @@ function calCmpHTML(cc){
         <div class="mrsub"><div class="mrsub-h"><span class="cal-dot dk"></span>闭盘线 reliability</div>${bins(cc.market.bins,'market')}</div>
       </div>
     </div>
-    <div class="muted" style="font-size:11.5px;margin-top:8px">点越贴对角线=校准越好。模型校准好≠能赢钱（赢钱看 CLV，上方已证为负）——<b>校准好但无市场边际，二者不矛盾</b>。小样本，看趋势。非投注建议。</div>
+    <div class="muted" style="font-size:11.5px;margin-top:8px">点越贴对角线=校准越好。模型校准好≠能赢钱（赢钱看 CLV，上方已证为负）——<b>校准好但无市场边际，二者不矛盾</b>。小样本。</div>
   </div>`;
 }
 // 评分卡：三种正规评分规则（RPS/LogLoss/ECE，越低越好）模型 vs 市场并排，逐项高亮胜者
@@ -2315,7 +2556,7 @@ function valuePanel(d){
     ? `<div class="mkt-guard" style="margin:0 0 11px"><div class="mkt-guard-h">🚨 这不是经过验证的"价值"，也不衡量准确率</div>
       <ul class="mkt-guard-l">
       <li>CLV <b>未通过</b>显著性门槛——下列 EV/Kelly 直接用模型概率 vs 当前盘口算出，<b>大概率是抽水＋估计误差的噪声</b>。</li>
-      <li>含<b>未开赛</b>场次（无结果、无 CLV），仅为<b>展示算法在真实盘口上的输出</b>；<b>不衡量准确率、非投注建议、作者不对任何人负责</b>。</li>
+      <li>含<b>未开赛</b>场次（无结果、无 CLV），用于<b>展示算法在真实盘口上的输出</b>；<b>不衡量准确率</b>。</li>
       <li>真正证明准确率看：预测验证 tab（已完赛逐场打分）、backtest.py（RPS/ECE）、模型 vs 闭盘线 RPS。</li></ul></div>`
     : '';
   return `<div class="card val-card"${ov?' style="border-color:#bb280055;background:#1a1310"':''}>
@@ -2573,7 +2814,7 @@ function renderXuanxue(b){
     ${xxLbTable(lb, b.baselines)}
     <div class="mgnote" style="border-color:#8957e5">${xxVerdict(lb, b.baselines)}<br>
       命中率后的 [区间] 是 95% 置信区间；样本越小区间越宽。「基线」是固定策略(总选同一结果/随机)，
-      术数若有预测力就该<b>稳定超过基线</b>。本擂台为趣味/文化实验，术数<b>无科学预测力</b>，勿用于投注。</div>
+      术数若有预测力就该<b>稳定超过基线</b>。本擂台为趣味/文化实验，术数<b>无科学预测力</b>。</div>
   </div>`;
 
   // —— 历史回测（大样本，看真实收敛）——
@@ -2642,7 +2883,7 @@ function hcHTML(d, H, A, favName){
       ?`市场 <b>${favName} 让 ${mkt.market_line}</b>（水位 ${mkt.fav_odds||'—'}）· 模型公平 让 ${hc.fair_line} → <b style="color:${leanCol}">${mkt.lean}</b>${typeof mkt.divergence==='number'?` <span class="muted">(背离 ${mkt.divergence>0?'+':''}${mkt.divergence} 球)</span>`:''}${typeof mkt.move==='number'?`<br><span class="muted">盘口移动：开盘 让${mkt.open_line} → 现 让${mkt.market_line}（${mkt.move>0?'+':''}${mkt.move}，${mkt.move_dir}）</span>`:''}`
       :`市场与模型对强弱判断不一致，不强行比较盘口（市场口径见 DraftKings）。`}${mkt.ou!=null?` · 大小球盘 ${mkt.ou}`:''}</div>`
     :`<div class="hcmkt muted">📡 市场实盘对标：暂未取到该场 DraftKings 让球盘（仅临场挂盘；稍后重开本报告即带）。</div>`;
-  return `<div class="mgsub">让球结论 <span title="让球盘：强队先让出 N 球再比净胜。本处由比分概率矩阵直接卷积，给出模型公平盘与各档赢/走/输，并与 ESPN/DraftKings 实盘让球盘对标。非投注建议。" style="cursor:help;color:var(--dim)">ⓘ</span>（模型直接推导，强队=${favName}）</div>
+  return `<div class="mgsub">让球结论 <span title="让球盘：强队先让出 N 球再比净胜。本处由比分概率矩阵直接卷积，给出模型公平盘与各档赢/走/输，并与 ESPN/DraftKings 实盘让球盘对标。" style="cursor:help;color:var(--dim)">ⓘ</span>（模型直接推导，强队=${favName}）</div>
     <div class="muted" style="margin:2px 0 8px">📌 模型直接结论：<b>${favName}</b> 公平盘 ≈ <b>让 ${hc.fair_line}</b>，模型上限约 <b>让 ${hc.max_fair_line} 球</b>，再高则模型侧偏亏${mo&&mo.adjusted?'（已含动机降权）':''}。</div>
     ${mktHTML}
     ${motiv}
@@ -2650,7 +2891,7 @@ function hcHTML(d, H, A, favName){
       <tr><th>${favName} 让</th><th title="让球后强队仍净胜，赢得该让球盘">赢盘</th><th title="走水(push)：让球后净胜恰好等于让球数，本金退回">走水</th><th>输盘</th><th title="站强队角度：赢盘−输盘>0 偏值 / ≈0 公平 / <0 让过头偏亏">性价比</th></tr>
       ${rows}
     </table>
-    <div class="muted" style="margin:6px 0">${d.odds?`市场闭盘隐含：${H} ${mgP(d.odds.imp_home)} / 平 ${mgP(d.odds.imp_draw)} / ${A} ${mgP(d.odds.imp_away)}（ESPN·DraftKings，抽水 ${mgP1(d.odds.margin)}）。`:'<b>该对阵无已采集赔率，以上为纯模型推导，非市场实盘、非投注建议。</b>'}</div>
+    <div class="muted" style="margin:6px 0">${d.odds?`市场闭盘隐含：${H} ${mgP(d.odds.imp_home)} / 平 ${mgP(d.odds.imp_draw)} / ${A} ${mgP(d.odds.imp_away)}（ESPN·DraftKings，抽水 ${mgP1(d.odds.margin)}）。`:'<b>该对阵无已采集赔率，以上为纯模型推导，非市场实盘。</b>'}</div>
     ${ctxHTML(d, H, A)}`;
 }
 
@@ -2741,7 +2982,7 @@ function renderManager(d){
   const csl=mk.handicap&&mk.handicap.csl;   // 竞彩动态让球线（按本场期望净胜定让N/平手）
   const hftRows=d.half_full.ranked.map(([k,p])=>`<tr><td>${k}</td><td>${mgP1(p)}</td></tr>`).join('');
   html+=`<div class="card"><h3 class="mgh">四、盘口推导（大小球 / 让球结论 / 竞彩）</h3>
-    <div class="muted" style="margin:-4px 0 10px;font-size:12px">以下均为从比分概率矩阵<b>卷积推导</b>的概率，非实盘报价、非投注建议。</div>
+    <div class="muted" style="margin:-4px 0 10px;font-size:12px">以下均为从比分概率矩阵<b>卷积推导</b>的概率，非实盘报价。</div>
 
     <div class="mgsub">大小球 / 进球数 <span title="大/小 X.5：两队合计进球数高于/低于 X.5 的概率。BTTS=双方都进球(Both Teams To Score)" style="cursor:help;color:var(--dim)">ⓘ</span></div>
     <table class="mgt">
@@ -2769,7 +3010,7 @@ function renderManager(d){
 
     <div class="mgsub">半全场（启发式，低置信度）</div>
     <table class="mgt"><tr><th>半全场</th><th>概率</th></tr>${hftRows}</table>
-    <div class="mgnote">⚠️ 半全场按经验前/后半场进球占比(${(d.meta.fh_share*100).toFixed(0)}%/${(100-d.meta.fh_share*100).toFixed(0)}%)拆分独立泊松、未套 DC 低分修正，<b>波动大，仅供参考，本项为最低置信度项，请勿据此决策</b>。</div>
+    <div class="mgnote">⚠️ 半全场按经验前/后半场进球占比(${(d.meta.fh_share*100).toFixed(0)}%/${(100-d.meta.fh_share*100).toFixed(0)}%)拆分独立泊松、未套 DC 低分修正，<b>波动大，本项为最低置信度项</b>。</div>
 
     <div class="mgconc" style="border-color:${confColor(cf.level)}">
       胜负倾向：<b style="color:${confColor(cf.level)}">${cf.pick}</b> · 置信度：<b style="color:${confColor(cf.level)}">${cf.level}</b>（${mgP1(cf.p)}，与次选差 ${mgP1(cf.gap)}）
@@ -2794,12 +3035,11 @@ function renderManager(d){
       <tr><td>关键影响因素</td><td>${d.matchup.home_att_vs_away_def} · xG ${d.xg_home}–${d.xg_away}</td></tr>
       <tr><td>最大不确定性</td><td>${cf.pick==='平局'||cf.level==='低'?'胜负接近，平局/冷门风险高':'低比分剧本下让球赢盘不易与定位球偶然性'}；定性维度（伤停名单/临场）未纳入</td></tr>
     </table>
-    <div class="mgnote">本报告为模型 + 历史数据的概率推导，<b>非投注建议</b>，不含「必胜/稳赢」。个人/教育项目，结果存在不确定性。</div>
   </div>`;
 
   // —— 交叉链：机制解读恒显；竞彩复盘仅当有赛程上下文（北京日期，与 jc_review key 口径一致）——
   const mgDate=(d.schedule&&d.schedule.kickoff_bj)?String(d.schedule.kickoff_bj).slice(0,10):'';
-  html+=`<div class="muted xlink" style="margin:2px 4px 10px"><a onclick="gotoExplainer('${H}','${A}')">→ 本场市场机制解读（水位结构 / 模型vs市场分歧，描述性）</a>${mgDate?`　·　<a onclick="gotoJcReview('${H}','${A}','${mgDate}')">→ 本场竞彩复盘录入/回看</a>`:''}</div>`;
+  html+=`<div class="muted xlink" style="margin:2px 4px 10px"><a onclick="gotoExplainer('${H}','${A}')">→ 本场市场机制解读（水位结构 / 模型vs市场分歧）</a>${mgDate?`　·　<a onclick="gotoJcReview('${H}','${A}','${mgDate}')">→ 本场竞彩复盘录入/回看</a>`:''}</div>`;
   return html;
 }
 
@@ -2891,7 +3131,7 @@ function evApplyIdentity(meta, home){
   if(home){                                     // 首页顶部是系统身份，不是某一赛事身份
     document.title = '足球赛事预测器';
     if(h1) h1.textContent = '足球赛事预测器';
-    if(sub) sub.textContent = '国家队与五大联赛 · 历史比分模型研究与赛事数据看板';
+    if(sub) sub.textContent = '国家队与五大联赛 · 历史比分模型与赛事数据看板';
     return;
   }
   // 默认赛事身份走后端 is_default，不比较赛事 key 字面（新装配层零 key 特判）；
@@ -2908,8 +3148,8 @@ function evApplyIdentity(meta, home){
   const line = isClub
     ? `${meta.name} · football-data.co.uk · 每联赛独立模型 hl=365`
     : `${meta.name} · martj42 国际赛数据库 · 国家队统一模型 hl=730`;
-  document.title = `⚽ ${meta.name} 比分预测`;
-  if(h1) h1.textContent = `⚽ ${meta.name}`;
+  document.title = `${meta.name} 比分预测`;
+  if(h1) h1.textContent = meta.name;
   if(sub) sub.textContent = line;
 }
 function evShortState(e){
@@ -2921,16 +3161,16 @@ function renderEvbar(){
   const bar = $('#evbar'); if(!bar || !EVENTS_META) return;
   // 首项固定「赛事总览」（首页也保留菜单：用户要能随时切走，而不是只能靠卡片）；
   // 其余按模型宇宙分组——国家队与俱乐部是两套模型、两套数据源，菜单里就该分开。
-  const item = e => `<span class="ev d-${e.status}${e.key===CUR_EVENT?' on':''}" data-ev="${e.key}"
+  const item = e => `<button type="button" class="ev d-${e.status}${e.key===CUR_EVENT?' on':''}" data-ev="${e.key}"
       onclick="selectEvent('${e.key}')" title="${e.name}">
-      <i class="ev-dot"></i><span class="ev-nm">${e.name}</span><span class="ev-x">${evShortState(e)}</span></span>`;
+      <i class="ev-dot"></i><span class="ev-nm">${e.name}</span><span class="ev-x">${evShortState(e)}</span></button>`;
   const grp = (label, arr) => arr.length
     ? `<div class="ev-gl">${label}</div>` + arr.map(item).join('') : '';
   const club = EVENTS_META.filter(e=>(e.universe||'').startsWith('club'));
   const natl = EVENTS_META.filter(e=>!(e.universe||'').startsWith('club'));
   bar.innerHTML =
-    `<span class="ev ev-home${CUR_EVENT==='__home__'?' on':''}" data-ev="__home__" onclick="location.hash='home'">
-       <i class="ev-dot"></i><span class="ev-nm">赛事总览</span><span class="ev-x">${EVENTS_META.length} 项</span></span>`
+    `<button type="button" class="ev ev-home${CUR_EVENT==='__home__'?' on':''}" data-ev="__home__" onclick="location.hash='home'">
+       <i class="ev-dot"></i><span class="ev-nm">赛事总览</span><span class="ev-x">${EVENTS_META.length} 项</span></button>`
     + grp('国家队', natl) + grp('俱乐部', club);
   const on = bar.querySelector('.ev.on');   // 窄屏横滚菜单：当前赛事滚出视野时自动滚到可见（桌面纵向同理，nearest 不打扰）
   if(on && on.scrollIntoView) on.scrollIntoView({inline:'nearest', block:'nearest'});
@@ -3027,7 +3267,7 @@ function hmMatchStream(ms){
       ${rows}${ms.rows.length>8?`<div class="hm-meta" style="margin-top:10px">共 ${ms.rows.length} 场，
       <a class="xlink" onclick="location.hash='${ms.rows[0].event}/board'">查看全部</a></div>`:''}
       <div class="hm-meta" style="margin-top:10px">北京时间 · 概率优先取赛前冻结账本，未冻结时显示当前模型估算并标注口径 ·
-      点任一场进入对阵分析 · 研究/信息性质，非投注建议</div></div>`;
+      点任一场进入对阵分析</div></div>`;
   }
   // 无赛程不是空卡，而是同等正式的第二形态
   const rows = (ms.fallback&&ms.fallback.events||[]).map(e=>{
@@ -3078,7 +3318,7 @@ function renderHome(){
     const groups = d.event_groups.map(g=>{
       if(!g.events.length) return '';
       return `<div class="hm-sec"><h2>${hmEsc(g.label)}<small>${g.events.length} 项</small></h2>
-        <div class="hm-grid">${g.events.map(e=>`
+        <div class="hm-grid hm-event-grid">${g.events.map(e=>`
           <div class="hm-card ${g.id}" onclick="location.hash='${e.href.slice(1)}'">
             <h3>${hmEsc(e.name)}<span class="hm-meta">${
               e.status==='live'?'进行中':(e.status==='archived'?'已归档':(e.status==='soon'?'即将开赛':'未开赛'))}</span></h3>
@@ -3092,19 +3332,21 @@ function renderHome(){
       <div class="c-s">${hmEsc(c.source)}${c.as_of?` · 截至 ${hmEsc(c.as_of)}`:''}</div></div>`).join('');
     box.innerHTML = `
       <div class="hm-hero">
+        <h1>赛事控制台</h1>
+        <p>查看近期赛程、模型概率、赛事状态与独立验证账本。</p>
         ${n?`<div class="hm-next">下一赛事：${hmEsc(n.name)} · <b>${n.live?'进行中':n.days_to_start+' 天后开赛'}</b></div>`:''}
       </div>
-      <div class="hm-sec"><h2>数据状态<small>分源呈现，不合成单一状态灯</small></h2><div class="hm-fresh">${fresh}</div></div>
+      <div class="hm-sec"><h2>数据状态<small>各数据源独立更新</small></h2><div class="hm-fresh">${fresh}</div></div>
       <div class="hm-sec">${hmMatchStream(d.match_stream)}</div>
       ${groups}
-      <div class="hm-sec"><h2>验证账本<small>按赛事独立，绝不跨赛事合并</small></h2>${hmVerification(d.verification)}</div>
-      <div class="hm-sec"><h2>数据覆盖<small>动态读取，不含任何解读</small></h2><div class="hm-cov">${cov}</div></div>
+      <div class="hm-sec"><h2>验证账本<small>各赛事独立记录</small></h2>${hmVerification(d.verification)}</div>
+      <div class="hm-sec"><h2>数据覆盖<small>当前数据库范围</small></h2><div class="hm-cov">${cov}</div></div>
       ${(d.warnings||[]).length?`<div class="hm-sec"><div class="hm-fresh">${d.warnings.map(hmEsc).join(' · ')}</div></div>`:''}`;
     box.dataset.homeReady = '1';                       // ui_check.py 的完成标记
     hmFillEstimates();                                 // 未冻结场次补当前模型估算（看板同源）
   }).catch(e=>{
     box.innerHTML = `<div class="card"><span class="muted">首页数据加载失败：${hmEsc(e.message)}。</span>
-      <div style="margin-top:8px"><span class="tab" onclick="renderHome()">重试</span></div></div>`;
+      <div style="margin-top:8px"><button type="button" class="tab" onclick="renderHome()">重试</button></div></div>`;
   });
 }
 // 未冻结场次的概率补位：向**看板端点**取（首页后端只读、不现算，铁律①），
@@ -3158,7 +3400,7 @@ function evPredCard(d, title){
     <div class="muted">期望进球 ${d.home_disp} ${d.xg_home} - ${d.xg_away} ${d.away_disp}
       ${d.over25!=null?` · 大 2.5 球 ${evPct(d.over25)} · 双方进球 ${evPct(d.btts)}`:''}</div>
     <div style="margin-top:6px">最可能比分：${scores}</div>
-    <div class="muted" style="margin-top:8px;font-size:11.5px">90 分钟口径（含补时，不含加时点球） · 研究/信息性质，非投注建议 ·
+    <div class="muted" style="margin-top:8px;font-size:11.5px">90 分钟口径（含补时，不含加时点球） ·
       数据来源 ${d.source||''}${d.data_through?`（截至 ${d.data_through}）`:''}${d.promoted_note?`<br>${d.promoted_note}`:''}</div>
   </div>`;
 }
@@ -3237,13 +3479,13 @@ function evPredForm(key, isClub, defH, defA){
 // —— 联赛视图 Tab 化（2026-07-23 用户指令：世界杯七 Tab 在各联赛可找到，按联赛赛制优化）——
 // 晋级树状图的联赛等价物=赛季推演（禁树状图，任务书 C3）；未施工 Tab 显式空态+原因。
 const LEAGUE_TABS = [
-  {k:'board',     ico:'📋', name:'赛事看板'},
-  {k:'matchup',   ico:'⚽', name:'对阵分析'},
-  {k:'seasonsim', ico:'📈', name:'赛季推演'},
-  {k:'champ',     ico:'🏆', name:'夺冠概率'},
-  {k:'market',    ico:'💹', name:'市场对标'},
-  {k:'explain',   ico:'🔍', name:'机制解读'},
-  {k:'jc',        ico:'📒', name:'竞彩复盘'},
+  {k:'board',     ico:'', name:'赛事看板'},
+  {k:'matchup',   ico:'', name:'对阵分析'},
+  {k:'seasonsim', ico:'', name:'赛季推演'},
+  {k:'champ',     ico:'', name:'夺冠概率'},
+  {k:'market',    ico:'', name:'市场对标'},
+  {k:'explain',   ico:'', name:'机制解读'},
+  {k:'jc',        ico:'', name:'竞彩复盘'},
 ];
 const EV_DATA = {};                     // 每赛事数据缓存 {key:{<kind>:Promise, _<kind>:已解析值}}
 function evEmptyCard(msg){ return `<div class="card"><span class="muted">${msg}</span></div>`; }
@@ -3313,8 +3555,8 @@ function evBoardCards(o){
       ? `下一轮赛程预测（${up.rows.length} 场${dtf!=null?` · 距开赛 ${dtf} 天，已超出 ${up.window_days||14} 天窗口`:''}）`
       : `未来 ${up.window_days||14} 天赛程预测（${up.rows.length} 场）`;
     t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">${title}</h3>
-      <div class="hscroll"><table class="mgt"><tr><th>开球（北京时间）</th><th colspan="3">对阵</th><th>胜/平/负</th><th>期望进球</th><th>概率条</th><th>B365 赛前盘</th></tr>${rows}</table></div>
-      <div class="muted" id="ev_up_basis" style="margin-top:6px;font-size:11.5px">当前模型估算（未冻结） · 赛程来源 ${up.fixtures_source||'—'}${up.fetched_at?`（更新于 ${up.fetched_at}）`:''} · 盘口来源 ${up.odds_source||'—'}，通常仅未来一轮有盘 · 数据截至 ${o.data_through} · 90 分钟口径 · 研究/信息性质，非投注建议${up.promoted_note?`<br>${up.promoted_note}`:''}</div></div>`;
+      <div class="hscroll"><table class="mgt ev-fixtures"><tr><th>开球（北京时间）</th><th colspan="3">对阵</th><th>胜/平/负</th><th>期望进球</th><th>概率条</th><th>B365 赛前盘</th></tr>${rows}</table></div>
+      <div class="muted" id="ev_up_basis" style="margin-top:6px;font-size:11.5px">当前模型估算（未冻结） · 赛程来源 ${up.fixtures_source||'—'}${up.fetched_at?`（更新于 ${up.fetched_at}）`:''} · 盘口来源 ${up.odds_source||'—'}，通常仅未来一轮有盘 · 数据截至 ${o.data_through} · 90 分钟口径${up.promoted_note?`<br>${up.promoted_note}`:''}</div></div>`;
   } else {
     t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">未来 ${up.window_days||14} 天赛程预测</h3>
       <span class="muted">${up.reason||'暂无未来赛程数据。'}</span></div>`;
@@ -3394,7 +3636,7 @@ function evChampCards(o, ss){
     const rows=p.rows.slice(0,6).map(r=>`<tr><td>${r.disp}</td><td>${evPct(r.title)}</td><td>${evPct(r.top4)}</td><td>${r.exp_pts.toFixed(0)}</td></tr>`).join('');
     t += `<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">季前模拟概率（${p.sims} 次蒙特卡洛）</h3>
       <table class="mgt"><tr><th>球队</th><th>夺冠</th><th>前四</th><th>期望积分</th></tr>${rows}</table>
-      <div class="muted" style="margin-top:6px;font-size:11.5px">计算于 ${p.computed_at} · 研究/信息性质</div></div>`;
+      <div class="muted" style="margin-top:6px;font-size:11.5px">计算于 ${p.computed_at}</div></div>`;
   } else {
     t += evEmptyCard('26-27 季前模拟未生成：附加赛升班马名单尚未官方确认（club_preseason.py 运行闸拦截）。名单确认后此处出现季前夺冠概率。');
   }
@@ -3414,8 +3656,7 @@ function evExplainCards(o){
       只算 6%。这让模型自动跟随球队状态演变，无需人工修正。</p>
       <p style="margin:6px 0"><b>结算口径。</b>训练与预测统一 90 分钟（含补时，不含加时点球）。</p>
       <p style="margin:6px 0"><b>市场诚实层。</b>已回测结论：B365 闭盘 RPS 优于本模型（俱乐部与国家队两宇宙同款结论）——
-      闭盘聚合了阵容、伤停与临场信息流，公开历史比分模型结构上不可能稳定胜出。所有输出为研究/信息性质，
-      不构成投注建议（详见「市场对标」Tab）。</p>
+      闭盘聚合了阵容、伤停与临场信息流，公开历史比分模型结构上不可能稳定胜出（详见「市场对标」Tab）。</p>
     </div></div>
   <div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">联赛版与世界杯版的差异</h3>
     <div class="hscroll"><table class="mgt">
@@ -3446,7 +3687,7 @@ function evMarketCards(mk){
   let t=`<div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">${mk.season} 赛季 模型 vs 市场（${mk.n} 场同场对比）</h3>
     <div class="hscroll"><table class="mgt"><tr><th>口径</th><th>RPS（越小越好）</th><th>胜平负命中率</th></tr>${rows}</table></div>
     <div class="muted" style="margin-top:8px;font-size:12px">诚实层结论：闭盘 RPS 优于模型 ${(gap*100).toFixed(2)}pp——闭盘价格聚合了阵容、伤停与临场信息流，
-      公开历史比分模型结构上不可能稳定胜出（国家队侧同款结论）。本对标用于认清模型与市场的差距，禁止衍生任何投注建议。</div>
+      公开历史比分模型结构上不可能稳定胜出（国家队侧同款结论）。</div>
     <div class="muted" style="margin-top:4px;font-size:11.5px">口径：B365 开/闭盘 Shin 去水；模型分段 as-of 训练防泄漏（hl=365）；
       仅计模型可预测且开闭盘俱全场次（跳过 模型${mk.skipped_model} / 赔率${mk.skipped_odds} 场）；90 分钟结算。</div></div>`;
   if(mk.sample && mk.sample.rows && mk.sample.rows.length){
@@ -3497,7 +3738,7 @@ function evSeasonSimCard(ss){
     </div>
     <h4 style="margin:12px 0 4px">争冠概率演进（月粒度概览；周粒度详版见「夺冠概率」Tab）</h4>
     ${evLineChart(labels, series)}
-    <div class="muted" style="margin-top:8px;font-size:11.5px">计算于 ${ss.computed_at} · 来源 ${ss.source} · 数据截至 ${ss.data_through} · 研究/信息性质，非投注建议</div>
+    <div class="muted" style="margin-top:8px;font-size:11.5px">计算于 ${ss.computed_at} · 来源 ${ss.source} · 数据截至 ${ss.data_through}</div>
   </div>`;
 }
 let _evEpoch = 0;                       // 渲染世代计数：每次 evShowTab ++，迟到异步响应按世代丢弃
@@ -3513,6 +3754,9 @@ function evSetContent(ep, html){        // 异步写 #ev_content 的唯一出口
 function evShowTab(key, tk, qs){
   const ep = ++_evEpoch;
   document.querySelectorAll('#ev_tabs .tab').forEach(x=>x.classList.toggle('on', x.dataset.t===tk));
+  const active = document.querySelector('#ev_tabs .tab.on');
+  if(window.innerWidth<=900 && active && active.scrollIntoView)
+    active.scrollIntoView({inline:'nearest',block:'nearest'});
   history.replaceState(null,'','#'+key+'/'+tk+(qs?'?'+qs:''));
   const c=$('#ev_content'); if(!c) return;
   jcRestoreHome();                                   // jc 组件若在本容器内，先归位再覆写，防节点销毁
@@ -3608,8 +3852,8 @@ async function renderEventView(key, tab, qs){
       <div class="muted">本赛事的网页接线尚未完成（后端 not_wired 占位）。数据层与模型已就绪，接线按路线图推进。</div></div>`;
     return;
   }
-  const tabbar = `<div class="tabs" id="ev_tabs">`+LEAGUE_TABS.map(t=>
-    `<div class="tab" data-t="${t.k}" onclick="evShowTab('${key}','${t.k}')">${t.ico} ${t.name}</div>`).join('')+`</div>`;
+  const tabbar = `<div class="tabs" id="ev_tabs" role="tablist" aria-label="赛事功能">`+LEAGUE_TABS.map(t=>
+    `<button type="button" class="tab" data-t="${t.k}" onclick="evShowTab('${key}','${t.k}')">${t.name}</button>`).join('')+`</div>`;
   v.innerHTML = `<div class="card"><h3 style="margin:0 0 8px">${meta.name||key} ${evBadge(meta)}</h3><div id="ev_head" class="muted">加载中…</div></div>`
     + tabbar + `<div id="ev_content"></div>`;
   if(isClub){
@@ -3719,9 +3963,55 @@ DataScheduler.register('verify', 60*1000, ()=>{ if(wcTabActive() && $('#dashres'
 DataScheduler.register('verify', 3*60*1000, async ()=>{ if(!wcTabActive()) return; const r=await postLive(); if(r&&r.ok&&r.changed) loadDashboard(); });
 DataScheduler.register('xuanxue', 2*60*1000, ()=>{ if(wcTabActive() && xuanxueLoaded) loadXuanxue(); });  // 完赛后自动结算并入排行
 
+// —— 全站语义与键盘操作：覆盖服务端首屏和后续动态渲染片段 ——
+function enhanceAccessibility(root=document){
+  root.querySelectorAll('[onclick]').forEach(el=>{
+    if(el.matches('button,input,select,textarea,[href],.sp-mask,.pmodal')) return;
+    if(!el.hasAttribute('role')) el.setAttribute('role', el.tagName==='TR' ? 'link' : 'button');
+    if(!el.hasAttribute('tabindex')) el.tabIndex=0;
+  });
+  root.querySelectorAll('input:not([type="hidden"]),select,textarea').forEach(el=>{
+    if(el.labels&&el.labels.length || el.hasAttribute('aria-label') || el.hasAttribute('aria-labelledby')) return;
+    const lab=el.closest('.fld')&&el.closest('.fld').querySelector('label');
+    el.setAttribute('aria-label', (lab&&lab.textContent.trim()) || el.placeholder || el.id.replace(/_/g,' ') || '输入');
+  });
+  root.querySelectorAll('.tabs .tab').forEach(el=>{
+    el.setAttribute('role','tab');
+    el.setAttribute('aria-selected',el.classList.contains('on')?'true':'false');
+  });
+  root.querySelectorAll('.hscroll').forEach(el=>{
+    if(!el.hasAttribute('tabindex')) el.tabIndex=0;
+    if(!el.hasAttribute('aria-label')) el.setAttribute('aria-label','可横向滚动的数据表');
+  });
+}
+document.addEventListener('keydown',e=>{
+  const el=e.target;
+  if((e.key==='Enter'||e.key===' ') && el.matches('[role="button"][onclick],[role="link"][onclick]')){
+    e.preventDefault();el.click();
+  }
+  if(e.key==='Escape'){
+    if($('#sponsor-modal').classList.contains('on')) closeSponsor();
+    if($('#pmodal').style.display==='flex') closeModal();
+  }
+});
+let _a11yQueued=false;
+new MutationObserver(()=>{
+  if(_a11yQueued) return;
+  _a11yQueued=true;
+  requestAnimationFrame(()=>{enhanceAccessibility();_a11yQueued=false;});
+}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+enhanceAccessibility();
+
 // —— 赞赏（纯自愿，不解锁任何功能）——
-function openSponsor(){ const m=$('#sponsor-modal'); if(m) m.classList.add('on'); }
-function closeSponsor(){ const m=$('#sponsor-modal'); if(m) m.classList.remove('on'); }
+let _sponsorReturnFocus=null;
+function openSponsor(){
+  const m=$('#sponsor-modal'); if(!m) return;
+  _sponsorReturnFocus=document.activeElement;m.classList.add('on');m.querySelector('.sp-x').focus();
+}
+function closeSponsor(){
+  const m=$('#sponsor-modal'); if(!m) return;
+  m.classList.remove('on');if(_sponsorReturnFocus&&_sponsorReturnFocus.focus) _sponsorReturnFocus.focus();
+}
 DataScheduler.start();
 
 // —— GitHub 仓库更新检测（右上角）：定时比对本地 HEAD vs 远程 main，发现新版本提示通过 Claude 更新 ——

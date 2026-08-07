@@ -437,7 +437,7 @@ def build(ctx: dict | None = None) -> dict:
         "schema_version": SCHEMA_VERSION,
         "generated_at": now.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "hero": {"title": "足球赛事预测器",
-                 "subtitle": "国家队与五大联赛 · 历史比分模型研究与赛事数据看板",
+                 "subtitle": "国家队与五大联赛 · 历史比分模型与赛事数据看板",
                  "next_event": nxt},
         "freshness": _freshness(ctx),
         "match_stream": stream,

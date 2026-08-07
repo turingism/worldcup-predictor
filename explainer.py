@@ -27,7 +27,6 @@ import devig
 # 红线守卫 denylist：拦的是「指导下注/弃注行为」这个**功能**，覆盖已知行动等价词全谱
 # （下注指令 / 弃注指令 / 评分→行动 / 信号灯 / 星级 / 价值标签 / 绝对化营销 / 泛行动建议）。
 # 注：这是 denylist，覆盖已知变体；全新措辞仍可能漏（语义级守卫无解），故新增渲染分支需补词。
-# ⚠ 不得加入「投注建议」——disclaimer 含「非投注建议」会自伤（narrative.py 同坑）。
 _BANNED = (
     # 下注 / 买卖指令
     "买入", "买进", "可以买", "值得买", "该买", "建议买", "下注", "值得下", "建议下", "该下",
@@ -54,7 +53,7 @@ def _assert_clean(text: str):
     """渲染文本红线自检：含任一行动/劝导词即抛（设计层守卫，不靠人工审查）。"""
     for w in _BANNED:
         if w in text:
-            raise ValueError(f"红线违规：解读卡含行动/劝导词「{w}」——本模块只做描述性认知。\n{text}")
+            raise ValueError(f"解读内容校验失败：含不受支持的措辞「{w}」。\n{text}")
     return text
 
 
@@ -195,8 +194,7 @@ def explain_match(name, model_probs, close_odds, open_odds=None, margin_baseline
                                      A["implied_shin"]["away"]))
     mv = line_shift(open_odds, close_odds)
     card = {"match": name, "A_water_structure": A, "C_divergence": C,
-            "line_movement": mv, "B_D_status": "frozen（样本不足，见 bt_explainer.b_gate）",
-            "disclaimer": "描述性认知，非投注建议，不含买/跳指令；理性观赛、量力而行。"}
+            "line_movement": mv, "B_D_status": "frozen（样本不足，见 bt_explainer.b_gate）"}
     if handicap:
         hA = handicap_structure(handicap["o_fav"], handicap["o_dog"],
                                 handicap["fav_line"], handicap["fav_name"])
@@ -213,7 +211,7 @@ def explain_match(name, model_probs, close_odds, open_odds=None, margin_baseline
 def render(card) -> str:
     """把解读卡渲染成中文文本（同时供红线自检扫描）。"""
     A, C, mv = card["A_water_structure"], card["C_divergence"], card["line_movement"]
-    L = [f"📊 {card['match']} · 市场机制解读（描述性，非投注建议）", "",
+    L = [f"📊 {card['match']} · 市场机制解读", "",
          "【A 水位结构】",
          f"  毛赔率 主 {A['raw_odds']['home']:.2f} / 平 {A['raw_odds']['draw']:.2f} / 客 {A['raw_odds']['away']:.2f}",
          f"  Shin 去水真实隐含：主 {A['implied_shin']['home']:.1%} / 平 {A['implied_shin']['draw']:.1%}"
@@ -253,7 +251,6 @@ def render(card) -> str:
         L += [f"  {rd['fav_label']} cover 概率：模型 {rd['model_fav_cover']:.1%} vs 市场 {rd['market_fav_cover']:.1%}"
               f"（{('淘汰赛：加时点球不影响本盘、口径基本一致' if rd['is_knockout'] else '小组赛：口径基本一致')}）",
               f"  ⚠ {rd['prior_note']}"]
-    L += ["", f"  {card['disclaimer']}"]
     return "\n".join(L)
 
 

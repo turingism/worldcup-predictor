@@ -49,3 +49,6 @@ data/golden/
 
 # 静态导出产物（由 GitHub Actions 生成并直接发布，不进 git）
 dist/
+
+# baoyu-translate refined-mode run artifacts（项目偏好配置保留，逐次草稿不入库）
+.baoyu-skills/baoyu-translate/runs/

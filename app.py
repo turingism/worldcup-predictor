@@ -478,7 +478,7 @@ def api_club_predict():
         "top_scores": [{"h": int(i), "a": int(j), "p": round(float(p), 4)}
                        for (i, j), p in r["top_scores"]],
         "data_through": str(df.date.max().date()), "source": "football-data.co.uk",
-        "note": "90 分钟口径（含补时，不含加时点球）；研究/信息性质",
+        "note": "90 分钟口径（含补时，不含加时点球）",
         "basis": basis,
     }
     fdr = None
@@ -778,7 +778,7 @@ _MR_CACHE: dict = {}
 @app.route("/api/market_research")
 def api_market_research():
     """市场研究（只读、纯分析）：开盘→闭盘线移动信息检验（闭盘是否更锐利 + 移动是否含信息，
-    带 bootstrap/Wilson CI）。不训练模型、不碰 GLM、不涉下注。轻量缓存。"""
+    带 bootstrap/Wilson CI）。不训练模型、不碰 GLM。轻量缓存。"""
     if request.args.get("fresh") or not _MR_CACHE:
         try:
             r = market_research.build(df=DF)
@@ -805,8 +805,8 @@ def _exp_total(M) -> float:
 
 @app.route("/api/explainer")
 def api_explainer():
-    """市场机制解读卡（信息性 A/C：A 水位拆解 + C 模型vs市场分歧，分歧强制挂 CLV<0 先验）。
-    描述性认知、非投注建议、零下注指令；B/D 诱惑形态按闸门冻结不渲染。复用 explainer.build_card。"""
+    """市场机制解读卡（A 水位拆解 + C 模型vs市场分歧，分歧强制挂 CLV<0 先验）。
+    B/D 诱惑形态按闸门冻结不渲染。复用 explainer.build_card。"""
     home = request.args.get("home", "").strip()
     away = request.args.get("away", "").strip()
     try:
@@ -916,7 +916,7 @@ def api_jc_review():
     GET ?home=&away=&date= → 返回该场模型冻结预测（供录入预填）+ 已存记录+对账（若有）。
     POST action=prematch → 录入（录入那一刻冻结模型、记 frozen_at）。
     POST action=result   → 赛后手填 90 分钟比分 → 单场三方对账。
-    只让球 cover；赛后比分手填 90 分钟（不复用 results.csv 含加时口径）。零下注指令。"""
+    只让球 cover；赛后比分手填 90 分钟（不复用 results.csv 含加时口径）。"""
     import jc_review as jc
     _key, _ev = _event()
     if _ev and _ev["universe"].startswith("club_"):

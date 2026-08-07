@@ -49,7 +49,9 @@ PROBE = r"""
   const texts = [...document.querySelectorAll(
       '#homeview .hm-meta, #homeview .hm-fresh div, #homeview .hm-run > div, #eventview .muted')]
     .filter(x => vis(x) && x.textContent.trim());
-  const prose = texts.filter(x => !x.matches('.r-days, .r-state, .m-ko, .hm-unit')
+  // 表格中的日期/比分属于不可拆的字段，nowrap 是表格可横滚契约的一部分；它们仍接受上面的
+  // scrollWidth/clientWidth 截断检查，但不按「成句文案必须换行」处理。
+  const prose = texts.filter(x => !x.matches('.r-days, .r-state, .m-ko, .hm-unit, td, th')
                                   && x.textContent.trim().length > 12);
   out.intro_not_clipped = texts.every(el => el.scrollWidth <= el.clientWidth + 1)
     && prose.every(el => getComputedStyle(el).whiteSpace !== 'nowrap');
@@ -72,6 +74,19 @@ PROBE = r"""
   const cards = document.querySelectorAll('#homeview .hm-card').length;
   const evs = document.querySelectorAll('#evbar .ev').length;
   out.all_events_discoverable = cards >= 7 || evs >= 8;   // 首页七张卡 / 详情页侧栏总览+七赛事
+  // 每组赛事卡最后一行必须吃满容器宽度。旧 auto-fill 会保留空轨：国家队 2 张卡只占
+  // 三列中的前两列，五联赛第二行也永久空出右侧一列，截图看起来像整版错位。
+  const eventGrids = [...document.querySelectorAll('#homeview .hm-event-grid')].filter(vis);
+  out.home_event_rows_fill_width = eventGrids.every(g => {
+    const cs = [...g.children].filter(vis);
+    if (!cs.length) return true;
+    const maxTop = Math.max(...cs.map(x => Math.round(x.getBoundingClientRect().top)));
+    const last = cs.filter(x => Math.abs(Math.round(x.getBoundingClientRect().top) - maxTop) <= 1);
+    const gb = g.getBoundingClientRect();
+    const left = Math.min(...last.map(x => x.getBoundingClientRect().left));
+    const right = Math.max(...last.map(x => x.getBoundingClientRect().right));
+    return left <= gb.left + 1 && right >= gb.right - 1;
+  });
   const on = document.querySelector('.tabs .tab.on');
   out.active_tab_visible = !on || (on.getBoundingClientRect().left >= -1 &&
     on.getBoundingClientRect().right <= window.innerWidth + 1);
@@ -83,7 +98,7 @@ PROBE = r"""
 
 BOOL_CHECKS = ("page_no_overflow", "tabs_single_row", "intro_not_clipped",
                "no_element_past_viewport", "hscroll_contained",
-               "all_events_discoverable", "active_tab_visible")
+               "all_events_discoverable", "home_event_rows_fill_width", "active_tab_visible")
 
 
 def _free_port() -> int:

@@ -1,0 +1,37 @@
+{
+ "stream_rows": 8,
+ "stream_has_estimate": true,
+ "stream_no_bare_number": true,
+ "home_click_target": {
+  "ev": "laliga2627",
+  "h": "Alaves",
+  "a": "Getafe",
+  "pending": "1",
+  "p": "39 / 33 / 28% 当前模型估算（未冻结）"
+ },
+ "home_click_hash": "#laliga2627/matchup?h=Alaves&a=Getafe",
+ "home_click_inputs": {
+  "h": "🇪🇸 阿拉维斯",
+  "a": "🇪🇸 赫塔费",
+  "card": "单场预测：🇪🇸 阿拉维斯 vs 🇪🇸 赫塔费 （🇪🇸 阿拉维斯 主场） 🇪🇸 阿拉维斯 胜 39.2% · 平局 33.1% · 🇪🇸 赫塔费 胜 27.7% 期望进球 🇪🇸 阿拉维斯 1 - 0.79 🇪🇸 赫塔费 · 大 2.5 球 26.5% · 双方进球 34.5% 最可能比分：0-0 17.0%1-0 16.6%1-1 13.3%0-1 13.1%2-0 8."
+ },
+ "home_click_ok": true,
+ "board_clickable_rows": 10,
+ "board_click_hash": "#epl2627/matchup?h=Nott'm%20Forest&a=Leeds",
+ "board_click_inputs": {
+  "h": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 诺丁汉森林",
+  "a": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 利兹联",
+  "card": "单场预测：🏴󠁧󠁢󠁥󠁮󠁧󠁿 诺丁汉森林 vs 🏴󠁧󠁢󠁥󠁮󠁧󠁿 利兹联 （🏴󠁧󠁢󠁥󠁮󠁧󠁿 诺丁汉森林 主场） 🏴󠁧󠁢󠁥󠁮󠁧󠁿 诺丁汉森林 胜 46.6% · 平局 26.0% · 🏴󠁧󠁢󠁥󠁮󠁧󠁿 利兹联 胜 27.4% 期望进球 🏴󠁧󠁢󠁥󠁮󠁧󠁿 诺丁汉森林 1.57 - 1.15 🏴󠁧󠁢󠁥󠁮󠁧󠁿 利兹联 "
+ },
+ "board_click_ok": true,
+ "deeplink_inputs": {
+  "h": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 赫尔城",
+  "a": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 曼联",
+  "card": "单场预测：🏴󠁧󠁢󠁥󠁮󠁧󠁿 赫尔城 vs 🏴󠁧󠁢󠁥󠁮󠁧󠁿 曼联 （🏴󠁧󠁢󠁥󠁮󠁧󠁿 赫尔城 主场） 🏴󠁧󠁢󠁥󠁮󠁧󠁿 赫尔城 胜 12.5% · 平局 18.7% · 🏴󠁧󠁢󠁥󠁮󠁧󠁿 曼联 胜 68.8% 期望进球 🏴󠁧󠁢󠁥󠁮󠁧󠁿 赫尔城 0.88 - 2.29 🏴󠁧󠁢󠁥󠁮󠁧󠁿 曼联 · 大 2.5 球 6"
+ },
+ "deeplink_ok": true,
+ "wc_title": "⚽ 世界杯比分预测器",
+ "wc_verify_display": "block",
+ "wc_no_regression": true,
+ "pass": true
+}

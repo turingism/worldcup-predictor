@@ -1,163 +1,164 @@
-# ⚽ 顶级足球赛事预测器
+# 足球赛事预测器
 
-<p align="right"><a href="./README.md">English</a> · <strong>简体中文</strong> · <a href="./README.zh-TW.md">繁體中文</a></p>
+<p align="right"><a href="./README.md">English</a> · <strong>简体中文</strong></p>
 
 [![SkillSafe verified](https://api.skillsafe.ai/v1/badge/@melvin/football-match-forecasting/verified)](https://skillsafe.ai/skill/@melvin/football-match-forecasting/) [![Installs](https://api.skillsafe.ai/v1/badge/@melvin/football-match-forecasting/installs)](https://skillsafe.ai/skill/@melvin/football-match-forecasting/) [![Scan](https://api.skillsafe.ai/v1/badge/@melvin/football-match-forecasting/scan)](https://skillsafe.ai/skill/@melvin/football-match-forecasting/)
 
-### **[▶ 打开在线版](https://turingism.github.io/worldcup-predictor/)** —— 不用装、不用配 API key
+### [打开在线版](https://turingism.github.io/worldcup-predictor/) · 无需安装与 API Key
 
-Dixon-Coles 双泊松引擎，用 1872–2026 全部国际比赛训练，另有欧洲五大联赛各自独立的俱乐部模型。每个数字都可证伪：任何模型改动**必须在样本外回测里赢过基线**，否则不采用。
-
-> ## ⚠️ 免责声明 / Disclaimer
-> 本项目为**个人学习与技术研究的开源作品**，仅用于统计建模、数据分析与编程学习目的，**不构成任何形式的投注、投资或决策建议**。作者不对任何人使用本项目的行为、以及由此**直接或间接关联的任何赌球、博彩等行为及其后果**承担任何责任。所有输出均为统计概率估计——**概率不等于确定结果**；博彩长期对绝大多数人期望收益为负，且在许多法域受法律限制。是否参与、以及由此产生的一切风险与法律责任**完全由使用者自行承担**。本项目按"现状"（as-is）提供，不附带任何明示或默示担保；使用即视为已阅读并同意本声明。
->
-> *This is a personal, educational open-source project for statistical modeling and programming study only. It is **not** betting, investment, or any other advice. The author accepts **no liability** for anyone's use of it or for **any gambling/betting activity directly or indirectly associated with it**. All outputs are probabilistic estimates — probability is not certainty; gambling is negative-EV for most people over time and is legally restricted in many jurisdictions. You bear all risk and legal responsibility. Provided "as is" without warranty.*
+一个覆盖国家队赛事与欧洲五大联赛的足球概率分析产品。核心是 Dixon-Coles 双泊松模型，网页端提供跨赛事总览、未来赛程、比分概率、赛事推演、验证账本和数据状态。任何模型改动都必须通过时序样本外回测，未赢过基线的方案不会进入生产模型。
 
 <p align="center">
-  <img src="./docs/screenshot-home.png" alt="跨赛事首页总览：七个赛事按国家队与俱乐部分组、分源数据新鲜度、赛季启动时间轴，验证账本按赛事严格隔离" width="820">
+  <img src="./docs/evidence/ui-v2-home-desktop-1440x900.png" alt="新版赛事控制台桌面端：首页展示近期赛程、数据状态、赛事导航与概率" width="900">
 </p>
 
----
+## 当前覆盖
 
-## 两个模型宇宙，同一套引擎
+| 模型宇宙 | 赛事 | 数据与模型口径 |
+| --- | --- | --- |
+| 国家队 | 世界杯 2026；欧国联 26-27 赛事壳与单场引擎；支持任意国家队对阵 | 1872–2026 国际比赛，257 支球队，半衰期 730 天 |
+| 俱乐部 | 英超、西甲、意甲、德甲、法甲 26-27 | football-data.co.uk 各联赛独立模型，半衰期 365 天 |
+| 跨联赛 | 欧战历史账本与联赛强度锚点 | 五季欧战数据用于跨联赛校准，联赛页面仍保持独立模型 |
 
-| | 国家队 | 俱乐部 |
-|---|---|---|
-| 数据 | 1872–2026 全部国际赛，257 支球队 | football-data.co.uk，五大联赛 |
-| 半衰期 | 730 天 | 365 天 |
-| 覆盖 | 世界杯 2026、欧国联——引擎层面今天就能预测任意国家队对阵 | 英超 / 西甲 / 意甲 / 德甲 / 法甲 |
-| 赛事视图 | 含东道主主场修正的蒙特卡洛晋级树、带贝叶斯区间带的夺冠概率 | 赛季模拟器：夺冠 / 前四 / 降级概率 |
+国家队与俱乐部是两个独立模型宇宙。训练集、缓存、赛事账本和验证结果均按对应口径隔离。
 
-两个半衰期都是回测裁决出来的，不是拍脑袋定的，而且**确实不同**——别把一个宇宙的超参照搬到另一个。
+## UI v2：赛事控制台
 
-**每场比赛给什么**：比分概率矩阵、胜平负、大小球、双方进球、亚盘公平线、一份分析师风格的赛前深度报告（近期状态 / 历史交锋 / 攻防评级），以及一段把概率翻成人话的解读。
+这一版对全部页面重新设计，目标是让高密度赛程和概率在桌面、平板与手机上保持同一套阅读顺序。
 
-**怎么保证诚实**：预测在**开球前冻结**进验证账本，赛后逐场对账——按置信度分桶、标注失手归因。市场 / CLV 层拿模型对标博彩闭盘线，并如实报告：**模型打不赢市场**。
-
-完整功能走查（含全部截图）见 **[`docs/FEATURES.zh-CN.md`](./docs/FEATURES.zh-CN.md)**。
-
----
-
-## 准确度
-
-样本外、约 1388 场国际比赛，只用截止日之前的数据训练：
-
-| 指标 | 数值 | |
-|---|---|---|
-| **RPS** | **0.1624** | 越低越好，已在博彩闭盘线的量级 |
-| **胜平负命中率** | **59.7%** | 三向 argmax，**全部**国际赛口径 |
-| **校准误差 ECE** | **1.06%** | 对照行业基准 8–10% |
-| **净胜球相关系数** | **65%** | 高盛自己用的指标 |
-
-要引用就引用**分层数字**，别引用这个混合口径。**仅世界杯正赛**（2014/18/22/26 合并，n=295）是 RPS 0.186 / 命中 61.0% CI[55.6, 66.8]——而在 2026 年同一批比赛上，**博彩闭盘线仍然赢过模型**（0.1462 vs 0.1514）。这个差距被如实报告而不是藏起来，这也正是本项目任何地方都没有投注建议界面的原因。
-
-### 2026 世界杯已整届结算
-
-**104 场全部踢完并逐场对账**。每条预测都在**开球前冻结**，逐条带 `frozen_at` 时间戳，赛后与真实结果核对；其中 3 条是用防泄漏的 as-of 模型回溯补录的，标记为 `retro`。账本已入库，所以线上 Demo 展示的就是这份赛前承诺过的记录，而不是事后重建的：
-
-| | |
-|---|---|
-| **赛果命中率** | **70 / 104 = 67.3%** |
-| **平均 RPS** | **0.1528** |
-| 精确比分命中 | 15 / 104 = 14.4% |
-| 赋予实际赛果的平均概率 | 0.479 |
-
-两项都优于长期回测基线（59.7% / 0.1624）——但这是**赛事顺，不是模型变强了**：引擎自修掉时间泄漏起就没动过。底下的结构才是诚实的部分：全场 **24 场平局只叫中 1 场**，而"被逼平"占了 34 次失手中的 **23** 次；高把握档（≥60%）命中 78.4%。**argmax 几乎永远不会输出"平局"**——这是所有概率模型共同的天花板，不是本模型的缺陷。
+- 首页默认落在 `#home`，回答“近期有什么比赛、数据更新到哪里、各赛事当前处于什么阶段”。
+- 桌面端使用赛事侧栏；小于 900px 时切换为单行横滚赛事导航。
+- 世界杯、联赛和欧国联按赛事能力装配不同功能页，不复制一套固定 Tab。
+- 宽表格保留信息密度，并放进明确的横向滚动容器；页面根节点不会被撑宽。
+- 动态比赛卡、联赛赛程行和晋级树支持键盘操作；主要移动端控件保持至少 44px 触控高度。
+- 赛前冻结概率、当前模型估算、数据截至时间和赛事状态在界面中分别标注。
 
 <p align="center">
-  <img src="./docs/screenshot-verify.png" alt="最终验证账本：104 场、赛果命中 67.3%、平均 RPS 0.1528，含置信度分桶与失手归因" width="820">
+  <img src="./docs/evidence/ui-v2-wc-bracket-desktop-1440x900.png" alt="新版世界杯晋级树桌面端" width="900">
 </p>
 
-那些听起来很聪明、但**被回测否决**的做法（省得你交学费）：身价先验 · 动态 Elo（替换 / 集成 / 收缩先验三种形态）· 赛事分级加权 · 负二项过离散 · Isotonic/Platt 后校准 · 平局决策规则 · 中立场倾斜 · ρ 近期性重拟 · 分洲半衰期。
+<p align="center">
+  <img src="./docs/evidence/ui-v2-home-mobile-390x844.png" alt="新版赛事控制台手机端" width="360">
+  &nbsp;&nbsp;
+  <img src="./docs/evidence/ui-v2-epl-board-mobile-390x844.png" alt="新版英超赛事看板手机端" width="360">
+</p>
 
-> 剩下的误差是**结构性**的——所有概率模型共有的平局盲区——外加小样本噪声，不是可调参修掉的系统偏置。数字与方法见 **[`docs/backtest.md`](./docs/backtest.md)** 与 `CHANGELOG.md`。
+详细页面说明见 [完整功能说明](./docs/FEATURES.zh-CN.md)，视觉规范见 [DESIGN.md](./DESIGN.md)。
 
----
+## 核心能力
 
-## 自己跑
+### 跨赛事首页
+
+- 汇总未来 14 天已接线赛事，按开球时间排序。
+- 同时展示各数据源的 `data_through`、赛程发布状态和开球时间核验状态。
+- 赛事卡按国家队与俱乐部分组，展示赛季阶段、数据覆盖和就绪状态。
+- 验证账本按赛事独立呈现，不合并为全站单一指标。
+
+### 单场分析
+
+- 胜 / 平 / 负概率与最可能比分。
+- 完整比分概率矩阵与期望进球。
+- 近期状态、主客场拆分、历史交锋和攻防强度。
+- 大小球、双方进球、让球线与市场价格的结构化对照。
+- 联赛升班马通过对应次级联赛样本合训，且逐场标出模型口径。
+
+### 赛事推演
+
+- 世界杯：官方赛制晋级树、实际赛果锁定、比赛状态与冠军路径。
+- 五大联赛：积分榜、赛季剩余赛程模拟、夺冠 / 前四 / 降级分布。
+- 夺冠页展示概率随赛季推进的变化、关键时间窗与实力排名。
+
+### 验证与数据更新
+
+- 比赛开始前冻结概率和比分矩阵，赛后写入实际比分并计算 RPS。
+- 世界杯 104 场已完成整届验证；俱乐部账本按赛事和赛季独立存储。
+- ESPN 提供赛程与即时赛果，football-data.co.uk 提供俱乐部历史赛果与赔率字段。
+- 首页只读取缓存产物，不触发模型训练、蒙特卡洛模拟或网络抓取。
+
+## 模型表现
+
+国家队样本外回测必须按赛事层级阅读，不能只看混合数据集的单一数字。
+
+| 评估集 | RPS | 胜平负命中 |
+| --- | ---: | ---: |
+| 全部国际赛混合留出集，约 1,388 场 | 0.1624 | 59.7% |
+| 世界杯正赛 2014 / 2018 / 2022 / 2026，n=295 | 0.1864 | 61.0% |
+| 2026 世界杯验证账本，104 场 | 0.1528 | 70 / 104 |
+
+2026 世界杯是一次表现较好的赛事样本，不代表模型参数发生了改变。详细分层、置信区间、闭盘基准和已否决实验见 [回测文档](./docs/backtest.md)。
+
+## 快速开始
 
 ```bash
 git clone https://github.com/turingism/worldcup-predictor.git
 cd worldcup-predictor
 pip install -r requirements.txt
 
-python3 app.py                                    # 网页版 → http://127.0.0.1:8000
+python3 app.py                                    # http://127.0.0.1:8000
 python3 predict.py "Argentina" "France" --cache   # 国家队单场
-python3 clubpredict.py "阿森纳" "曼城"              # 俱乐部单场（联赛自动识别）
-python3 simulate.py --sims 5000                   # 夺冠概率
-python3 backtest.py                               # 证明你的改动真的更好
+python3 clubpredict.py "阿森纳" "曼城"              # 俱乐部单场
+python3 simulate.py --sims 5000                   # 世界杯赛事模拟
+python3 backtest.py                               # 国家队样本外回测
 ```
 
-首次运行训练模型约 1 分钟并缓存，之后秒出。队名中英文都认。`READONLY=1 python3 app.py` 启动只读分享模式，全部写接口禁用。比赛日运维见 **[`docs/RUNBOOK.zh-CN.md`](./docs/RUNBOOK.zh-CN.md)**。
+首次运行会训练并缓存模型。队名支持中文与英文。`READONLY=1 python3 app.py` 可启动只读实例。
 
-```python
-import data
-from model import DixonColesModel
-
-m = DixonColesModel(half_life_days=730).fit(data.load_raw())
-r = m.predict("Argentina", "France", neutral=True)
-r["top_scores"][0]      # ((1, 0), 0.169)
-r["p_home"], r["p_draw"], r["p_away"]
-r["matrix"]             # 完整比分概率矩阵
-```
-
----
-
-## 在线版是怎么搭的
-
-在线版是托管在 GitHub Pages 上的**冻结静态快照**，没有服务器。
-
-这是**刻意的架构选择，不是妥协**。本应用实测：一次冷启动的回溯验证峰值内存约 **3 GB**，光 `/api/market` 一个接口就再吃 **873 MB**，预热缓存要 **262 秒**。没有任何免费托管运行时扛得住。但在冻结快照下，每个读接口都是数据的确定函数——于是把这些**全部移进构建期**，而 GitHub Actions 给公开仓库的是免费且无限量的 4 核 / 16GB runner。workflow 训练模型、烤热全部缓存、把整个 API 面预渲染成 JSON 再发布。线上运行时内存为零，首屏就是一次 CDN 文件读取。
+在本机项目环境中建议使用：
 
 ```bash
-python3 warmup.py                      # 训练 + 烤热缓存
-python3 export_static.py --out dist    # 预渲染 API 面
+/opt/anaconda3/bin/python3 app.py
+/opt/anaconda3/bin/python3 -m pytest test_core.py -q
 ```
 
-前端只加了一层适配：`apiFetch()` 用规范化查询串的 FNV-1a 确定性哈希直接算出预渲染文件的路径，零索引、零预载。动态模式下 `STATIC_MODE` 为 `false`，`apiFetch` 就是 `fetch` 本身，自建部署的行为与从前完全一致。两侧的哈希契约由金标准向量测试钉死——一旦口径悄悄漂移，整站取数都会 404。
+## 静态在线版
 
-静态快照做不到的事：实时 in-play 更新，以及全部写操作（刷新、假设赛果、手动录入）。这些在你自建部署时都有，而 `READONLY=1` 本来就禁用它们，所以两种模式口径一致。
+GitHub Pages 版本是构建期生成的冻结快照。GitHub Actions 会训练模型、预热缓存，并把确定性的只读 API 导出为 JSON；浏览器端直接从 CDN 读取这些产物。
 
----
+```bash
+python3 warmup.py
+python3 export_static.py --out dist
+```
 
-## 文件地图
+自建 Flask 版本保留实时比分、刷新、试算与本地录入；静态版只提供已导出的读取能力。
 
-| | |
-|---|---|
-| `model.py` `data.py` `predict.py` | Dixon-Coles 引擎、数据层、单场 CLI |
-| `simulate.py` `wc2026.py` `schedule.py` | 蒙特卡洛赛事模拟、官方赛制、赛程 |
-| `clubdata.py` `clubpredict.py` `clubsim.py` | 俱乐部数据层、各联赛模型、赛季模拟器 |
+## 工程结构
+
+| 文件 | 职责 |
+| --- | --- |
+| `model.py` `data.py` `predict.py` | Dixon-Coles 引擎、国家队数据和单场 CLI |
+| `clubdata.py` `clubpredict.py` `clubsim.py` | 俱乐部数据、联赛模型和赛季模拟 |
 | `verify.py` `clubverify.py` | 赛前冻结与赛后结算 |
-| `clv.py` `market_research.py` `explainer.py` | 市场对标、线移动研究、机制解读 |
-| `home_dashboard.py` `manager.py` `narrative.py` | 跨赛事首页总览、深度报告、人话解读层 |
-| `bayes.py` `champ_ci.py` `inplay.py` | 分层贝叶斯评级、夺冠区间带、实时胜平负 |
-| `export_static.py` `warmup.py` | 静态快照构建 |
-| `app.py` `templates/index.html` | Flask 后端、单页前端 |
-| `test_core.py` | 212 项回归测试 |
-| `docs/` | 功能走查、回测、数据源、方法说明、运维手册 |
+| `home_dashboard.py` `events.py` | 首页聚合与赛事注册表 |
+| `manager.py` `explainer.py` `narrative.py` | 对阵分析、机制解释和文本表达层 |
+| `app.py` `templates/index.html` | Flask API 与单页 Web UI |
+| `export_static.py` `warmup.py` | GitHub Pages 静态快照构建 |
+| `test_core.py` | 当前 230 项核心回归测试 |
 
-给 AI 编码助手的操作手册：**[`skill/SKILL.md`](./skill/SKILL.md)**。
+## 验证状态
 
----
+本次 UI v2 发布已完成：
 
-## 开源协议
+- `230 passed` 核心测试。
+- 17 条路由 × 2 个视口，共 34 条页面检查全部通过。
+- 首页、世界杯看板和英超看板在 390 / 430 / 768 / 1440 四档视口全部通过。
+- 10 个确定性 API 端点在升级前后逐字节一致。
+- Impeccable UI 审计 19 / 20；剩余项是部分旧渲染器仍保留局部颜色字面量。
 
-MIT，见 [`LICENSE`](./LICENSE)。无论以何种方式使用，上方免责声明同样适用。
+验收证据见 [`docs/evidence/`](./docs/evidence/) 与 [Impeccable 审计报告](./docs/evidence/ui-v2-impeccable-audit.md)。
 
----
+## 文档
 
-## 方法源流
+- [完整功能说明](./docs/FEATURES.zh-CN.md)
+- [比赛日运行手册](./docs/RUNBOOK.zh-CN.md)
+- [数据源](./docs/data-sources.md)
+- [回测与实验裁决](./docs/backtest.md)
+- [设计规范](./DESIGN.md)
+- [开发说明](./docs/README-dev.md)
 
-Maher (1982) 泊松进球建模 · Dixon & Coles (1997) 低比分相关性修正与时间加权 · Lee (1997) 独立双泊松基线 · Shin (1992) 去抽水用于读市场价格 · Fjelstul World Cup DB 用于重构 90 分钟比分 · martj42 国际比赛结果数据集 · football-data.co.uk 俱乐部数据与赔率。
+## License
 
----
+MIT，见 [LICENSE](./LICENSE)。
 
-## ☕ 赞赏支持（纯自愿）
+## 支持项目
 
-免费开源项目。如果它让你看球多了点乐趣，欢迎请作者喝杯咖啡。
-
-<p align="center">
-  <img src="./data/sponsor.png" alt="赞赏码（支付宝 / 微信）" width="420">
-</p>
-
-> 赞赏**不解锁任何功能**，也不构成购买任何预测服务。所有功能对所有人永久免费。自建部署时把 `data/sponsor.png` 换成你自己的收款码即可。
+项目免费开源。网页右上角“支持项目”可打开赞赏码；所有功能保持公开可用。

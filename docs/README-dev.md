@@ -1,4 +1,4 @@
-# Developer Notes · 世界杯比分预测器
+# Developer Notes · 足球赛事预测器
 
 This file is a compact maintainer guide. For product copy, see:
 
@@ -11,14 +11,13 @@ This file is a compact maintainer guide. For product copy, see:
 
 ## Product Scope
 
-World Cup Score Predictor is a local-first Flask product built around one falsifiable engine:
+Football Events Predictor is a local-first Flask product built around two isolated model universes:
 
-- Dixon-Coles double-Poisson model on real international results from 1872-2026;
+- a Dixon-Coles double-Poisson national-team model on international results from 1872-2026;
+- independent 365-day-half-life models for Europe's top five leagues;
 - official 2026 World Cup groups, bracket, and best-third-place allocation;
-- Monte-Carlo title odds and Bayesian title credible intervals;
-- live dashboard, in-play W/D/L, scoreline matrix, match-analysis report, verification ledger, market/CLV honesty layer, lineup context, and cultural divination tab.
-
-It is an educational analytics project only. Product and documentation copy must never turn probabilities into betting advice.
+- league tables, remaining-season simulation, and per-event verification ledgers;
+- the UI v2 Competition Console, match analysis, source freshness, and responsive event navigation.
 
 ---
 
@@ -26,10 +25,9 @@ It is an educational analytics project only. Product and documentation copy must
 
 | Rule | Why it exists |
 |---|---|
-| `half_life=730` is the current backtest-backed default | The old `240` result came from a time-leak artifact and must not be restored |
+| National `half_life=730`; club `half_life=365` | Both values are independently backtest-adjudicated |
 | Model changes require `python3 backtest.py` | No parameter or feature is adopted without RPS / LogLoss / hit-rate evidence |
 | In-play / market / lineup layers are read-only side paths | They must not write the frozen verification ledger or mutate the GLM |
-| Public copy must say probability, not certainty | No "guaranteed", "sure win", "follow", "stake", or purchase nudges |
 | README English and Chinese stay paired | GitHub-facing product docs are bilingual by default |
 
 ---
@@ -38,7 +36,7 @@ It is an educational analytics project only. Product and documentation copy must
 
 ```bash
 cd ~/worldcup-predictor
-/opt/anaconda3/bin/python app.py
+/opt/anaconda3/bin/python3 app.py
 # http://127.0.0.1:8000
 ```
 
@@ -62,23 +60,17 @@ tail -f ~/Library/Logs/worldcup-predictor/app.err.log
 ## Verification
 
 ```bash
-/opt/anaconda3/bin/python -m pytest test_core.py -q
-/opt/anaconda3/bin/python backtest.py
+/opt/anaconda3/bin/python3 -m pytest test_core.py -q
+/opt/anaconda3/bin/python3 backtest.py
 ```
 
 Use the tests for regression safety and `backtest.py` only when model behavior changes. Documentation, screenshot, and copy updates do not require a backtest unless they alter modeling code or output semantics.
 
-For screenshots:
+For screenshots, always use the repository wrapper so Chrome runs with an isolated temporary profile:
 
 ```bash
-"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
-  --headless=new \
-  --no-proxy-server \
-  --screenshot=docs/screenshot-dashboard.png \
-  --window-size=1180,1450 \
-  --force-device-scale-factor=2 \
-  --virtual-time-budget=10000 \
-  "http://127.0.0.1:8000/"
+scripts/shot.sh docs/evidence/home.png 1440,900 1 'http://127.0.0.1:8000/#home'
+/opt/anaconda3/bin/python3 scripts/ui_check.py --path '#home'
 ```
 
 ---
@@ -89,7 +81,12 @@ For screenshots:
 worldcup-predictor/
 ├── app.py                 # Flask API + dashboard routes + background jobs
 ├── templates/index.html   # single-page Web UI
+├── events.py              # event registry, aliases, and ledger identity
+├── home_dashboard.py      # read-only cross-event homepage assembly
 ├── model.py               # Dixon-Coles model and score matrix
+├── clubdata.py            # top-five league history and model frames
+├── clubpredict.py         # club single-match prediction and promoted-team path
+├── clubsim.py             # remaining-season simulation
 ├── predict.py             # CLI single-fixture prediction
 ├── simulate.py            # group/bracket/title Monte-Carlo
 ├── wc2026.py              # official 2026 groups, bracket, best-third allocation
@@ -101,7 +98,9 @@ worldcup-predictor/
 ├── handicap_ledger.py     # handicap verification and model-vs-market checks
 ├── teams_zh.py            # Chinese labels + flags
 ├── data/                  # local data and runtime ledgers
-├── docs/                  # screenshots, runbooks, whitepaper source, skill docs
+├── DESIGN.md              # UI v2 design system and responsive rules
+├── docs/evidence/         # screenshots and executable UI acceptance evidence
+├── docs/                  # product guides, runbooks, whitepaper source, skill docs
 └── test_core.py           # regression tests
 ```
 
@@ -113,6 +112,5 @@ Generated personal/runtime files such as prediction ledgers, odds snapshots, and
 
 - 主 README 是产品说明；`docs/RUNBOOK*.md` 是比赛日操作手册；`docs/CODEX_SKILL*.md` 是 agent skill 操作说明。
 - 白皮书源文件是 `docs/whitepaper-source.html`，定位为方法论，不塞 UI 小功能。
-- 截图放在 `docs/`，用相对路径引用。
-- 所有对外文案保留免责声明：个人学习与数据研究项目，不构成任何投注、投资或决策建议。
-
+- 产品截图放在 `docs/evidence/`，用相对路径引用，并保留视口尺寸到文件名。
+- README 与 FEATURES 的英文、简体中文版本保持相同章节、数字与截图。
